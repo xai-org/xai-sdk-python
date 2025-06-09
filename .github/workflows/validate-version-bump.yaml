@@ -1,0 +1,66 @@
+name: Validate Version Bump
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/xai_sdk/__about__.py
+
+jobs:
+  validate-version-bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history to compare commits
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c7f87aa956e4c323abf06d5dec078e358f6b4d04 # v6
+        with:
+          version: "0.7.3"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Validate version bump
+        run: |
+          # Get the commit from the tip of main
+          MAIN_COMMIT=$(git rev-parse origin/main)
+
+          # Get the commit from the PR's source branch
+          PR_COMMIT=${{ github.event.pull_request.head.sha }}
+
+          # Get the previous version (from main)
+          git checkout $MAIN_COMMIT -- src/xai_sdk/__about__.py
+          export PREVIOUS_VERSION=$(uv run hatch version)
+          echo "Previous version: $PREVIOUS_VERSION"
+
+          # Get the new version (from the PR branch)
+          git checkout $PR_COMMIT -- src/xai_sdk/__about__.py
+          export NEW_VERSION=$(uv run hatch version)
+          echo "New version: $NEW_VERSION"
+
+          # Compare versions semantically to ensure the new version is greater
+          uv run python -c "
+          import os
+          from packaging import version
+
+          previous_version = os.environ['PREVIOUS_VERSION']
+          new_version = os.environ['NEW_VERSION']
+
+          prev_ver = version.parse(previous_version)
+          new_ver = version.parse(new_version)
+
+          if new_ver <= prev_ver:
+              print(f'Error: New version {new_version} is not greater than previous version {previous_version}')
+              exit(1)
+          else:
+              print('Version bump is valid.')
+          "

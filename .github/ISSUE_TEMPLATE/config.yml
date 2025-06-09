@@ -1,0 +1,12 @@
+blank_issues_enabled: false
+contact_links:
+  - name: xAI Support
+    url: mailto:support@x.ai
+    about: For issues related to the xAI API itself (e.g., model capabilities or API changes), please contact xAI Support.
+issue_templates:
+  - name: Bug Report
+    description: Report a bug or issue with the xAI Python SDK.
+    filename: bug_report.yml
+  - name: Feature Request
+    description: Suggest an idea or enhancement for the xAI Python SDK.
+    filename: feature_request.yml

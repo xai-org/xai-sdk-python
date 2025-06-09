@@ -1,0 +1,107 @@
+name: Bug Report
+description: Report a bug with the xAI Python SDK
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to report an issue with the xAI SDK. To help us address the problem as quickly as possible, please provide the following information.
+
+  - type: checkboxes
+    id: issue-source
+    attributes:
+      label: Confirmation of Issue Source
+      description: Please confirm that this issue is related to the xAI SDK Python library and not the underlying xAI API. Issues related to the xAI API (e.g., model behavior, API responses, or server-side errors) should be reported through the appropriate xAI support channels (support@x.ai).
+      options:
+        - label: I confirm that this issue is with the xAI SDK Python library (e.g., client behavior, SDK methods, or documentation) and not with the xAI API itself (e.g., model output, API errors, or quota issues).
+          required: true
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the Bug
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what went wrong.
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Please provide detailed steps to reproduce the issue.
+      placeholder: |
+        1. 
+        2. 
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: Actual Behavior
+      description: A clear and concise description of what actually happened.
+      placeholder: What actually happened?
+    validations:
+      required: true
+  - type: input
+    id: sdk-version
+    attributes:
+      label: xAI SDK Version
+      description: The version of the xAI SDK you are using (check with `pip show xai-sdk` or `import xai_sdk; print(xai_sdk.__version__)`).
+      placeholder: e.g., 1.2.3
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python Version
+      description: The version of Python you are using.
+      placeholder: e.g., 3.10.5
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      description: The operating system you are using.
+      placeholder: e.g., macOS 12.3, Windows 11, Ubuntu 20.04
+    validations:
+      required: true
+  - type: dropdown
+    id: client-type
+    attributes:
+      label: Client Type
+      description: Which client type are you using?
+      options:
+        - Synchronous Client (`Client`)
+        - Asynchronous Client (`AsyncClient`)
+    validations:
+      required: true
+  - type: textarea
+    id: code-snippet
+    attributes:
+      label: Code Snippet
+      description: If applicable, add a minimal code snippet that demonstrates the issue. Use code blocks (```python) to format your code.
+      placeholder: |
+        ```python
+        # Your code here
+        ```
+      render: python
+  - type: textarea
+    id: error-messages
+    attributes:
+      label: Error Messages or Logs
+      description: If applicable, include any error messages, stack traces, or logs that are relevant to the issue. Use code blocks (```) to format logs or errors.
+      placeholder: |
+        ```
+        Error message or log output here
+        ```
+      render: shell

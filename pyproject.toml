@@ -1,0 +1,172 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xai-sdk"
+dynamic = ["version"]
+description = "The official Python SDK for the xAI API"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "xAI", email = "support@x.ai" }]
+dependencies = [
+  "grpcio>=1.72.1,<2",
+  "protobuf>=5.29.4,<6",
+  "pydantic>=2.5.3,<3",
+  "requests>=2.31.0,<3",
+  "aiohttp>=3.8.6,<4",
+]
+requires-python = ">=3.10"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Environment :: Web Environment",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: MacOS :: MacOS X",
+  "Operating System :: POSIX :: Linux",
+  "Operating System :: Microsoft :: Windows",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+  "Topic :: Internet :: WWW/HTTP",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/xai/xai-sdk-python"
+Documentation = "https://docs.x.ai"
+Repository = "https://github.com/xai/xai-sdk-python"
+
+[tool.hatch.version]
+path = "src/xai_sdk/__about__.py"
+
+# hatch respects .gitignore and will ignore all files that the .gitignore file specifies by default
+[tool.hatch.build.targets.sdist]
+exclude = [".github", ".gitleaks.toml", ".pre-commit-config.yaml"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/xai_sdk"]
+
+[tool.ruff]
+exclude = ["src/xai_sdk/proto"]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ARG",
+  "B",
+  "C",
+  "D",
+  "DTZ",
+  "E",
+  "EM",
+  "F",
+  "FBT",
+  "I",
+  "ICN",
+  "ISC",
+  "N",
+  "PLC",
+  "PLE",
+  "PLR",
+  "PLW",
+  "Q",
+  "RUF",
+  "S",
+  "T",
+  "TID",
+  "UP",
+  "W",
+  "YTT",
+]
+ignore = [
+  "D100",    # Allow missing docstring in top level module
+  "D104",    # Allow missing docstring in public package
+  "D105",    # Allow missing docstring in magic method
+  "D203",    # Allow docstring directly below class definition (as enforced by D211)
+  "D213",    # Allow multi-line-summary on first line of docstring (as enforced by D212)
+  "D401",    # Allow non imperative mood in docstring
+  "D413",    # Allow no new line at end of docstring.
+  "EM101",   # Allow `raise ValueError(msg)`
+  "EM102",   # Allow f strings in `raise` statements
+  "FBT003",  # Allow boolean positional values in function calls, like `dict.get(... True)`
+  "TID252",  # Allow relative imports
+  "UP007",   # Allow `from typing import Optional` instead of `X | None`
+  "UP035",   # Allow `from typing import Sequence` instead of `Sequence[X]`
+  "PLR0913",
+]
+unfixable = ["F401"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["xai_sdk"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*" = [
+  "D",
+  "PLR0911",
+  "PLR0912",
+  "PLR0915",
+  "PLR2004",
+  "S101",
+  "S105",
+  "S106",
+  "S107",
+  "TID252",
+]
+"examples/**/*" = ["D", "S101", "T201"]
+
+[tool.coverage.run]
+source_pkgs = ["src/xai_sdk", "tests"]
+branch = true
+parallel = true
+omit = ["src/xai_sdk/__about__.py", "src/xai_sdk/proto"]
+
+[tool.coverage.paths]
+xai = ["src/xai_sdk"]
+tests = ["test"]
+
+[tool.coverage.report]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+
+[tool.pyright]
+pythonversion = "3.10"
+include = ["src/xai_sdk", "tests", "examples"]
+exclude = ["src/xai_sdk/proto"]
+venvPath = ".venv"
+typeCheckingMode = "basic"
+
+[dependency-groups]
+dev = [
+  "absl-py>=2.2.2",
+  "grpcio-tools>=1.71.0",
+  "hatch>=1.14.1",
+  "packaging>=25.0",
+  "portpicker>=1.6.0",
+  "pre-commit>=4.2.0",
+  "pyright>=1.1.400",
+  "pytest>=7.4.4",
+  "pytest-asyncio>=0.21.2",
+  "pytest-cov>=6.1.1",
+  "pytest-repeat>=0.9.4",
+  "pytest-xdist>=3.6.1",
+  "ruff>=0.11.7",
+]
