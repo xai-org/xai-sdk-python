@@ -368,6 +368,6 @@ These methods allow you to confirm which version of the xAI SDK you are currentl
 
 The xAI SDK is distributed under the Apache-2.0 License
 
-## Contributing
+## Contributing
 
 See the [documentation](/CONTRIBUTING.md) on contributing to this project.
