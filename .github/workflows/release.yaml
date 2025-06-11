@@ -129,7 +129,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: write # Required for trusted publishing to PyPI
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
@@ -163,7 +163,8 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-      # TODO: Add a step to publish to the public PyPI server
+      - name: Publish to test PyPI
+        run: uv publish --index testpypi
 
   github_release:
     name: Create GitHub Release

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "xai-sdk"
+name = "xai-sdk-beta"
 dynamic = ["version"]
 description = "The official Python SDK for the xAI API"
 readme = "README.md"
@@ -44,6 +44,12 @@ classifiers = [
 Homepage = "https://github.com/xai/xai-sdk-python"
 Documentation = "https://docs.x.ai"
 Repository = "https://github.com/xai/xai-sdk-python"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
 
 [tool.hatch.version]
 path = "src/xai_sdk/__about__.py"
