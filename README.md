@@ -1,6 +1,15 @@
-# xAI SDK
+<div align="center">
+  <img src="https://avatars.githubusercontent.com/u/130314967?s=200&v=4" alt="xAI Logo" width="100" />
+  <h1>xAI Python SDK</h1>
+  <p>The official Python SDK for xAI's APIs</p>
+  <img src="https://img.shields.io/pypi/v/xai-sdk" alt="PyPI Version" />
+  <img src="https://img.shields.io/pypi/l/xai-sdk" alt="License" />
+  <img src="https://img.shields.io/pypi/pyversions/xai-sdk" alt="Python Version" />
+</div>
 
-The xAI SDK is a gRPC-based Python library for interacting with xAI's AI models. Built for Python 3.10 and above, it offers both **synchronous** and **asynchronous** clients.
+<br>
+
+The xAI Python SDK is a gRPC-based Python library for interacting with xAI's APIs. Built for Python 3.10 and above, it offers both **synchronous** and **asynchronous** clients.
 
 Whether you're generating text, images, or structured outputs, the xAI SDK is designed to be intuitive, robust, and developer-friendly, with a focus on great developer experience.
 
@@ -21,6 +30,9 @@ Alternatively you can also use [uv](https://docs.astral.sh/uv/)
 ```bash
 uv add xai-sdk
 ```
+
+### Requirements
+Python 3.10 or higher is required to use the xAI SDK.
 
 ## Usage
 
@@ -58,13 +70,13 @@ Make sure to set the `XAI_API_KEY` environment variable or load it from a `.env`
 
 ### Multi-Turn Chat (Synchronous)
 
-The xAI SDK's `Chat` class supports multi-turn conversations with a simple `append` method to manage conversation history, making it ideal for interactive applications.
+The xAI SDK supports multi-turn conversations with a simple `append` method to manage conversation history, making it ideal for interactive applications.
 
 You first create a `chat` instance, then start `append`ing messages to it, before finally calling `sample` to yield a response from the model. Whilst the underlying API's are still stateless this approach makes it easy to manage the message history.
 
 ```python
 from xai_sdk import Client
-from xai_sdk.chat import system, user, assistant
+from xai_sdk.chat import system, user
 
 client = Client()
 chat = client.chat.create(
@@ -84,12 +96,12 @@ while True:
 
 ### Multi-Turn Chat (Asynchronous)
 
-For high-performance applications, the asynchronous client (`AsyncClient`) enables non-blocking operations, perfect for real-time or concurrent tasks.
+For async usage, simply import `AsyncClient` instead of `Client`.
 
 ```python
 import asyncio
 from xai_sdk import AsyncClient
-from xai_sdk.chat import system, user, assistant
+from xai_sdk.chat import system, user
 
 async def main():
     client = AsyncClient()
@@ -97,6 +109,7 @@ async def main():
         model="grok-3",
         messages=[system("You are a pirate assistant.")]
     )
+
     while True:
         prompt = input("You: ")
         if prompt.lower() == "exit":
@@ -112,7 +125,7 @@ if __name__ == "__main__":
 
 ### Streaming
 
-The xAI SDK supports streaming responses, allowing you to process model outputs in real-time, ideal for interactive applications like chatbots. The `stream` method returns a tuple of `response` and `chunk`. The chunks contain the text deltas from the stream while the `response` variable auto accumulates the response for you as the stream progresses.
+The xAI SDK supports streaming responses, allowing you to process model outputs in real-time. The `stream` method returns a tuple of `response` and `chunk`. The chunks contain the text deltas from the stream while the `response` variable auto accumulates the response for you as the stream progresses.
 
 ```python
 from xai_sdk import Client
@@ -162,9 +175,9 @@ The xAI SDK excels in advanced use cases, such as:
 - **Function Calling**: Define tools and let the model intelligently call them (see sync [function_calling.py](examples/sync/function_calling.py) and async [function_calling.py](examples/aio/function_calling.py)).
 - **Image Generation**: Generate images with image generation models (see sync [image_generation.py](examples/sync/image_generation.py) and async [image_generation.py](examples/aio/image_generation.py)).
 - **Image Understanding**: Analyze images with vision models (see sync [image_understanding.py](examples/sync/image_understanding.py) and async [image_understanding.py](examples/aio/image_understanding.py)).
-- **Structured Outputs**: Extract structured data from model responses using Pydantic models (see sync [structured_outputs.py](examples/sync/structured_outputs.py) and async [structured_outputs.py](examples/aio/structured_outputs.py)).
+- **Structured Outputs**: Return model responses as structured objects in the form of Pydantic models (see sync [structured_outputs.py](examples/sync/structured_outputs.py) and async [structured_outputs.py](examples/aio/structured_outputs.py)).
 - **Reasoning Models**: Leverage reasoning-focused models with configurable effort levels (see sync [reasoning.py](examples/sync/reasoning.py) and async [reasoning.py](examples/aio/reasoning.py)).
-- **Deferred Chat**: Sample a long-running response from a model via asynchronous polling (see sync [deferred_chat.py](examples/sync/deferred_chat.py) and async [deferred_chat.py](examples/aio/deferred_chat.py)).
+- **Deferred Chat**: Sample a long-running response from a model via polling (see sync [deferred_chat.py](examples/sync/deferred_chat.py) and async [deferred_chat.py](examples/aio/deferred_chat.py)).
 - **Tokenization**: Tokenize text with the tokenizer API (see sync [tokenizer.py](examples/sync/tokenizer.py) and async [tokenizer.py](examples/aio/tokenizer.py)).
 - **Models**: Retrieve information on different models available to you, including, name, aliases, token price, max prompt length etc (see sync [models.py](examples/sync/models.py) and async [models.py](examples/aio/models.py))
 - **Live Search**: Augment Grok's knowledge with up-to-date information from the web and 𝕏 (see sync [search.py](examples/sync/search.py) and async [search.py](examples/aio/search.py))
@@ -305,7 +318,7 @@ proto_object = response.proto
 print(proto_object)
 ```
 
-Please note that you should rarely need to interact with the proto object directly, as the SDK is built to provide a more user-friendly interface to the data. Use this approach only when specific fields or data structures not exposed by the SDK are required for your application.
+Please note that you should rarely need to interact with the proto object directly, as the SDK is built to provide a more user-friendly interface to the data. Use this approach only when specific fields or data structures not exposed by the SDK are required for your application. If you find yourself needing to regularly access the proto object directly, please consider opening an issue so that we can improve the experience.
 
 ## Error Codes
 
