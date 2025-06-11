@@ -55,21 +55,21 @@ class ModelsServicer(object):
     """
 
     def ListLanguageModels(self, request, context):
-        """Lists all language models available on the platform.
+        """Lists all language models available to your team (based on the API key).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListEmbeddingModels(self, request, context):
-        """Lists all embedding models available on the platform.
+        """Lists all embedding models available to your team (based on the API key).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListImageGenerationModels(self, request, context):
-        """Lists all image generation models available on the platform.
+        """Lists all image generation models available to your team (based on the API key).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -90,7 +90,7 @@ class ModelsServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetImageGenerationModel(self, request, context):
-        """Get details of a specific embedding model by model name.
+        """Get details of a specific image generation model by model name.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

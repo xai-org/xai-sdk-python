@@ -27,7 +27,7 @@ class TokenizeServicer(object):
     """
 
     def TokenizeText(self, request, context):
-        """Tokenize text to a sequence of tokens.
+        """Convert text to a sequence of tokens.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
