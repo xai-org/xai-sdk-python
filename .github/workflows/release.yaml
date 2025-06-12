@@ -18,7 +18,7 @@ env:
 jobs:
   get_tag_details:
     name: Get Tag Details
-    runs-on: ubuntu-latest
+    runs-on: xai-sdk-python-runner
     outputs:
       tag_name: ${{ steps.release.outputs.tag_name }}
       new_version: ${{ steps.release.outputs.new_version }}
@@ -54,7 +54,7 @@ jobs:
   check_package_version:
     name: Check Package Version
     needs: [get_tag_details]
-    runs-on: ubuntu-latest
+    runs-on: xai-sdk-python-runner
     outputs:
       package_version: ${{ steps.package_version.outputs.package_version }}
     steps:
@@ -96,7 +96,7 @@ jobs:
   check_pypi:
     name: Check PyPI Version
     needs: [check_package_version]
-    runs-on: ubuntu-latest
+    runs-on: xai-sdk-python-runner
     outputs:
       pypi_version: ${{ steps.get_pypi_version.outputs.pypi_version }}
     steps:
@@ -126,7 +126,7 @@ jobs:
   setup_build_and_publish:
     name: Build Package and Publish to Private PyPI Server
     needs: [check_pypi]
-    runs-on: ubuntu-latest
+    runs-on: xai-sdk-python-runner
     permissions:
       contents: read
       id-token: write # Required for trusted publishing to PyPI
@@ -169,7 +169,7 @@ jobs:
   github_release:
     name: Create GitHub Release
     needs: [get_tag_details, setup_build_and_publish]
-    runs-on: ubuntu-latest
+    runs-on: xai-sdk-python-runner
     permissions:
       contents: write
     steps:

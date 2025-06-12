@@ -8,7 +8,7 @@ on:
 
 jobs:
   validate-version-bump:
-    runs-on: ubuntu-latest
+    runs-on: xai-sdk-python-runner
     permissions:
       contents: read
     steps:
