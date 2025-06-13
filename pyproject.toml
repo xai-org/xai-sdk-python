@@ -1,12 +1,11 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
 
 [project]
 name = "xai-sdk-beta"
-dynamic = ["version"]
+dynamic = ["readme", "version"]
 description = "The official Python SDK for the xAI API"
-readme = "README.md"
 license = "Apache-2.0"
 authors = [{ name = "xAI", email = "support@x.ai" }]
 dependencies = [
@@ -15,6 +14,7 @@ dependencies = [
   "pydantic>=2.5.3,<3",
   "requests>=2.31.0,<3",
   "aiohttp>=3.8.6,<4",
+  "packaging>=25.0,<26",
 ]
 requires-python = ">=3.10"
 classifiers = [
@@ -41,9 +41,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/xai/xai-sdk-python"
+Homepage = "https://github.com/xai-org/xai-sdk-python"
 Documentation = "https://docs.x.ai"
-Repository = "https://github.com/xai/xai-sdk-python"
+Repository = "https://github.com/xai-org/xai-sdk-python"
 
 [[tool.uv.index]]
 name = "testpypi"
@@ -60,6 +60,16 @@ exclude = [".github", ".gitleaks.toml", ".pre-commit-config.yaml"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/xai_sdk"]
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.fragments]]
+path = "README.md"
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\[(.+?)\]\(((?!https?://)\S+?)\)'
+replacement = '[\1](https://github.com/xai-org/xai-sdk-python/tree/main\g<2>)'
 
 [tool.ruff]
 exclude = ["src/xai_sdk/proto"]

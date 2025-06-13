@@ -1688,6 +1688,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "grpcio" },
+    { name = "packaging" },
     { name = "protobuf" },
     { name = "pydantic" },
     { name = "requests" },
@@ -1714,6 +1715,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.8.6,<4" },
     { name = "grpcio", specifier = ">=1.72.1,<2" },
+    { name = "packaging", specifier = ">=25.0,<26" },
     { name = "protobuf", specifier = ">=5.29.4,<7" },
     { name = "pydantic", specifier = ">=2.5.3,<3" },
     { name = "requests", specifier = ">=2.31.0,<3" },
