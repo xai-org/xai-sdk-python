@@ -166,7 +166,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish to test PyPI
-        run: uv publish --index testpypi
+        run: uv publish
 
   github_release:
     name: Create GitHub Release
