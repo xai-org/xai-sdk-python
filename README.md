@@ -33,7 +33,7 @@ Python 3.10 or higher is required to use the xAI SDK.
 
 ## Usage
 
-The xAI SDK supports both synchronous (`xai_sdk.Client`) and asynchronous (`xai_sdk.AsyncClient`) clients, allowing you to choose the best approach for your application. For a complete set of examples demonstrating the SDK's capabilities, including authentication, chat, image generation, function calling, and more, refer to the [examples folder](examples/).
+The xAI SDK supports both synchronous (`xai_sdk.Client`) and asynchronous (`xai_sdk.AsyncClient`) clients, allowing you to choose the best approach for your application. For a complete set of examples demonstrating the SDK's capabilities, including authentication, chat, image generation, function calling, and more, refer to the [examples folder](/examples).
 
 ### Client Instantiation
 
@@ -169,15 +169,15 @@ print(f"Grok: {response.content}")
 
 The xAI SDK excels in advanced use cases, such as:
 
-- **Function Calling**: Define tools and let the model intelligently call them (see sync [function_calling.py](examples/sync/function_calling.py) and async [function_calling.py](examples/aio/function_calling.py)).
-- **Image Generation**: Generate images with image generation models (see sync [image_generation.py](examples/sync/image_generation.py) and async [image_generation.py](examples/aio/image_generation.py)).
-- **Image Understanding**: Analyze images with vision models (see sync [image_understanding.py](examples/sync/image_understanding.py) and async [image_understanding.py](examples/aio/image_understanding.py)).
-- **Structured Outputs**: Return model responses as structured objects in the form of Pydantic models (see sync [structured_outputs.py](examples/sync/structured_outputs.py) and async [structured_outputs.py](examples/aio/structured_outputs.py)).
-- **Reasoning Models**: Leverage reasoning-focused models with configurable effort levels (see sync [reasoning.py](examples/sync/reasoning.py) and async [reasoning.py](examples/aio/reasoning.py)).
-- **Deferred Chat**: Sample a long-running response from a model via polling (see sync [deferred_chat.py](examples/sync/deferred_chat.py) and async [deferred_chat.py](examples/aio/deferred_chat.py)).
-- **Tokenization**: Tokenize text with the tokenizer API (see sync [tokenizer.py](examples/sync/tokenizer.py) and async [tokenizer.py](examples/aio/tokenizer.py)).
-- **Models**: Retrieve information on different models available to you, including, name, aliases, token price, max prompt length etc (see sync [models.py](examples/sync/models.py) and async [models.py](examples/aio/models.py))
-- **Live Search**: Augment Grok's knowledge with up-to-date information from the web and 𝕏 (see sync [search.py](examples/sync/search.py) and async [search.py](examples/aio/search.py))
+- **Function Calling**: Define tools and let the model intelligently call them (see sync [function_calling.py](/examples/sync/function_calling.py) and async [function_calling.py](/examples/aio/function_calling.py)).
+- **Image Generation**: Generate images with image generation models (see sync [image_generation.py](/examples/sync/image_generation.py) and async [image_generation.py](/examples/aio/image_generation.py)).
+- **Image Understanding**: Analyze images with vision models (see sync [image_understanding.py](/examples/sync/image_understanding.py) and async [image_understanding.py](/examples/aio/image_understanding.py)).
+- **Structured Outputs**: Return model responses as structured objects in the form of Pydantic models (see sync [structured_outputs.py](/examples/sync/structured_outputs.py) and async [structured_outputs.py](/examples/aio/structured_outputs.py)).
+- **Reasoning Models**: Leverage reasoning-focused models with configurable effort levels (see sync [reasoning.py](/examples/sync/reasoning.py) and async [reasoning.py](/examples/aio/reasoning.py)).
+- **Deferred Chat**: Sample a long-running response from a model via polling (see sync [deferred_chat.py](/examples/sync/deferred_chat.py) and async [deferred_chat.py](/examples/aio/deferred_chat.py)).
+- **Tokenization**: Tokenize text with the tokenizer API (see sync [tokenizer.py](/examples/sync/tokenizer.py) and async [tokenizer.py](/examples/aio/tokenizer.py)).
+- **Models**: Retrieve information on different models available to you, including, name, aliases, token price, max prompt length etc (see sync [models.py](/examples/sync/models.py) and async [models.py](/examples/aio/models.py))
+- **Live Search**: Augment Grok's knowledge with up-to-date information from the web and 𝕏 (see sync [search.py](/examples/sync/search.py) and async [search.py](/examples/aio/search.py))
 
 ## Timeouts
 
@@ -348,7 +348,7 @@ The xAI SDK generally follows [Semantic Versioning (SemVer)](https://semver.org/
 
 This approach helps developers understand the impact of upgrading to a new version of the SDK. We strive to maintain backward compatibility in minor and patch releases, ensuring that your applications continue to work seamlessly. However, please note that while we aim to restrict breaking changes to major version updates, some backwards incompatible changes to library internals may occasionally occur in minor or patch releases. These changes will typically not affect the public API, but if you are interacting with internal components or structures, we recommend reviewing release notes for each update to avoid unexpected issues.
 
-This project maintains a [changelog](./CHANGELOG.md) such that developers can track updates and changes to the SDK as new versions are released.
+This project maintains a [changelog](/CHANGELOG.md) such that developers can track updates and changes to the SDK as new versions are released.
 
 ### Determining the Installed Version
 
