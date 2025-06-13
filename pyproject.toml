@@ -3,7 +3,7 @@ requires = ["hatchling", "hatch-fancy-pypi-readme"]
 build-backend = "hatchling.build"
 
 [project]
-name = "xai-sdk-beta"
+name = "xai-sdk"
 dynamic = ["readme", "version"]
 description = "The official Python SDK for the xAI API"
 license = "Apache-2.0"
@@ -178,7 +178,7 @@ dev = [
   "packaging>=25.0",
   "portpicker>=1.6.0",
   "pre-commit>=4.2.0",
-  "pyright>=1.1.400",
+  "pyright==1.1.400",
   "pytest>=7.4.4",
   "pytest-asyncio>=0.21.2",
   "pytest-cov>=6.1.1",

@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PACKAGE_NAME: "xai-sdk-beta"
+  PACKAGE_NAME: "xai-sdk"
   TEST_PYPI_URL: "https://test.pypi.org/pypi"
   PYPI_URL: "https://pypi.org/pypi"
 
@@ -105,7 +105,7 @@ jobs:
       - name: Get latest version published on PyPI
         id: get_pypi_version
         run: |
-          response=$(curl -s ${{ env.TEST_PYPI_URL }}/${{ env.PACKAGE_NAME }}/json || echo "{}")
+          response=$(curl -s ${{ env.PYPI_URL }}/${{ env.PACKAGE_NAME }}/json || echo "{}")
           pypi_version=$(echo $response | jq --raw-output "select(.releases != null) | .releases | keys_unsorted | last")
           if [ -z "$pypi_version" ]; then
             echo "Package not found on PyPI."
@@ -126,7 +126,7 @@ jobs:
           fi
 
   setup_build_and_publish:
-    name: Build Package and Publish to Private PyPI Server
+    name: Build Package and Publish to PyPI
     needs: [check_pypi]
     runs-on: xai-sdk-python-runner
     permissions:
