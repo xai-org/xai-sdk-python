@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta, timezone
 
 from xai_sdk import Client
-from xai_sdk.chat import SearchParameters, user
-from xai_sdk.search import news_source, rss_source, web_source, x_source
+from xai_sdk.chat import user
+from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
 
 
 def live_search(client: Client):

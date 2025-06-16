@@ -2,8 +2,8 @@ import asyncio
 from datetime import datetime, timedelta, timezone
 
 from xai_sdk import AsyncClient
-from xai_sdk.chat import SearchParameters, user
-from xai_sdk.search import news_source, rss_source, web_source, x_source
+from xai_sdk.chat import user
+from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
 
 
 async def live_search(client: AsyncClient):
