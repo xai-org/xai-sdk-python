@@ -1,5 +1,7 @@
 # Contributing to xAI Python SDK
 
+**Contributor License Agreement (CLA)**: By contributing to this repository, you agree to the terms outlined in the [CLA.md](CLA.md). Please read and ensure you understand and agree to the terms before submitting any contributions.
+
 Thank you for your interest in contributing to the `xai-sdk-python` project! This guide outlines the process for external developers to add new features, fix bugs, or improve documentation through pull requests (PRs).
 
 ## Scope of Contributions
