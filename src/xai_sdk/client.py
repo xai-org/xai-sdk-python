@@ -81,8 +81,6 @@ class BaseClient(abc.ABC):
         user_defined_options = {option[0] for option in channel_options}
         default_options = [option for option in _DEFAULT_CHANNEL_OPTIONS if option[0] not in user_defined_options]
         timeout = timeout or _DEFAULT_RPC_TIMEOUT_SECONDS
-        print("New settings")
-
 
         self._init(api_key, api_host, metadata, default_options + channel_options, timeout)
 
