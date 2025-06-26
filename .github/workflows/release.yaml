@@ -165,7 +165,7 @@ jobs:
           path: dist/*
           if-no-files-found: error
 
-      - name: Publish to test PyPI
+      - name: Publish to PyPI
         run: uv publish
 
   github_release:
