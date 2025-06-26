@@ -32,9 +32,13 @@ _DEFAULT_CHANNEL_OPTIONS: Sequence[tuple[str, Any]] = [
     ("grpc.max_receive_message_length", 20 * _MIB),
     ("grpc.enable_retries", 1),
     ("grpc.service_config", _DEFAULT_SERVICE_CONFIG_JSON),
+    ('grpc.keepalive_time_ms', 30000),
+    ('grpc.keepalive_timeout_ms', 10000),
+    ('grpc.keepalive_permit_without_calls', 1),
+    ('grpc.http2.max_pings_without_data', 0),
 ]
 
-_DEFAULT_RPC_TIMEOUT_SECONDS = 15 * 60
+_DEFAULT_RPC_TIMEOUT_SECONDS = 27 * 60
 
 
 class BaseClient(abc.ABC):
@@ -77,6 +81,8 @@ class BaseClient(abc.ABC):
         user_defined_options = {option[0] for option in channel_options}
         default_options = [option for option in _DEFAULT_CHANNEL_OPTIONS if option[0] not in user_defined_options]
         timeout = timeout or _DEFAULT_RPC_TIMEOUT_SECONDS
+        print("New settings")
+
 
         self._init(api_key, api_host, metadata, default_options + channel_options, timeout)
 
