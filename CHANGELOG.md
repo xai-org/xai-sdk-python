@@ -13,15 +13,10 @@
 ### Removed
 - Features or functionalities that have been removed.
 
-## [Version Number] - YYYY-MM-DD
-### Added
-- List of new features or functionalities.
-
-### Changed
-- List of updates or modifications.
-
+## [v1.0.0rc2](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.0.0rc2) - 2025-06-26
 ### Fixed
-- List of bug fixes.
+- Fixed an issue where long running gRPC requests would prematurely terminate.
 
-### Removed
-- List of removed features or functionalities.
+## [v1.0.0rc1](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.0.0rc1) - 2025-06-13
+### Added
+- Initial RC version of the xai-sdk
