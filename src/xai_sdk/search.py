@@ -184,7 +184,12 @@ def news_source(
     )
 
 
-def x_source(x_handles: Optional[Sequence[str]] = None) -> chat_pb2.Source:
+def x_source(
+    included_x_handles: Optional[Sequence[str]] = None,
+    excluded_x_handles: Optional[Sequence[str]] = None,
+    post_favorite_count: Optional[int] = None,
+    post_view_count: Optional[int] = None,
+) -> chat_pb2.Source:
     """Creates an X (Twitter) source configuration for search requests.
 
     This function configures a source for searching content on X (formerly Twitter).
@@ -193,8 +198,14 @@ def x_source(x_handles: Optional[Sequence[str]] = None) -> chat_pb2.Source:
     You can specify particular handles to focus the search on specific users' posts and interactions.
 
     Args:
-        x_handles: Optional list of X usernames (without the '@' symbol) to limit search
+        included_x_handles: Optional list of X usernames (without the '@' symbol) to limit search
             results to posts from specific accounts. Defaults to None (general X content).
+        excluded_x_handles: Optional list of X usernames (without the '@' symbol) to exclude
+            from search results. Defaults to None (no exclusions).
+        post_favorite_count: Optional post favorite count threshold. Only posts with at least this many favorites
+            will be considered. Defaults to None (no filtering).
+        post_view_count: Optional post view count threshold. Only posts with at least this many views
+            will be considered. Defaults to None (no filtering).
 
     Returns:
         A `chat_pb2.Source` object configured for X search.
@@ -204,12 +215,19 @@ def x_source(x_handles: Optional[Sequence[str]] = None) -> chat_pb2.Source:
         from xai_sdk.chat import SearchParameters, x_source
 
         search_config = SearchParameters(
-            sources=[x_source(x_handles=["xai"])],
+            sources=[x_source(included_x_handles=["xai"])],
             mode="on"
         )
         ```
     """
-    return chat_pb2.Source(x=chat_pb2.XSource(x_handles=x_handles))
+    return chat_pb2.Source(
+        x=chat_pb2.XSource(
+            included_x_handles=included_x_handles,
+            excluded_x_handles=excluded_x_handles,
+            post_favorite_count=post_favorite_count,
+            post_view_count=post_view_count,
+        )
+    )
 
 
 def rss_source(links: Sequence[str]) -> chat_pb2.Source:

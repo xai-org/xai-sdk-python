@@ -355,10 +355,16 @@ class NewsSource(_message.Message):
     def __init__(self, excluded_websites: _Optional[_Iterable[str]] = ..., country: _Optional[str] = ..., safe_search: bool = ...) -> None: ...
 
 class XSource(_message.Message):
-    __slots__ = ("x_handles",)
-    X_HANDLES_FIELD_NUMBER: _ClassVar[int]
-    x_handles: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, x_handles: _Optional[_Iterable[str]] = ...) -> None: ...
+    __slots__ = ("included_x_handles", "excluded_x_handles", "post_favorite_count", "post_view_count")
+    INCLUDED_X_HANDLES_FIELD_NUMBER: _ClassVar[int]
+    EXCLUDED_X_HANDLES_FIELD_NUMBER: _ClassVar[int]
+    POST_FAVORITE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    POST_VIEW_COUNT_FIELD_NUMBER: _ClassVar[int]
+    included_x_handles: _containers.RepeatedScalarFieldContainer[str]
+    excluded_x_handles: _containers.RepeatedScalarFieldContainer[str]
+    post_favorite_count: int
+    post_view_count: int
+    def __init__(self, included_x_handles: _Optional[_Iterable[str]] = ..., excluded_x_handles: _Optional[_Iterable[str]] = ..., post_favorite_count: _Optional[int] = ..., post_view_count: _Optional[int] = ...) -> None: ...
 
 class RssSource(_message.Message):
     __slots__ = ("links",)
