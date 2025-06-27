@@ -355,7 +355,7 @@ def test_search(client: Client):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"]),
                 news_source(country="UK"),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(included_x_handles=["x_handle1", "x_handle2"]),
             ],
             return_citations=True,
         ),
@@ -379,7 +379,7 @@ def test_search_batch(client: Client):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"]),
                 news_source(country="UK"),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(included_x_handles=["x_handle1", "x_handle2"]),
             ],
             return_citations=True,
         ),
@@ -405,7 +405,7 @@ def test_search_with_streaming(client: Client):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"]),
                 news_source(country="UK"),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(included_x_handles=["x_handle1", "x_handle2"]),
             ],
             return_citations=True,
         ),
@@ -603,7 +603,11 @@ def test_chat_create_with_search_parameters(client: Client):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"], safe_search=True),
                 news_source(country="UK", safe_search=True),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(
+                    included_x_handles=["x_handle1", "x_handle2"],
+                    post_favorite_count=1000,
+                    post_view_count=1000,
+                ),
                 rss_source(links=["https://example.com/rss1", "https://example.com/rss2"]),
             ],
             return_citations=True,
@@ -620,12 +624,50 @@ def test_chat_create_with_search_parameters(client: Client):
         sources=[
             chat_pb2.Source(web=chat_pb2.WebSource(country="UK", excluded_websites=["excluded.com"], safe_search=True)),
             chat_pb2.Source(news=chat_pb2.NewsSource(country="UK", safe_search=True)),
-            chat_pb2.Source(x=chat_pb2.XSource(x_handles=["x_handle1", "x_handle2"])),
+            chat_pb2.Source(
+                x=chat_pb2.XSource(
+                    included_x_handles=["x_handle1", "x_handle2"],
+                    post_favorite_count=1000,
+                    post_view_count=1000,
+                )
+            ),
             chat_pb2.Source(rss=chat_pb2.RssSource(links=["https://example.com/rss1", "https://example.com/rss2"])),
         ],
         return_citations=True,
         max_search_results=10,
     )
+
+
+def test_chat_create_with_search_parameters_proto(client: Client):
+    from_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
+    to_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
+
+    search_parameters_pb = chat_pb2.SearchParameters(
+        mode=chat_pb2.SearchMode.ON_SEARCH_MODE,
+        from_date=timestamp_pb2.Timestamp().FromDatetime(from_date),
+        to_date=timestamp_pb2.Timestamp().FromDatetime(to_date),
+        sources=[
+            chat_pb2.Source(web=chat_pb2.WebSource(country="UK", excluded_websites=["excluded.com"], safe_search=True)),
+            chat_pb2.Source(news=chat_pb2.NewsSource(country="UK", safe_search=True)),
+            chat_pb2.Source(
+                x=chat_pb2.XSource(
+                    included_x_handles=["x_handle1", "x_handle2"],
+                    post_favorite_count=1000,
+                    post_view_count=1000,
+                )
+            ),
+            chat_pb2.Source(rss=chat_pb2.RssSource(links=["https://example.com/rss1", "https://example.com/rss2"])),
+        ],
+        return_citations=True,
+        max_search_results=10,
+    )
+
+    chat = client.chat.create(
+        "grok-3",
+        search_parameters=search_parameters_pb,
+    )
+
+    assert chat.proto.search_parameters == search_parameters_pb
 
 
 def test_chat_append(client: Client):

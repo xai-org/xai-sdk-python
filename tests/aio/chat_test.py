@@ -374,7 +374,7 @@ async def test_search(client):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"]),
                 news_source(country="UK"),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(included_x_handles=["x_handle1", "x_handle2"]),
             ],
             return_citations=True,
         ),
@@ -398,7 +398,7 @@ async def test_search_batch(client):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"]),
                 news_source(country="UK"),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(included_x_handles=["x_handle1", "x_handle2"]),
             ],
             return_citations=True,
         ),
@@ -422,7 +422,7 @@ async def test_search_with_streaming(client):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"]),
                 news_source(country="UK"),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(included_x_handles=["x_handle1", "x_handle2"]),
             ],
             return_citations=True,
         ),
@@ -619,7 +619,11 @@ def test_chat_create_with_search_parameters(client: AsyncClient):
             sources=[
                 web_source(country="UK", excluded_websites=["excluded.com"], safe_search=True),
                 news_source(country="UK", safe_search=True),
-                x_source(x_handles=["x_handle1", "x_handle2"]),
+                x_source(
+                    included_x_handles=["x_handle1", "x_handle2"],
+                    post_favorite_count=1000,
+                    post_view_count=1000,
+                ),
                 rss_source(links=["https://example.com/rss1", "https://example.com/rss2"]),
             ],
             return_citations=True,
@@ -636,7 +640,13 @@ def test_chat_create_with_search_parameters(client: AsyncClient):
         sources=[
             chat_pb2.Source(web=chat_pb2.WebSource(country="UK", excluded_websites=["excluded.com"], safe_search=True)),
             chat_pb2.Source(news=chat_pb2.NewsSource(country="UK", safe_search=True)),
-            chat_pb2.Source(x=chat_pb2.XSource(x_handles=["x_handle1", "x_handle2"])),
+            chat_pb2.Source(
+                x=chat_pb2.XSource(
+                    included_x_handles=["x_handle1", "x_handle2"],
+                    post_favorite_count=1000,
+                    post_view_count=1000,
+                )
+            ),
             chat_pb2.Source(rss=chat_pb2.RssSource(links=["https://example.com/rss1", "https://example.com/rss2"])),
         ],
         return_citations=True,
@@ -655,7 +665,13 @@ def test_chat_create_with_search_parameters_proto(client: AsyncClient):
         sources=[
             chat_pb2.Source(web=chat_pb2.WebSource(country="UK", excluded_websites=["excluded.com"], safe_search=True)),
             chat_pb2.Source(news=chat_pb2.NewsSource(country="UK", safe_search=True)),
-            chat_pb2.Source(x=chat_pb2.XSource(x_handles=["x_handle1", "x_handle2"])),
+            chat_pb2.Source(
+                x=chat_pb2.XSource(
+                    included_x_handles=["x_handle1", "x_handle2"],
+                    post_favorite_count=1000,
+                    post_view_count=1000,
+                )
+            ),
             chat_pb2.Source(rss=chat_pb2.RssSource(links=["https://example.com/rss1", "https://example.com/rss2"])),
         ],
         return_citations=True,

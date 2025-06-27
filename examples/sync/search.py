@@ -49,7 +49,10 @@ def live_search_streaming(client: Client):
 def live_search_with_x(client: Client):
     chat = client.chat.create(
         model="grok-3",
-        search_parameters=SearchParameters(mode="auto", sources=[x_source(x_handles=["xai"])]),
+        search_parameters=SearchParameters(
+            mode="auto",
+            sources=[x_source(included_x_handles=["xai"], post_favorite_count=1000)],
+        ),
     )
 
     chat.append(user("What are some recent releases from xAI?"))
