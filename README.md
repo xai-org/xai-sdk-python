@@ -17,7 +17,7 @@
 
 The xAI Python SDK is a gRPC-based Python library for interacting with xAI's APIs. Built for Python 3.10 and above, it offers both **synchronous** and **asynchronous** clients.
 
-Whether you're generating text, images, or structured outputs, the xAI SDK is designed to be intuitive, robust, and developer-friendly, with a focus on great developer experience.
+Whether you're generating text, images, or structured outputs, the xAI SDK is designed to be intuitive, robust, and developer-friendly.
 
 ## Documentation
 
@@ -42,7 +42,7 @@ Python 3.10 or higher is required to use the xAI SDK.
 
 ## Usage
 
-The xAI SDK supports both synchronous (`xai_sdk.Client`) and asynchronous (`xai_sdk.AsyncClient`) clients, allowing you to choose the best approach for your application. For a complete set of examples demonstrating the SDK's capabilities, including authentication, chat, image generation, function calling, and more, refer to the [examples folder](/examples).
+The xAI SDK supports both synchronous (`xai_sdk.Client`) and asynchronous (`xai_sdk.AsyncClient`) clients. For a complete set of examples demonstrating the SDK's capabilities, including authentication, chat, image generation, function calling, and more, refer to the [examples folder](/examples).
 
 ### Client Instantiation
 
@@ -78,7 +78,7 @@ Make sure to set the `XAI_API_KEY` environment variable or load it from a `.env`
 
 The xAI SDK supports multi-turn conversations with a simple `append` method to manage conversation history, making it ideal for interactive applications.
 
-You first create a `chat` instance, then start `append`ing messages to it, before finally calling `sample` to yield a response from the model. Whilst the underlying API's are still stateless this approach makes it easy to manage the message history.
+First, create a `chat` instance, start `append`ing messages to it, and finally call `sample` to yield a response from the model. While the underlying APIs are still stateless, this approach makes it easy to manage the message history.
 
 ```python
 from xai_sdk import Client
@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
 ### Streaming
 
-The xAI SDK supports streaming responses, allowing you to process model outputs in real-time. The `stream` method returns a tuple of `response` and `chunk`. The chunks contain the text deltas from the stream while the `response` variable auto accumulates the response for you as the stream progresses.
+The xAI SDK supports streaming responses, allowing you to process model outputs in real-time, which is ideal for interactive applications like chatbots. The `stream` method returns a tuple containing `response` and `chunk`. The chunks contain the text deltas from the stream, while the `response` variable automatically accumulates the response as the stream progresses.
 
 ```python
 from xai_sdk import Client
@@ -166,8 +166,8 @@ chat = client.chat.create(model="grok-2-vision")
 chat.append(
     user(
         "Which animal looks happier in these images?",
-        image("https://images.unsplash.com/photo-1561037404-61cd46aa615b"),  # Puppy
-        image("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba")   # Kitten
+        image("https://images.unsplash.com/photo-1561037404-61cd46aa615b"),   # Puppy
+        image("https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba") # Kitten
     )
 )
 response = chat.sample()
@@ -256,13 +256,13 @@ from xai_sdk import Client
 # Define a custom retry policy
 custom_retry_policy = json.dumps({
     "methodConfig": [{
-        "name": [{}],  # Applies to all methods
+        "name": [{}], # Applies to all methods
         "retryPolicy": {
-            "maxAttempts": 3,              # Reduced number of attempts
-            "initialBackoff": "0.5s",      # Longer initial wait
-            "maxBackoff": "2s",            # Longer maximum wait
-            "backoffMultiplier": 1.5,       # Slower increase in wait time
-            "retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"]  # Additional status code for retry
+            "maxAttempts": 3,         # Reduced number of attempts
+            "initialBackoff": "0.5s", # Longer initial wait
+            "maxBackoff": "2s",       # Longer maximum wait
+            "backoffMultiplier": 1.5, # Slower increase in wait time
+            "retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"] # Additional status code for retry
         }
     }]
 })
@@ -282,13 +282,13 @@ from xai_sdk import AsyncClient
 # Define a custom retry policy
 custom_retry_policy = json.dumps({
     "methodConfig": [{
-        "name": [{}],  # Applies to all methods
+        "name": [{}], # Applies to all methods
         "retryPolicy": {
-            "maxAttempts": 3,
-            "initialBackoff": "0.5s",
-            "maxBackoff": "2s",
-            "backoffMultiplier": 1.5,
-            "retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"]
+            "maxAttempts": 3,         # Reduced number of attempts
+            "initialBackoff": "0.5s", # Longer initial wait
+            "maxBackoff": "2s",       # Longer maximum wait
+            "backoffMultiplier": 1.5, # Slower increase in wait time
+            "retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"] # Additional status code for retry
         }
     }]
 })
