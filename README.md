@@ -2,9 +2,15 @@
   <img src="https://avatars.githubusercontent.com/u/130314967?s=200&v=4" alt="xAI Logo" width="100" />
   <h1>xAI Python SDK</h1>
   <p>The official Python SDK for xAI's APIs</p>
-  <img src="https://img.shields.io/pypi/v/xai-sdk" alt="PyPI Version" />
-  <img src="https://img.shields.io/pypi/l/xai-sdk" alt="License" />
-  <img src="https://img.shields.io/pypi/pyversions/xai-sdk" alt="Python Version" />
+  <a href="https://pypi.org/project/xai-sdk">
+    <img src="https://img.shields.io/pypi/v/xai-sdk" alt="PyPI Version" />
+  </a>
+  <a href="">
+    <img src="https://img.shields.io/pypi/l/xai-sdk" alt="License" />
+  </a>
+  <a href="">
+    <img src="https://img.shields.io/pypi/pyversions/xai-sdk" alt="Python Version" />
+  </a>
 </div>
 
 <br>
