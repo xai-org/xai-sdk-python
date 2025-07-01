@@ -3,18 +3,17 @@ repos:
     rev: v8.23.1
     hooks:
       - id: gitleaks
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.7
     hooks:
-      # Run the linter.
       - id: ruff
-        args:
-          - --fix
-      # Run the formatter.
-        - id: ruff-format
+        args: [--fix]
+      - id: ruff-format
+
   - repo: https://github.com/semgrep/pre-commit
-      rev: v1.127.1
-      hooks:
-        - id: semgrep-ci
-          stages: [pre-push]
-          args: ['--error']
+    rev: v1.127.1
+    hooks:
+      - id: semgrep-ci
+        stages: [pre-push]
+        args: ["--error"]
