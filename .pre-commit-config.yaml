@@ -15,4 +15,5 @@ repos:
     rev: v1.127.1
     hooks:
       - id: semgrep-ci
+        stages: [pre-push]
         args: ["ci", "--quiet"]
