@@ -16,6 +16,7 @@ As an external contributor, you can propose changes to the codebase, tests, or d
 2. **Clone the Repository**: Clone the forked repository to your local machine and navigate to the project directory.
 3. **Set Up Python Environment**: Ensure you have a version of Python ≥3.10 installed, as this project only supports Python 3.10 and above. The project uses `uv` for dependency management, so you'll also need to install it if not already installed.
 4. **Install Dependencies**: Run `uv sync` to install the project dependencies into a virtual environment. `uv sync` will create the virtual environment and install all project dependencies for you.
+5. **Install pre-commit hooks**: Run `uv run pre-commit install` to install the pre-commit hooks. This repo is configured to run pre-commit hooks such as ruff linting, formatting and secret detection preventing you from accidentally committing erroneous changes.
 
 ## Step 2: Create a Feature Branch
 
