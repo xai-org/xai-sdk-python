@@ -102,6 +102,16 @@ jobs:
     outputs:
       pypi_version: ${{ steps.get_pypi_version.outputs.pypi_version }}
     steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c7f87aa956e4c323abf06d5dec078e358f6b4d04 # v6
+        with:
+          version: "0.7.3"
+
       - name: Get latest version published on PyPI
         id: get_pypi_version
         run: |
@@ -118,12 +128,29 @@ jobs:
         run: |
           NEW_VERSION=${{ needs.check_package_version.outputs.package_version }}
           LATEST_VERSION=${{ steps.get_pypi_version.outputs.pypi_version }}
-          if [ "$(printf '%s\n' "$LATEST_VERSION" "$NEW_VERSION" | sort -rV | head -n 1)" != "$NEW_VERSION" ] || [ "$NEW_VERSION" == "$LATEST_VERSION" ]; then
-            echo "The new version $NEW_VERSION is not greater than the latest version $LATEST_VERSION on PyPI."
-            exit 1
-          else
-            echo "The new version $NEW_VERSION is greater than the latest version $LATEST_VERSION on PyPI."
-          fi
+
+          export NEW_VERSION=$NEW_VERSION
+          export LATEST_VERSION=$LATEST_VERSION
+
+          echo "NEW_VERSION=$NEW_VERSION"
+          echo "LATEST_VERSION=$LATEST_VERSION"
+
+          uv run --with packaging python -c "
+          import os
+          from packaging import version
+
+          new_version = os.environ['NEW_VERSION']
+          latest_version = os.environ['LATEST_VERSION']
+
+          new_ver = version.parse(new_version)
+          latest_ver = version.parse(latest_version)
+
+          if new_ver <= latest_ver:
+              print(f'Error: New version {new_version} is not greater than latest version {latest_version}')
+              exit(1)
+          else:
+              print('New version is greater than latest version.')
+          "
 
   setup_build_and_publish:
     name: Build Package and Publish to PyPI
