@@ -617,10 +617,16 @@ def test_chat_create_with_search_parameters(client: Client):
 
     chat_completion_request = chat.proto
 
+    expected_from_date_pb = timestamp_pb2.Timestamp()
+    expected_from_date_pb.FromDatetime(from_date)
+
+    expected_to_date_pb = timestamp_pb2.Timestamp()
+    expected_to_date_pb.FromDatetime(to_date)
+
     assert chat_completion_request.search_parameters == chat_pb2.SearchParameters(
         mode=chat_pb2.SearchMode.ON_SEARCH_MODE,
-        from_date=timestamp_pb2.Timestamp().FromDatetime(from_date),
-        to_date=timestamp_pb2.Timestamp().FromDatetime(to_date),
+        from_date=expected_from_date_pb,
+        to_date=expected_to_date_pb,
         sources=[
             chat_pb2.Source(web=chat_pb2.WebSource(country="UK", excluded_websites=["excluded.com"], safe_search=True)),
             chat_pb2.Source(news=chat_pb2.NewsSource(country="UK", safe_search=True)),
@@ -642,10 +648,16 @@ def test_chat_create_with_search_parameters_proto(client: Client):
     from_date = datetime(2025, 1, 1, tzinfo=timezone.utc)
     to_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
+    expected_from_date_pb = timestamp_pb2.Timestamp()
+    expected_from_date_pb.FromDatetime(from_date)
+
+    expected_to_date_pb = timestamp_pb2.Timestamp()
+    expected_to_date_pb.FromDatetime(to_date)
+
     search_parameters_pb = chat_pb2.SearchParameters(
         mode=chat_pb2.SearchMode.ON_SEARCH_MODE,
-        from_date=timestamp_pb2.Timestamp().FromDatetime(from_date),
-        to_date=timestamp_pb2.Timestamp().FromDatetime(to_date),
+        from_date=expected_from_date_pb,
+        to_date=expected_to_date_pb,
         sources=[
             chat_pb2.Source(web=chat_pb2.WebSource(country="UK", excluded_websites=["excluded.com"], safe_search=True)),
             chat_pb2.Source(news=chat_pb2.NewsSource(country="UK", safe_search=True)),

@@ -66,9 +66,17 @@ class SearchParameters:
 
     def _to_proto(self) -> chat_pb2.SearchParameters:
         """Converts the search parameters to a chat_pb2.SearchParameters proto."""
+        from_date_pb = Timestamp()
+        to_date_pb = Timestamp()
+
+        if self.from_date is not None:
+            from_date_pb.FromDatetime(self.from_date)
+        if self.to_date is not None:
+            to_date_pb.FromDatetime(self.to_date)
+
         return chat_pb2.SearchParameters(
-            from_date=Timestamp().FromDatetime(self.from_date) if self.from_date else None,
-            to_date=Timestamp().FromDatetime(self.to_date) if self.to_date else None,
+            from_date=from_date_pb if self.from_date is not None else None,
+            to_date=to_date_pb if self.to_date is not None else None,
             max_search_results=self.max_search_results,
             return_citations=self.return_citations,
             mode=self._search_mode_to_proto(self.mode),
