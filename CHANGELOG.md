@@ -13,6 +13,10 @@
 ### Removed
 - Features or functionalities that have been removed.
 
+## [v1.0.1](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.0.1) - 2025-07-22
+### Fixed
+- Fixed a bug that caused the `from_date` and `to_date` parameters to have no effect when using them via `SearchParameters` for the live search feature
+    
 ## [v1.0.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.0.0) - 2025-07-02
 ### Added
 - Added support for new parameters to the `x_source` (`from xai_sdk.search import x_source`) for use with the live search API feature:
