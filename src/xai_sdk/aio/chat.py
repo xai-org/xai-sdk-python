@@ -52,7 +52,6 @@ class Chat(BaseChat):
             response_pb = await self._stub.GetCompletion(self._make_request(1))
             response = Response(response_pb, 0)
             span.set_attributes(self._make_span_response_attributes([response]))
-
             return response
 
     async def sample_batch(self, n: int) -> Sequence[Response]:
@@ -130,7 +129,6 @@ class Chat(BaseChat):
 
                 response.process_chunk(chunk)
                 chunk_obj = Chunk(chunk, 0)
-
                 yield response, chunk_obj
 
             span.set_attributes(self._make_span_response_attributes([response]))
