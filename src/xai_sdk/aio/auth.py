@@ -1,7 +1,11 @@
 from google.protobuf import empty_pb2
+from opentelemetry.trace import SpanKind
 
 from ..auth import BaseClient
 from ..proto import auth_pb2
+from ..telemetry import get_tracer
+
+tracer = get_tracer(__name__)
 
 
 class Client(BaseClient):
@@ -25,4 +29,8 @@ class Client(BaseClient):
             - team_blocked: Whether the team is blocked.
             - disabled: Whether the API key is disabled.
         """
-        return await self._stub.get_api_key_info(empty_pb2.Empty())
+        with tracer.start_as_current_span(
+            name="get_api_key_info",
+            kind=SpanKind.CLIENT,
+        ):
+            return await self._stub.get_api_key_info(empty_pb2.Empty())

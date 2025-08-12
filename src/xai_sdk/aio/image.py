@@ -1,10 +1,21 @@
 from typing import Optional, Sequence
 
 import aiohttp
+from opentelemetry.trace import SpanKind
 
 from ..__about__ import __version__
-from ..image import BaseClient, BaseImageResponse, ImageFormat, convert_image_format_to_pb
+from ..image import (
+    BaseClient,
+    BaseImageResponse,
+    ImageFormat,
+    _make_span_request_attributes,
+    _make_span_response_attributes,
+    convert_image_format_to_pb,
+)
 from ..proto import image_pb2
+from ..telemetry import get_tracer
+
+tracer = get_tracer(__name__)
 
 
 class Client(BaseClient):
@@ -40,8 +51,16 @@ class Client(BaseClient):
             n=1,
             format=convert_image_format_to_pb(image_format),
         )
-        response = await self._stub.GenerateImage(request)
-        return ImageResponse(response, 0)
+
+        with tracer.start_as_current_span(
+            name=f"image.sample {model}",
+            kind=SpanKind.CLIENT,
+            attributes=_make_span_request_attributes(request),
+        ) as span:
+            response_pb = await self._stub.GenerateImage(request)
+            image_response = ImageResponse(response_pb, 0)
+            span.set_attributes(_make_span_response_attributes(request, [image_response]))
+            return image_response
 
     async def sample_batch(
         self,
@@ -75,8 +94,16 @@ class Client(BaseClient):
             n=n,
             format=convert_image_format_to_pb(image_format),
         )
-        response = await self._stub.GenerateImage(request)
-        return [ImageResponse(response, i) for i in range(n)]
+
+        with tracer.start_as_current_span(
+            name=f"image.sample_batch {model}",
+            kind=SpanKind.CLIENT,
+            attributes=_make_span_request_attributes(request),
+        ) as span:
+            response_pb = await self._stub.GenerateImage(request)
+            image_responses = [ImageResponse(response_pb, i) for i in range(n)]
+            span.set_attributes(_make_span_response_attributes(request, image_responses))
+            return image_responses
 
 
 class ImageResponse(BaseImageResponse):

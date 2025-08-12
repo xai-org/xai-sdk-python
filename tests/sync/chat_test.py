@@ -1,8 +1,11 @@
+import json
 from datetime import datetime, timezone
 from typing import Sequence, Union
+from unittest import mock
 
 import pytest
 from google.protobuf import timestamp_pb2
+from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
 
 from xai_sdk import Client
@@ -432,6 +435,640 @@ def test_search_with_streaming(client: Client):
     assert last_response.citations[0] == "test-citation-123"
     assert last_response.citations[1] == "test-citation-456"
     assert last_response.citations[2] == "test-citation-789"
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    response = chat.sample()
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "Hello, how are you?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.sample grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.id": response.id,
+        "gen_ai.response.model": response._proto.model,
+        "gen_ai.usage.input_tokens": response.usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": response.usage.completion_tokens,
+        "gen_ai.usage.total_tokens": response.usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": response.usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": response.usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": response.usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": response.usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": response.system_fingerprint,
+        "gen_ai.response.finish_reasons": [response.finish_reason],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": response.content,
+    }
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.MagicMock, client: Client):
+    """Test that all possible request attributes are set when all fields are provided."""
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+
+    # Set all possible request attributes
+    chat = client.chat.create(
+        model="grok-3",
+        conversation_id=conversation_id,
+        messages=[
+            system("You are a helpful assistant."),  # system message
+            user("Hello, how are you?"),  # user message
+            assistant("I'm doing well, thank you!"),  # assistant message
+        ],
+        temperature=0.5,
+        max_tokens=100,
+        top_p=0.9,
+        frequency_penalty=0.2,
+        presence_penalty=0.1,
+        seed=123,
+        stop=["stop"],
+        logprobs=True,
+        top_logprobs=10,
+        reasoning_effort="low",
+        user="test-user",
+        response_format="json_object",
+        parallel_tool_calls=False,
+    )
+
+    chat.sample()
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "json_object",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": True,
+        "gen_ai.request.frequency_penalty": 0.2,
+        "gen_ai.request.presence_penalty": 0.1,
+        "gen_ai.request.temperature": 0.5,
+        "gen_ai.request.parallel_tool_calls": False,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.request.max_tokens": 100,
+        "gen_ai.request.seed": 123,
+        "gen_ai.request.stop_sequences": ["stop"],
+        "gen_ai.request.top_p": 0.9,
+        "gen_ai.request.top_logprobs": 10,
+        "gen_ai.request.reasoning_effort": "low",
+        "user_id": "test-user",
+        # All prompt messages
+        "gen_ai.prompt.0.role": "system",
+        "gen_ai.prompt.0.content": "You are a helpful assistant.",
+        "gen_ai.prompt.1.role": "user",
+        "gen_ai.prompt.1.content": "Hello, how are you?",
+        "gen_ai.prompt.2.role": "assistant",
+        "gen_ai.prompt.2.content": "I'm doing well, thank you!",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.sample grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    responses = chat.sample_batch(3)
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "Hello, how are you?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.sample_batch grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    # Verify response attributes are set for batch responses
+    assert len(responses) == 3
+    expected_response_attributes = {
+        "gen_ai.response.id": responses[0].id,
+        "gen_ai.response.model": responses[0]._proto.model,
+        "gen_ai.usage.input_tokens": responses[0].usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": responses[0].usage.completion_tokens,
+        "gen_ai.usage.total_tokens": responses[0].usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": responses[0].usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": responses[0].usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": responses[0].usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": responses[0].usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": responses[0].system_fingerprint,
+        "gen_ai.response.finish_reasons": [response.finish_reason for response in responses],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": responses[0].content,
+        "gen_ai.completion.1.role": "assistant",
+        "gen_ai.completion.1.content": responses[1].content,
+        "gen_ai.completion.2.role": "assistant",
+        "gen_ai.completion.2.content": responses[2].content,
+    }
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    chunks_received = []
+    final_response = None
+    for response, chunk in chat.stream():
+        chunks_received.append(chunk)
+        final_response = response
+
+    assert len(chunks_received) > 0
+    assert final_response is not None
+    assert final_response.content == "Hello, this is a test response!"
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "Hello, how are you?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.stream grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    mock_span.set_attribute.assert_called_once_with("gen_ai.completion.start_time", mock.ANY)
+
+    expected_response_attributes = {
+        "gen_ai.response.id": final_response.id,
+        "gen_ai.response.model": final_response._proto.model,
+        "gen_ai.usage.input_tokens": final_response.usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": final_response.usage.completion_tokens,
+        "gen_ai.usage.total_tokens": final_response.usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": final_response.usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": final_response.usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": final_response.usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": final_response.usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": final_response.system_fingerprint,
+        "gen_ai.response.finish_reasons": [final_response.finish_reason],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": final_response.content,
+    }
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    # Consume the stream batch
+    chunks_received = []
+    final_responses = None
+    for responses, chunks in chat.stream_batch(2):
+        chunks_received.extend(chunks)
+        final_responses = responses
+
+    assert len(chunks_received) > 0
+    assert final_responses is not None
+    assert len(final_responses) == 2
+    assert final_responses[0].content == "Hello, this is a test response!"
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "Hello, how are you?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.stream_batch grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    mock_span.set_attribute.assert_called_once_with("gen_ai.completion.start_time", mock.ANY)
+
+    expected_response_attributes = {
+        "gen_ai.response.id": final_responses[0].id,
+        "gen_ai.response.model": final_responses[0]._proto.model,
+        "gen_ai.usage.input_tokens": final_responses[0].usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": final_responses[0].usage.completion_tokens,
+        "gen_ai.usage.total_tokens": final_responses[0].usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": final_responses[0].usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": final_responses[0].usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": final_responses[0].usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": final_responses[0].usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": final_responses[0].system_fingerprint,
+        "gen_ai.response.finish_reasons": [response.finish_reason for response in final_responses],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": final_responses[0].content,
+        "gen_ai.completion.1.role": "assistant",
+        "gen_ai.completion.1.content": final_responses[1].content,
+    }
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    class TestResponse(BaseModel):
+        city: str
+        units: str
+        temperature: int
+
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("What's the weather in London?"))
+
+    response, parsed = chat.parse(TestResponse)
+
+    assert response is not None
+    assert parsed is not None
+    assert isinstance(parsed, TestResponse)
+    assert parsed.city == "London"
+    assert parsed.units == "C"
+    assert parsed.temperature == 20
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "json_schema",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "What's the weather in London?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.parse grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.id": response.id,
+        "gen_ai.response.model": response._proto.model,
+        "gen_ai.usage.input_tokens": response.usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": response.usage.completion_tokens,
+        "gen_ai.usage.total_tokens": response.usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": response.usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": response.usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": response.usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": response.usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": response.system_fingerprint,
+        "gen_ai.response.finish_reasons": [response.finish_reason],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": response.content,
+    }
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    response = chat.defer()
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "Hello, how are you?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.defer grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.id": response.id,
+        "gen_ai.response.model": response._proto.model,
+        "gen_ai.usage.input_tokens": response.usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": response.usage.completion_tokens,
+        "gen_ai.usage.total_tokens": response.usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": response.usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": response.usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": response.usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": response.usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": response.system_fingerprint,
+        "gen_ai.response.finish_reasons": [response.finish_reason],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": response.content,
+    }
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    responses = chat.defer_batch(3)
+
+    assert len(responses) == 3
+    for response in responses:
+        assert response.content == "Hello, this is a test response!"
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "Hello, how are you?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.defer_batch grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.id": responses[0].id,
+        "gen_ai.response.model": responses[0]._proto.model,
+        "gen_ai.usage.input_tokens": responses[0].usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": responses[0].usage.completion_tokens,
+        "gen_ai.usage.total_tokens": responses[0].usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": responses[0].usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": responses[0].usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": responses[0].usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": responses[0].usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": responses[0].system_fingerprint,
+        "gen_ai.response.finish_reasons": [response.finish_reason for response in responses],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": responses[0].content,
+        "gen_ai.completion.1.role": "assistant",
+        "gen_ai.completion.1.content": responses[1].content,
+        "gen_ai.completion.2.role": "assistant",
+        "gen_ai.completion.2.content": responses[2].content,
+    }
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_chat_with_function_calling_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(
+        model="grok-3",
+        conversation_id=conversation_id,
+        tools=[
+            tool(
+                name="get_weather",
+                description="Get the weather in a given city",
+                parameters={"type": "object", "properties": {"city": {"type": "string"}}, "required": ["city"]},
+            ),
+        ],
+    )
+    chat.append(user("What's the weather in London?"))
+    response = chat.sample()
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "What's the weather in London?",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.sample grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.id": response.id,
+        "gen_ai.response.model": response._proto.model,
+        "gen_ai.usage.input_tokens": response.usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": response.usage.completion_tokens,
+        "gen_ai.usage.total_tokens": response.usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": response.usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": response.usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": response.usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": response.usage.prompt_image_tokens,
+        "gen_ai.response.system_fingerprint": response.system_fingerprint,
+        "gen_ai.response.finish_reasons": [response.finish_reason],
+        "gen_ai.completion.0.role": "assistant",
+        "gen_ai.completion.0.content": response.content,
+        "gen_ai.completion.0.tool_calls": json.dumps(
+            [
+                {
+                    "id": "test-tool-call",
+                    "type": "function",
+                    "function": {"name": "get_weather", "arguments": {"city": "London", "units": "C"}},
+                }
+            ]
+        ),
+    }
+
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_chat_with_function_call_result_creates_span_with_correct_attributes(
+    mock_tracer: mock.MagicMock, client: Client
+):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(
+        model="grok-3",
+        conversation_id=conversation_id,
+    )
+    chat.append(user("What's the weather in London?"))
+    chat.append(
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_ASSISTANT,
+            content=[chat_pb2.Content(text="I am retrieving the weather for London in Celsius.")],
+            tool_calls=[
+                chat_pb2.ToolCall(
+                    id="test-tool-call",
+                    function=chat_pb2.FunctionCall(name="get_weather", arguments='{"city":"London","units":"C"}'),
+                )
+            ],
+        )
+    )
+    chat.append(tool_result("The weather in London is 20 degrees Fahrenheit."))
+    chat.sample()
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.logprobs": False,
+        "gen_ai.request.frequency_penalty": 0.0,
+        "gen_ai.request.presence_penalty": 0.0,
+        "gen_ai.request.temperature": 1.0,
+        "gen_ai.request.parallel_tool_calls": True,
+        "server.port": 443,
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.prompt.0.role": "user",
+        "gen_ai.prompt.0.content": "What's the weather in London?",
+        "gen_ai.prompt.1.role": "assistant",
+        "gen_ai.prompt.1.content": "I am retrieving the weather for London in Celsius.",
+        "gen_ai.prompt.1.tool_calls": json.dumps(
+            [
+                {
+                    "id": "test-tool-call",
+                    "type": "function",
+                    "function": {"name": "get_weather", "arguments": {"city": "London", "units": "C"}},
+                }
+            ]
+        ),
+        "gen_ai.prompt.2.role": "tool",
+        "gen_ai.prompt.2.content": "The weather in London is 20 degrees Fahrenheit.",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.sample grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+
+@mock.patch("xai_sdk.sync.chat.tracer")
+def test_multi_turn_conversation_creates_multiple_spans_with_same_conversation_id(
+    mock_tracer: mock.MagicMock, client: Client
+):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    # Sample twice to create two spans which should have the same conversation_id
+    chat.sample()
+    chat.append(user("Hi again"))
+    chat.sample()
+
+    assert mock_tracer.start_as_current_span.call_count == 2
+    call_args_list = mock_tracer.start_as_current_span.call_args_list
+    first_call_attributes = call_args_list[0].kwargs["attributes"]
+    assert first_call_attributes["gen_ai.conversation.id"] == conversation_id
+    second_call_attributes = call_args_list[1].kwargs["attributes"]
+    assert second_call_attributes["gen_ai.conversation.id"] == conversation_id
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,12 @@
 from typing import Sequence
 
+from opentelemetry.trace import SpanKind
+
 from ..proto import tokenize_pb2
+from ..telemetry import get_tracer
 from ..tokenizer import BaseClient
+
+tracer = get_tracer(__name__)
 
 
 class Client(BaseClient):
@@ -17,5 +22,10 @@ class Client(BaseClient):
         Returns:
             The token sequence corresponding to the input text.
         """
-        response = self._stub.TokenizeText(tokenize_pb2.TokenizeTextRequest(text=text, model=model))
-        return response.tokens
+        with tracer.start_as_current_span(
+            name=f"tokenize_text {model}",
+            kind=SpanKind.CLIENT,
+            attributes={"gen_ai.request.model": model},
+        ):
+            response = self._stub.TokenizeText(tokenize_pb2.TokenizeTextRequest(text=text, model=model))
+            return response.tokens

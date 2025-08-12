@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 ### Added
-- New features or functionalities added to the project.
+- Added OpenTelemetry integration for distributed tracing and monitoring of SDK operations
+- Instrumented all methods that make gRPC requests to produce spans with relevant request/response attributes
+- Added a new `telemetry` module (`xai_sdk.telemetry`) which can be used to setup trace creation and exporting of traces to an otel backend or to the console
 
 ### Changed
 - Updates or modifications to existing features.

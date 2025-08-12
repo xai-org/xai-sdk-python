@@ -15,6 +15,7 @@ dependencies = [
   "requests>=2.31.0,<3",
   "aiohttp>=3.8.6,<4",
   "packaging>=25.0,<26",
+  "opentelemetry-sdk>=1.36.0,<2",
 ]
 requires-python = ">=3.10"
 classifiers = [
@@ -44,6 +45,11 @@ classifiers = [
 Homepage = "https://github.com/xai-org/xai-sdk-python"
 Documentation = "https://docs.x.ai"
 Repository = "https://github.com/xai-org/xai-sdk-python"
+
+[project.optional-dependencies]
+telemetry-http = ["opentelemetry-exporter-otlp-proto-http>=1.36.0,<2"]
+telemetry-grpc = ["opentelemetry-exporter-otlp-proto-grpc>=1.36.0,<2"]
+
 
 [[tool.uv.index]]
 name = "testpypi"

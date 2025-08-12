@@ -1,4 +1,7 @@
+from unittest import mock
+
 import pytest
+from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
 from xai_sdk.proto import models_pb2
@@ -74,3 +77,70 @@ def test_get_embedding_model(test_client: Client):
 def test_get_image_generation_model(test_client: Client):
     model = test_client.models.get_image_generation_model("grok-2-image")
     assert model.name == "grok-2-image"
+
+
+@mock.patch("xai_sdk.sync.models.tracer")
+def test_list_language_models_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, test_client: Client):
+    test_client.models.list_language_models()
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="list_language_models",
+        kind=SpanKind.CLIENT,
+    )
+
+
+@mock.patch("xai_sdk.sync.models.tracer")
+def test_get_language_model_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, test_client: Client):
+    test_client.models.get_language_model("grok-2")
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="get_language_model grok-2",
+        kind=SpanKind.CLIENT,
+        attributes={"gen_ai.request.model": "grok-2"},
+    )
+
+
+@mock.patch("xai_sdk.sync.models.tracer")
+def test_list_embedding_models_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, test_client: Client):
+    test_client.models.list_embedding_models()
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="list_embedding_models",
+        kind=SpanKind.CLIENT,
+    )
+
+
+@mock.patch("xai_sdk.sync.models.tracer")
+def test_get_embedding_model_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, test_client: Client):
+    test_client.models.get_embedding_model("embedding-beta")
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="get_embedding_model embedding-beta",
+        kind=SpanKind.CLIENT,
+        attributes={"gen_ai.request.model": "embedding-beta"},
+    )
+
+
+@mock.patch("xai_sdk.sync.models.tracer")
+def test_list_image_generation_models_creates_span_with_correct_attributes(
+    mock_tracer: mock.MagicMock, test_client: Client
+):
+    test_client.models.list_image_generation_models()
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="list_image_generation_models",
+        kind=SpanKind.CLIENT,
+    )
+
+
+@mock.patch("xai_sdk.sync.models.tracer")
+def test_get_image_generation_model_creates_span_with_correct_attributes(
+    mock_tracer: mock.MagicMock, test_client: Client
+):
+    test_client.models.get_image_generation_model("grok-2-image")
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="get_image_generation_model grok-2-image",
+        kind=SpanKind.CLIENT,
+        attributes={"gen_ai.request.model": "grok-2-image"},
+    )

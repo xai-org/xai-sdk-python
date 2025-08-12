@@ -3,20 +3,24 @@ import json
 import time
 from typing import Iterator, Optional, Sequence, TypeVar
 
+from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
 
 from ..chat import BaseChat, BaseClient, Chunk, PollTimer, Response
 from ..proto import chat_pb2, deferred_pb2
+from ..telemetry import get_tracer
 
 
 class Client(BaseClient["Chat"]):
     """Sync Client for interacting with the `Chat` API."""
 
-    def _make_chat(self, **settings) -> "Chat":
-        return Chat(self._stub, **settings)
+    def _make_chat(self, conversation_id: Optional[str], **settings) -> "Chat":
+        return Chat(self._stub, conversation_id, **settings)
 
 
 T = TypeVar("T", bound=BaseModel)
+
+tracer = get_tracer(__name__)
 
 
 class Chat(BaseChat):
@@ -40,8 +44,15 @@ class Chat(BaseChat):
             >>> print(response.content)
             "I'm doing great, thanks for asking!"
         """
-        response = self._stub.GetCompletion(self._make_request(1))
-        return Response(response, 0)
+        with tracer.start_as_current_span(
+            name=f"chat.sample {self._proto.model}",
+            kind=SpanKind.CLIENT,
+            attributes=self._make_span_request_attributes(),
+        ) as span:
+            response_pb = self._stub.GetCompletion(self._make_request(1))
+            response = Response(response_pb, 0)
+            span.set_attributes(self._make_span_response_attributes([response]))
+            return response
 
     def sample_batch(self, n: int) -> Sequence[Response]:
         """Samples multiple chat completion responses concurrently in a single request.
@@ -66,8 +77,15 @@ class Chat(BaseChat):
             Option 2: A scarf
             Option 3: A gift card
         """
-        response = self._stub.GetCompletion(self._make_request(n))
-        return [Response(response, i) for i in range(n)]
+        with tracer.start_as_current_span(
+            name=f"chat.sample_batch {self._proto.model}",
+            kind=SpanKind.CLIENT,
+            attributes=self._make_span_request_attributes(),
+        ) as span:
+            response_pb = self._stub.GetCompletion(self._make_request(n))
+            responses = [Response(response_pb, i) for i in range(n)]
+            span.set_attributes(self._make_span_response_attributes(responses))
+            return responses
 
     def stream(self) -> Iterator[tuple[Response, Chunk]]:
         """Streams a single chat completion response.
@@ -91,12 +109,27 @@ class Chat(BaseChat):
             >>> print(response.content)
             "Once upon a time..." (full accumulated response)
         """
-        response = Response(chat_pb2.GetChatCompletionResponse(choices=[chat_pb2.Choice()]), 0)
-        stream = self._stub.GetCompletionChunk(self._make_request(1))
+        first_chunk_received = False
+        with tracer.start_as_current_span(
+            name=f"chat.stream {self._proto.model}",
+            kind=SpanKind.CLIENT,
+            attributes=self._make_span_request_attributes(),
+        ) as span:
+            response = Response(chat_pb2.GetChatCompletionResponse(choices=[chat_pb2.Choice()]), 0)
+            stream = self._stub.GetCompletionChunk(self._make_request(1))
 
-        for chunk in stream:
-            response.process_chunk(chunk)
-            yield response, Chunk(chunk, 0)
+            for chunk in stream:
+                if not first_chunk_received:
+                    span.set_attribute(
+                        "gen_ai.completion.start_time", datetime.datetime.now(datetime.timezone.utc).isoformat()
+                    )
+                    first_chunk_received = True
+
+                response.process_chunk(chunk)
+                chunk_obj = Chunk(chunk, 0)
+                yield response, chunk_obj
+
+            span.set_attributes(self._make_span_response_attributes([response]))
 
     def stream_batch(self, n: int) -> Iterator[tuple[Sequence[Response], Sequence[Chunk]]]:
         """Streams multiple chat completion responses.
@@ -127,11 +160,25 @@ class Chat(BaseChat):
         """
         proto = chat_pb2.GetChatCompletionResponse(choices=[chat_pb2.Choice(index=i) for i in range(n)])
         responses = [Response(proto, i) for i in range(n)]
-        stream = self._stub.GetCompletionChunk(self._make_request(n))
+        first_chunk_received = False
 
-        for chunk in stream:
-            responses[0].process_chunk(chunk)
-            yield responses, [Chunk(chunk, i) for i in range(n)]
+        with tracer.start_as_current_span(
+            name=f"chat.stream_batch {self._proto.model}",
+            kind=SpanKind.CLIENT,
+            attributes=self._make_span_request_attributes(),
+        ) as span:
+            stream = self._stub.GetCompletionChunk(self._make_request(n))
+            for chunk in stream:
+                if not first_chunk_received:
+                    span.set_attribute(
+                        "gen_ai.completion.start_time", datetime.datetime.now(datetime.timezone.utc).isoformat()
+                    )
+                    first_chunk_received = True
+
+                responses[0].process_chunk(chunk)
+                yield responses, [Chunk(chunk, i) for i in range(n)]
+
+            span.set_attributes(self._make_span_response_attributes(responses))
 
     def parse(self, shape: type[T]) -> tuple[Response, T]:
         """Generates and parses a single chat completion response into a Pydantic model.
@@ -167,11 +214,17 @@ class Chat(BaseChat):
                 schema=json.dumps(shape.model_json_schema()),
             )
         )
-        response = self._stub.GetCompletion(self._make_request(1))
 
-        r = Response(response, 0)
-        parsed = shape.model_validate_json(r.content)
-        return r, parsed
+        with tracer.start_as_current_span(
+            name=f"chat.parse {self._proto.model}",
+            kind=SpanKind.CLIENT,
+            attributes=self._make_span_request_attributes(),
+        ) as span:
+            response = self._stub.GetCompletion(self._make_request(1))
+            r = Response(response, 0)
+            parsed = shape.model_validate_json(r.content)
+            span.set_attributes(self._make_span_response_attributes([r]))
+            return r, parsed
 
     def _defer(
         self, n: int, timeout: Optional[datetime.timedelta], interval: Optional[datetime.timedelta]
@@ -197,19 +250,30 @@ class Chat(BaseChat):
             ValueError: If an unknown deferred status is received.
         """
         timer = PollTimer(timeout, interval)
-        response = self._stub.StartDeferredCompletion(self._make_request(n))
-        while True:
-            r = self._stub.GetDeferredCompletion(deferred_pb2.GetDeferredRequest(request_id=response.request_id))
-            match r.status:
-                case deferred_pb2.DeferredStatus.DONE:
-                    return r.response
-                case deferred_pb2.DeferredStatus.EXPIRED:
-                    raise RuntimeError("Deferred request expired.")
-                case deferred_pb2.DeferredStatus.PENDING:
-                    time.sleep(timer.sleep_interval_or_raise())
-                    continue
-                case unknown_status:
-                    raise ValueError(f"Unknown deferred status: {unknown_status}")
+        operation = "chat.defer" if n == 1 else "chat.defer_batch"
+
+        with tracer.start_as_current_span(
+            name=f"{operation} {self._proto.model}",
+            kind=SpanKind.CLIENT,
+            attributes=self._make_span_request_attributes(),
+        ) as span:
+            response = self._stub.StartDeferredCompletion(self._make_request(n))
+
+            while True:
+                r = self._stub.GetDeferredCompletion(deferred_pb2.GetDeferredRequest(request_id=response.request_id))
+                match r.status:
+                    case deferred_pb2.DeferredStatus.DONE:
+                        span.set_attributes(
+                            self._make_span_response_attributes([Response(r.response, i) for i in range(n)])
+                        )
+                        return r.response
+                    case deferred_pb2.DeferredStatus.EXPIRED:
+                        raise RuntimeError("Deferred request expired.")
+                    case deferred_pb2.DeferredStatus.PENDING:
+                        time.sleep(timer.sleep_interval_or_raise())
+                        continue
+                    case unknown_status:
+                        raise ValueError(f"Unknown deferred status: {unknown_status}")
 
     def defer(
         self, *, timeout: Optional[datetime.timedelta] = None, interval: Optional[datetime.timedelta] = None
