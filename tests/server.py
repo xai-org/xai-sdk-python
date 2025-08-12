@@ -273,7 +273,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                         system_fingerprint="dummy-fingerprint",
                         choices=[
                             chat_pb2.ChoiceChunk(
-                                delta=chat_pb2.Delta(content=chunk),
+                                delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
                                 index=j,
                                 finish_reason=None if i < len(chunks) - 1 else sample_pb2.FinishReason.REASON_MAX_LEN,
                             )

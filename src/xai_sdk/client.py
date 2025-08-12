@@ -198,10 +198,10 @@ class TimeoutInterceptor(grpc.UnaryUnaryClientInterceptor, grpc.UnaryStreamClien
 class UnaryUnaryAioInterceptor(
     grpc.aio.UnaryUnaryClientInterceptor,
 ):
-    """An asynchronous gRPC interceptor that sets a default timeout for all requests."""
+    """An asynchronous gRPC interceptor for unary-unary RPC calls that sets a default timeout for all requests."""
 
     def __init__(self, timeout: float) -> None:
-        """Initializes a new instance of the `AsyncTimeoutInterceptor` class.
+        """Initializes a new instance of the `UnaryUnaryAioInterceptor` class.
 
         Args:
             timeout: The timeout in seconds that will be applied to all requests when this interceptor is used.
@@ -218,10 +218,10 @@ class UnaryUnaryAioInterceptor(
 class UnaryStreamAioInterceptor(
     grpc.aio.UnaryStreamClientInterceptor,
 ):
-    """An asynchronous gRPC interceptor that sets a default timeout for all requests."""
+    """An asynchronous gRPC interceptor for unary-stream RPC calls that sets a default timeout for all requests."""
 
     def __init__(self, timeout: float) -> None:
-        """Initializes a new instance of the `AsyncTimeoutInterceptor` class.
+        """Initializes a new instance of the `UnaryStreamAioInterceptor` class.
 
         Args:
             timeout: The timeout in seconds that will be applied to all requests when this interceptor is used.

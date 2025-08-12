@@ -1,5 +1,5 @@
 import base64
-from typing import Literal, Union
+from typing import Any, Literal, Sequence, Union
 
 import grpc
 
@@ -65,6 +65,43 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
         # Remove the prefix.
         _, encoded_buffer = encoded.split("base64,", 1)
         return base64.b64decode(encoded_buffer)
+
+
+def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> dict[str, str | int]:
+    """Creates the image sampling span request attributes."""
+    attributes: dict[str, str | int] = {
+        "gen_ai.prompt": request.prompt,
+        "gen_ai.operation.name": "generate_image",
+        "gen_ai.system": "xai",
+        "gen_ai.request.model": request.model,
+        "gen_ai.request.image.format": image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower(),
+    }
+
+    if request.HasField("n"):
+        attributes["gen_ai.request.image.count"] = request.n
+    if request.user:
+        attributes["user_id"] = request.user
+
+    return attributes
+
+
+def _make_span_response_attributes(
+    request: image_pb2.GenerateImageRequest, responses: Sequence[BaseImageResponse]
+) -> dict[str, Any]:
+    """Creates the image sampling span response attributes."""
+    attributes: dict[str, Any] = {
+        "gen_ai.response.model": request.model,
+        "gen_ai.response.image.format": image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower(),
+    }
+
+    for index, response in enumerate(responses):
+        attributes[f"gen_ai.response.{index}.image.up_sampled_prompt"] = response.prompt
+        if request.format == image_pb2.ImageFormat.IMG_FORMAT_URL:
+            attributes[f"gen_ai.response.{index}.image.url"] = response.url
+        elif request.format == image_pb2.ImageFormat.IMG_FORMAT_BASE64:
+            attributes[f"gen_ai.response.{index}.image.base64"] = response.base64
+
+    return attributes
 
 
 def convert_image_format_to_pb(image_format: ImageFormat) -> image_pb2.ImageFormat:
