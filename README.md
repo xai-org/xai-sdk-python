@@ -187,6 +187,111 @@ The xAI SDK excels in advanced use cases, such as:
 - **Tokenization**: Tokenize text with the tokenizer API (see sync [tokenizer.py](/examples/sync/tokenizer.py) and async [tokenizer.py](/examples/aio/tokenizer.py)).
 - **Models**: Retrieve information on different models available to you, including, name, aliases, token price, max prompt length etc (see sync [models.py](/examples/sync/models.py) and async [models.py](/examples/aio/models.py))
 - **Live Search**: Augment Grok's knowledge with up-to-date information from the web and 𝕏 (see sync [search.py](/examples/sync/search.py) and async [search.py](/examples/aio/search.py))
+- **Telemetry & Observability**: Export OpenTelemetry traces with rich metadata attributes to console or OTLP backends (see sync [telemetry.py](/examples/sync/telemetry.py) and async [telemetry.py](/examples/aio/telemetry.py))
+
+## Telemetry & Observability
+
+The xAI SDK includes the option to export OpenTelemetry traces to the console or an OTLP compatible backend. Exporting telemetry is not enabled by default, and you must explicitly configure this in code to start exporting traces.
+
+When enabled, each API call automatically generates detailed traces (spans) that capture the complete execution flow of that call, as well as rich metadata including attributes such as input prompts, model responses, and token usage statistics.
+When consumed by an observability platform which can visualize these traces, this makes it easy to monitor, debug, and analyze your applications' performance and behavior.
+
+The attributes on the generated traces *largely* follow the [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-agent-spans/), meaning Otel backends that support these conventions, such as Langfuse can visualize these traces in a structured way.
+
+In some cases, where there is no corresponding standard in the OpenTelemetry GenAI semantic conventions, the xAI SDK adds some additional attributes to particular traces that users may find useful.
+
+### Export Options
+
+#### Console Export (Development)
+
+Console export prints trace data in JSON format directly to your console:
+
+```python
+from xai_sdk.telemetry import Telemetry
+
+telemetry = Telemetry()
+telemetry.setup_console_exporter()
+
+client = Client()
+
+# The call to sample will now generate a trace that you will be able to see in the console
+chat = client.chat.create(model="grok-3")
+chat.append(user("Hello, how are you?"))
+response = chat.sample()
+print(f"Response: {response.content}")
+```
+
+#### OTLP Export (Production)
+
+For production environments, send traces to observability platforms like Jaeger, Langfuse, or any OTLP-compliant backend:
+
+```python
+from xai_sdk.telemetry import Telemetry
+
+telemetry = Telemetry()
+telemetry.setup_otlp_exporter(
+    endpoint="https://your-observability-platform.com/traces",
+    headers={"Authorization": "Bearer your-token"}
+)
+
+client = Client()
+
+# The call to sample will now generate a trace that you will be able to see in your observability platform
+chat = client.chat.create(model="grok-3")
+chat.append(user("Hello, how are you?"))
+response = chat.sample()
+print(f"Response: {response.content}")
+```
+
+You can also set the environment variables `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_EXPORTER_OTLP_ENDPOINT`, and `OTEL_EXPORTER_OTLP_HEADERS` to configure the exporter. If you set the environment variables, you don't need pass any parameters to the `setup_otlp_exporter` method directly.
+
+### Installation Requirements
+
+The telemetry feature requires additional dependencies based on your export needs:
+
+```bash
+# For HTTP OTLP export
+pip install xai-sdk[telemetry-http]
+# or
+uv add xai-sdk[telemetry-http]
+
+# For gRPC OTLP export
+pip install xai-sdk[telemetry-grpc]
+# or
+uv add xai-sdk[telemetry-grpc]
+```
+
+### Environment Variables
+
+The telemetry system respects all standard OpenTelemetry environment variables:
+
+- `OTEL_EXPORTER_OTLP_PROTOCOL`: Export protocol ("grpc" or "http/protobuf")
+- `OTEL_EXPORTER_OTLP_ENDPOINT`: OTLP endpoint URL
+- `OTEL_EXPORTER_OTLP_HEADERS`: Authentication headers
+
+### Advanced Configuration
+
+#### Custom TracerProvider
+
+You may be using the xAI SDK within an application that is already using OpenTelemetry. In this case, you can provide/re-use your own TracerProvider for the xAI SDK to make use of.
+
+```python
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.resources import Resource
+from xai_sdk.telemetry import Telemetry
+
+# Create custom provider with specific configuration
+custom_resource = Resource.create({"service.name": "my-app"})
+custom_provider = TracerProvider(resource=custom_resource)
+
+# Use the custom tracer provider
+telemetry = Telemetry(provider=custom_provider)
+telemetry.setup_otlp_exporter()
+```
+
+### Disabling Tracing
+
+If you're using the xAI SDK within an application that is already using OpenTelemetry to export other traces, you may want to selectively disable xAI SDK traces only, this can be done by setting the environment variable `XAI_SDK_DISABLE_TRACING` to `1` or `true`.
 
 ## Timeouts
 
