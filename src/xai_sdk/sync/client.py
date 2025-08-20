@@ -3,7 +3,7 @@ from typing import Any, Optional, Sequence
 import grpc
 
 from ..client import BaseClient, TimeoutInterceptor, create_channel_credentials
-from . import auth, chat, image, models, tokenizer
+from . import auth, chat, documents, image, models, tokenizer
 
 
 class Client(BaseClient):
@@ -11,6 +11,7 @@ class Client(BaseClient):
 
     auth: "auth.Client"
     chat: "chat.Client"
+    documents: "documents.Client"
     image: "image.Client"
     models: "models.Client"
     tokenize: "tokenizer.Client"
@@ -33,6 +34,7 @@ class Client(BaseClient):
 
         self.auth = auth.Client(channel)
         self.chat = chat.Client(channel)
+        self.documents = documents.Client(channel)
         self.image = image.Client(channel)
         self.models = models.Client(channel)
         self.tokenize = tokenizer.Client(channel)

@@ -20,6 +20,8 @@ from xai_sdk.proto import (
     chat_pb2,
     chat_pb2_grpc,
     deferred_pb2,
+    documents_pb2,
+    documents_pb2_grpc,
     image_pb2,
     image_pb2_grpc,
     models_pb2,
@@ -443,6 +445,48 @@ class ImageHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "Not found")
 
 
+class DocumentServicer(documents_pb2_grpc.DocumentsServicer):
+    def Search(self, request: documents_pb2.SearchRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        potential_matches = [
+            documents_pb2.SearchMatch(
+                file_id="test-file-1",
+                chunk_id="test-chunk-1",
+                chunk_content="test-chunk-content-1",
+                score=0.5,
+            ),
+            documents_pb2.SearchMatch(
+                file_id="test-file-1",
+                chunk_id="test-chunk-2",
+                chunk_content="test-chunk-content-2",
+                score=0.7,
+            ),
+            documents_pb2.SearchMatch(
+                file_id="test-file-2",
+                chunk_id="test-chunk-3",
+                chunk_content="test-chunk-content-3",
+                score=0.3,
+            ),
+        ]
+
+        test_matches = []
+        if request.query == "test-query-1":
+            test_matches.append(potential_matches[0])
+            test_matches.append(potential_matches[1])
+        elif request.query == "test-query-2":
+            test_matches.append(potential_matches[2])
+        else:
+            test_matches = potential_matches
+
+        if request.limit:
+            test_matches = test_matches[: request.limit]
+
+        return documents_pb2.SearchResponse(
+            matches=test_matches,
+        )
+
+
 class TestServer(threading.Thread):
     def __init__(
         self,
@@ -468,6 +512,7 @@ class TestServer(threading.Thread):
         image_pb2_grpc.add_ImageServicer_to_server(
             ImageServicer(f"http://localhost:{self._image_port}/foo.jpg"), self._server
         )
+        documents_pb2_grpc.add_DocumentsServicer_to_server(DocumentServicer(), self._server)
 
     def stop(self):
         self._image_server.shutdown()
