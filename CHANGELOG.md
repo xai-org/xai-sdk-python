@@ -2,9 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- Added OpenTelemetry integration for distributed tracing and monitoring of SDK operations
-- Instrumented all methods that make gRPC requests to produce spans with relevant request/response attributes
-- Added a new `telemetry` module (`xai_sdk.telemetry`) which can be used to setup trace creation and exporting of traces to an otel backend or to the console
+- New features or functionalities added to the project.
 
 ### Changed
 - Updates or modifications to existing features.
@@ -14,6 +12,14 @@
 
 ### Removed
 - Features or functionalities that have been removed.
+
+## [v1.1.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.1.0) - 2025-08-21
+### Added
+- Added OpenTelemetry integration for distributed tracing and monitoring of SDK operations
+- Instrumented all methods that make gRPC requests to produce spans with relevant request/response attributes closely adhering to the OpenTelemetry GenAI Semantic Conventions.
+- Added a new `telemetry` module (`xai_sdk.telemetry`) which can be used to setup trace creation and exporting of traces to an otel backend or to the console
+- Added a new `documents` sub-client to `Client` and `AsyncClient` which can be used to interact with the documents API.
+- Added a new `search` method on the `documents` sub-client which can be used to perform semantic search for documents that are stored in collections.
 
 ## [v1.0.1](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.0.1) - 2025-07-22
 ### Fixed
