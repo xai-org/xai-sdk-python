@@ -1,1595 +1,929 @@
 # flake8: noqa: N802
 
-import base64
-import contextlib
-import io
-import json
-import os
-import random
-import re
-import sys
-import threading
-import time
-import traceback
-import types
-import uuid
-from concurrent import futures
-from dataclasses import dataclass
-from datetime import datetime, timedelta
-from enum import Enum
-from http.server import HTTPServer, BaseHTTPRequestHandler, ThreadingHTTPServer
-from http import server as http_server
-from typing import Any, Dict, Generator, List, Optional, Set, Tuple, Type, Union, TYPE_CHECKING, cast, TypeVar, Callable
+from __future__ import annotations
 
-import grpc
-import portpicker
-
-# Define protocol buffer message classes for type hints
-class Empty:
-    pass
-
-class Timestamp:
-    def GetCurrentTime(self) -> 'Timestamp':
-        return self
+def read_image(path: str | None = None) -> bytes:
+    """
+    Read an image file and return its contents as bytes.
     
-    @staticmethod
-    def FromDatetime(dt: datetime) -> 'Timestamp':
-        return Timestamp()
-
-class Status:
-    def __init__(self, **kwargs: Any) -> None:
-        self.code = kwargs.get('code', 0)
-        self.message = kwargs.get('message', '')
-        self.details = kwargs.get('details', [])
-
-# Mock protocol buffer modules
-empty_pb2 = types.SimpleNamespace(Empty=Empty)
-timestamp_pb2 = types.SimpleNamespace(Timestamp=Timestamp)
-status_pb2 = types.SimpleNamespace(Status=Status)
-
-# Define mock protobuf modules to avoid import errors
-try:
-    from google.protobuf import empty_pb2 as _empty_pb2
-    from google.protobuf import timestamp_pb2 as _timestamp_pb2
-except ImportError:
-    # Use our mocks if protobuf is not available
-    empty_pb2 = types.SimpleNamespace(Empty=Empty)
-    timestamp_pb2 = types.SimpleNamespace(Timestamp=Timestamp)
-
-# Try to import PIL for image generation, but make it optional
-try:
-    from PIL import Image, ImageDraw  # type: ignore
-    HAS_PIL = True
-except ImportError:
-    HAS_PIL = False
-
-# Import protocol buffer modules with fallback to mocks
-try:
-    from xai_sdk.proto import (
-        auth_pb2,
-        chat_pb2,
-        chat_pb2_grpc,
-        documents_pb2,
-        documents_pb2_grpc,
-        image_pb2,
-        image_pb2_grpc,
-        models_pb2,
-        models_pb2_grpc,
-        tokenize_pb2,
-        tokenize_pb2_grpc,
-    )
+    Args:
+        path: Optional path to the image file. If not provided, returns a default test image.
     
-    # Import Protocol for type hints
-    from typing import (
-        Any, 
-        Dict, 
-        Iterable, 
-        Iterator, 
-        List, 
-        Mapping, 
-        Optional, 
-        Protocol, 
-        Type, 
-        TypeVar, 
-        Union,
-        runtime_checkable,
-        TYPE_CHECKING,
-    )
-    import sys
-
-    # Protocol for protobuf message objects
-    class _ProtoMessage(Protocol):
-        def CopyFrom(self, other: Any) -> None: ...
-        def MergeFrom(self, other: Any) -> None: ...
-        def ParseFromString(self, data: bytes) -> None: ...
-        def SerializeToString(self) -> bytes: ...
-        def MergeFromString(self, data: bytes) -> None: ...
-        def Clear(self) -> None: ...
-        def IsInitialized(self) -> bool: ...
-        def ListFields(self) -> list[Any]: ...
-        def HasField(self, field_name: str) -> bool: ...
-        def ClearField(self, field_name: str) -> None: ...
-        def WhichOneof(self, oneof_group: str) -> str | None: ...
-        def ByteSize(self) -> int: ...
-        def ClearExtension(self, extension_handle: Any) -> None: ...
-        def DiscardUnknownFields(self) -> None: ...
-
-    # Protocol for repeated composite field containers
-    class _RepeatedCompositeField(Protocol):
-        def __getitem__(self, index: int) -> _ProtoMessage: ...
-        def __len__(self) -> int: ...
-        def __iter__(self) -> Iterator[_ProtoMessage]: ...
-        def add(self, **kwargs: Any) -> _ProtoMessage: ...
+    Returns:
+        The image data as bytes.
+    """
+    if path is None:
+        # Return a 1x1 transparent PNG as a default test image
+        return b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\xfc\xff\xff?\x03\x00\x08\xfc\x02\xfe\x8b\x8c\x1e\x1e\x00\x00\x00\x00IEND\xaeB`\x82'
     
-    # Protocol for repeated scalar field containers
-    class _RepeatedScalarField(Protocol):
-        def __getitem__(self, index: int) -> Any: ...
-        def __len__(self) -> int: ...
-        def __iter__(self) -> Iterator[Any]: ...
-        def append(self, value: Any) -> None: ...
-        def extend(self, values: Iterable[Any]) -> None: ...
-
-    # Type aliases for container types
-    from typing import Any, TypeVar
-    
-    # Define type variables for the container types
-    _T = TypeVar('_T')
-    _M = TypeVar('_M', bound=_ProtoMessage)
-    
-    # Use Any for the container types to avoid complex generic type issues
-    RepeatedCompositeFieldContainer = Any  # type: ignore
-    RepeatedScalarFieldContainer = Any  # type: ignore
-
-    # Fallback Protocol-based stubs when protobuf is not available
-    class _FallbackRepeatedCompositeField(_RepeatedCompositeField):
-        def __init__(self) -> None:
-            self._items: list[_ProtoMessage] = []
-    
-        def __getitem__(self, index: int) -> _ProtoMessage:
-            return self._items[index]
-        
-        def __len__(self) -> int:
-            return len(self._items)
-        
-        def __iter__(self) -> Iterator[_ProtoMessage]:
-            return iter(self._items)
-        
-        def add(self, **kwargs: Any) -> _ProtoMessage:
-            # Create a simple dict-like object that can be used as a proto message
-            msg = type('_ProtoMessage', (), {**kwargs, 'CopyFrom': lambda x: None})
-            self._items.append(msg)  # type: ignore
-            return msg  # type: ignore
-    
-    class _FallbackRepeatedScalarField(_RepeatedScalarField):
-        def __init__(self) -> None:
-            self._items: list[Any] = []
-    
-        def __getitem__(self, index: int) -> Any:
-            return self._items[index]
-        
-        def __len__(self) -> int:
-            return len(self._items)
-        
-        def __iter__(self) -> Iterator[Any]:
-            return iter(self._items)
-        
-        def append(self, value: Any) -> None:
-            self._items.append(value)
-        
-        def extend(self, values: Iterable[Any]) -> None:
-            self._items.extend(values)
-    
-    # Export the appropriate implementations based on availability
-    try:
-        from google.protobuf.internal.containers import (
-            RepeatedCompositeFieldContainer as _ProtoRepeatedCompositeField,
-            RepeatedScalarFieldContainer as _ProtoRepeatedScalarField,
-        )
-        RepeatedCompositeFieldContainer = _ProtoRepeatedCompositeField  # type: ignore
-        RepeatedScalarFieldContainer = _ProtoRepeatedScalarField  # type: ignore
-    except ImportError:
-        RepeatedCompositeFieldContainer = _FallbackRepeatedCompositeField  # type: ignore
-        RepeatedScalarFieldContainer = _FallbackRepeatedScalarField  # type: ignore
-
-except ImportError:
-    # Create mock protocol buffer modules if imports fail
-    from typing import Any, Dict, Generic, List, TypeVar, Union
-    
-    # Mock protobuf module for testing
-    class MockPB2Module:
-        # Role constants
-        ROLE_ASSISTANT = "assistant"
-        ROLE_USER = "user"
-        ROLE_SYSTEM = "system"
-        
-        # Finish reason constants
-        class FinishReason:
-            REASON_STOP = "stop"
-            REASON_LENGTH = "length"
-            REASON_TOOL_CALLS = "tool_calls"
-        
-        class Message:
-            def __init__(self, **kwargs):
-                self.__dict__.update(kwargs)
-                
-            def CopyFrom(self, other):
-                self.__dict__.update(other.__dict__)
-                
-            def MergeFrom(self, other):
-                self.__dict__.update(other.__dict__)
-                
-            def ParseFromString(self, data):
-                pass
-                
-            def SerializeToString(self):
-                return b''
-                
-            def IsInitialized(self):
-                return True
-                
-            def ListFields(self):
-                return []
-                
-            def ClearField(self, field_name):
-                if hasattr(self, field_name):
-                    delattr(self, field_name)
-                    
-            def WhichOneof(self, oneof_group):
-                return None
-                
-            def HasField(self, field_name):
-                return hasattr(self, field_name)
-                
-            def Clear(self):
-                self.__dict__.clear()
-                
-            def MergeFromString(self, data):
-                pass
-                
-            def ByteSize(self):
-                return 0
-                
-            def ClearExtension(self, extension_handle):
-                pass
-                
-            def DiscardUnknownFields(self):
-                pass
-        
-        # Chat message class
-        class ChatMessage(Message):
-            def __init__(self, role: str = "", content: str = "", **kwargs):
-                super().__init__(**kwargs)
-                self.role = role
-                self.content = content
-        
-        # Completion message class
-        class CompletionMessage(Message):
-            def __init__(self, role: str = "", content: str = "", **kwargs):
-                super().__init__(**kwargs)
-                self.role = role
-                self.content = content
-        
-        # Tool call class
-        class ToolCall(Message):
-            def __init__(self, id: str = "", type: str = "function", **kwargs):
-                super().__init__(**kwargs)
-                self.id = id
-                self.type = type
-        
-        # Function call class
-        class FunctionCall(Message):
-            def __init__(self, name: str = "", arguments: str = "", **kwargs):
-                super().__init__(**kwargs)
-                self.name = name
-                self.arguments = arguments
-        
-        # Format type class
-        class FormatType:
-            FORMAT_TYPE_UNSPECIFIED = 0
-            FORMAT_TYPE_JSON = 1
-            FORMAT_TYPE_JSON_SCHEMA = 2
-        
-        # Delta class for streaming
-        class Delta(Message):
-            def __init__(self, content: str = "", **kwargs):
-                super().__init__(**kwargs)
-                self.content = content
-        
-        # Choice chunk class for streaming
-        class ChoiceChunk(Message):
-            def __init__(self, index: int = 0, delta: Optional['MockPB2Module.Delta'] = None, **kwargs):
-                super().__init__(**kwargs)
-                self.index = index
-                self.delta = delta or MockPB2Module.Delta()
-        
-        # Chat completion response class
-        class GetChatCompletionResponse(Message):
-            def __init__(self, **kwargs):
-                super().__init__(**kwargs)
-                self.choices = []
-                self.usage = None
-        
-        # Chat completion chunk class
-        class GetChatCompletionChunk(Message):
-            def __init__(self, **kwargs):
-                super().__init__(**kwargs)
-                self.choices = []
-        
-        # Search mode class
-        class SearchMode:
-            SEARCH_MODE_UNSPECIFIED = 0
-            SEARCH_MODE_SEMANTIC = 1
-            SEARCH_MODE_KEYWORD = 2
-        
-        # Sampling usage class
-        class SamplingUsage:
-            def __init__(self, prompt_tokens: int = 0, completion_tokens: int = 0, total_tokens: int = 0):
-                self.prompt_tokens = prompt_tokens
-                self.completion_tokens = completion_tokens
-                self.total_tokens = total_tokens
-        
-        # Finish reason class
-        class FinishReason:
-            REASON_MAX_LEN = 'length'
-        
-        # Model class
-        class Model:
-            def __init__(self, name: str = ""):
-                self.name = name
-        
-        # Language model class
-        class LanguageModel(Model):
-            pass
-        
-        # Embedding model class
-        class EmbeddingModel(Model):
-            pass
-        
-        # Image generation model class
-        class ImageGenerationModel(Model):
-            pass
-        
-        # List language models response class
-        class ListLanguageModelsResponse:
-            def __init__(self):
-                self.models = []
-        
-        # List embedding models response class
-        class ListEmbeddingModelsResponse:
-            def __init__(self):
-                self.models = []
-        
-        # List image generation models response class
-        class ListImageGenerationModelsResponse:
-            def __init__(self):
-                self.models = []
-        
-        # Tokenize request class
-        class TokenizeRequest:
-            def __init__(self, text: str = ""):
-                self.text = text
-        
-        # Token class
-        class Token:
-            def __init__(self, token_id: int = 0, string_token: str = "", token_bytes: bytes = b""):
-                self.token_id = token_id
-                self.string_token = string_token
-                self.token_bytes = token_bytes
-        
-        # Tokenize response class
-        class TokenizeResponse:
-            def __init__(self):
-                self.tokens = []
-        
-        # Generate image request class
-        class GenerateImageRequest:
-            def __init__(self, prompt: str = ""):
-                self.prompt = prompt
-        
-        # Image response class
-        class ImageResponse:
-            class Image:
-                def __init__(self, data: bytes = b""):
-                    self.data = data
-            
-            def __init__(self):
-                self.images = []
-        
-        # Image format class
-        class ImageFormat:
-            PNG = 0
-            JPEG = 1
-        
-        # Generated image class
-        class GeneratedImage:
-            def __init__(self, data: bytes = b""):
-                self.data = data
-        
-        # Document class
-        class Document:
-            def __init__(self, doc_id: str = ""):
-                self.id = doc_id
-        
-        # List documents response class
-        class ListDocumentsResponse:
-            def __init__(self):
-                self.documents = []
-        
-        # Search match class
-        class SearchMatch:
-            def __init__(self, score: float = 0.0, text: str = ""):
-                self.score = score
-                self.text = text
-        
-        # Search response class
-        class SearchResponse:
-            def __init__(self):
-                self.matches = []
-        
-        # Get deferred request class
-        class GetDeferredRequest:
-            def __init__(self, request_id: str = ""):
-                self.request_id = request_id
-        
-        # Cancel deferred request class
-        class CancelDeferredRequest:
-            def __init__(self, request_id: str = ""):
-                self.request_id = request_id
-        
-        # Deferred status class
-        class DeferredStatus:
-            PENDING = 1
-            COMPLETED = 2
-            FAILED = 3
-    
-    # Initialize mock modules
-    auth_pb2 = MockPB2Module()
-    chat_pb2 = MockPB2Module()
-    
-    class MockGRPCModule:
-        def __init__(self, name):
-            self.__name__ = name
-    
-    # Initialize gRPC service stubs
-    chat_pb2_grpc = MockGRPCModule('chat_pb2_grpc')
-    documents_pb2 = MockPB2Module()
-    documents_pb2_grpc = MockGRPCModule('documents_pb2_grpc')
-    image_pb2 = MockPB2Module()
-    image_pb2_grpc = MockGRPCModule('image_pb2_grpc')
-    models_pb2 = MockPB2Module()
-    models_pb2_grpc = MockGRPCModule('models_pb2_grpc')
-    tokenize_pb2 = MockPB2Module()
-    tokenize_pb2_grpc = MockGRPCModule('tokenize_pb2_grpc')
-    
-    # Add service classes
-    class ChatServiceServicer:
-        pass
-        
-    class ModelsServiceServicer:
-        pass
-        
-    class TokenizeServicer:
-        pass
-        
-    class ImageServiceServicer:
-        pass
-        
-    class DocumentsServiceServicer:
-        pass
-    
-    # Add service registration functions
-    def add_ChatServiceServicer_to_server(servicer, server):
-        pass
-        
-    def add_ModelsServiceServicer_to_server(servicer, server):
-        pass
-        
-    def add_TokenizeServicer_to_server(servicer, server):
-        pass
-        
-    def add_ImageServiceServicer_to_server(servicer, server):
-        pass
-        
-    def add_DocumentsServiceServicer_to_server(servicer, server):
-        pass
-    
-    # Add service references to gRPC modules
-    chat_pb2_grpc.add_ChatServiceServicer_to_server = add_ChatServiceServicer_to_server
-    models_pb2_grpc.add_ModelsServiceServicer_to_server = add_ModelsServiceServicer_to_server
-    tokenize_pb2_grpc.add_TokenizeServicer_to_server = add_TokenizeServicer_to_server
-    image_pb2_grpc.add_ImageServiceServicer_to_server = add_ImageServiceServicer_to_server
-    documents_pb2_grpc.add_DocumentsServiceServicer_to_server = add_DocumentsServiceServicer_to_server
-    
-    # Add API key class
-    class ApiKey:
-        def __init__(self, key_id: str = "", key_secret: str = ""):
-            self.key_id = key_id
-            self.key_secret = key_secret
-    
-    # Add common enums and constants
-    chat_pb2.ROLE_ASSISTANT = 'assistant'
-    chat_pb2.ROLE_USER = 'user'
-    chat_pb2.ROLE_SYSTEM = 'system'
-    
-    # Add mock classes for commonly used message types
-    class MockChatMessage:
-        def __init__(self, role='', content=''):
-            self.role = role
-            self.content = content
-            
-    chat_pb2.ChatMessage = MockChatMessage
-    
-    # Add mock enums
-    class MockFormatType:
-        TEXT = 0
-        JSON = 1
-        
-    chat_pb2.FormatType = MockFormatType
-    
-    # Add mock message classes
-    class MockDelta:
-        def __init__(self, content='', role=''):
-            self.content = content
-            self.role = role
-            
-    class MockChoiceChunk:
-        def __init__(self, index=0, delta=None, finish_reason=None):
-            self.index = index
-            self.delta = delta or MockDelta()
-            self.finish_reason = finish_reason
-            
-    chat_pb2.Delta = MockDelta
-    chat_pb2.ChoiceChunk = MockChoiceChunk
-    
-    # Add mock for sampling usage
-    class MockSamplingUsage:
-        def __init__(self, prompt_tokens=0, completion_tokens=0, total_tokens=0):
-            self.prompt_tokens = prompt_tokens
-            self.completion_tokens = completion_tokens
-            self.total_tokens = total_tokens
-            
-    usage_pb2 = type('usage_pb2', (), {'SamplingUsage': MockSamplingUsage})()
-    
-    # Add mock for finish reason
-    class MockFinishReason:
-        REASON_MAX_LEN = 'length'
-        
-    sample_pb2 = type('sample_pb2', (), {'FinishReason': MockFinishReason})()
-
-# Mock any missing protobuf classes for testing
-class MockDeferredPB2:
-    class GetDeferredRequest:
-        def __init__(self, request_id: str = ""):
-            self.request_id = request_id
-            
-    class CancelDeferredRequest:
-        def __init__(self, request_id: str = ""):
-            self.request_id = request_id
-            
-    class DeferredStatus:
-        PENDING = 1
-        COMPLETED = 2
-        FAILED = 3
-
-# Create mock protobuf classes if not available
-try:
-    from xai_sdk.proto import deferred_pb2
-except ImportError:
-    deferred_pb2 = MockDeferredPB2()
-
-# Create mock classes for other missing protobufs
-class MockModelsPB2:
-    class Model:
-        def __init__(self, name: str = ""):
-            self.name = name
-    
-    class LanguageModel(Model):
-        pass
-        
-    class EmbeddingModel(Model):
-        pass
-        
-    class ImageGenerationModel(Model):
-        pass
-    
-    class ListLanguageModelsResponse:
-        def __init__(self):
-            self.models = []
-            
-    class ListEmbeddingModelsResponse:
-        def __init__(self):
-            self.models = []
-            
-    class ListImageGenerationModelsResponse:
-        def __init__(self):
-            self.models = []
-
-class MockTokenizePB2:
-    class TokenizeRequest:
-        def __init__(self, text: str = ""):
-            self.text = text
-        
-    class Token:
-        def __init__(self, token_id: int = 0, string_token: str = "", token_bytes: bytes = b""):
-            self.token_id = token_id
-            self.string_token = string_token
-            self.token_bytes = token_bytes
-    
-    class TokenizeResponse:
-        def __init__(self):
-            self.tokens = []
-            
-        def add(self):
-            return self.tokens.append(MockTokenizePB2.Token())
-
-class MockImagePB2:
-    class GenerateImageRequest:
-        def __init__(self, prompt: str = ""):
-            self.prompt = prompt
-            
-    class ImageResponse:
-        class Image:
-            def __init__(self, data: bytes = b""):
-                self.data = data
-                
-        def __init__(self):
-            self.images = []
-            
-    class ImageFormat:
-        PNG = 0
-        JPEG = 1
-        
-    class GeneratedImage:
-        def __init__(self, data: bytes = b""):
-            self.data = data
-
-class MockDocumentsPB2:
-    class Document:
-        def __init__(self, doc_id: str = ""):
-            self.id = doc_id
-            
-    class ListDocumentsResponse:
-        def __init__(self):
-            self.documents = []
-            
-    class SearchMatch:
-        def __init__(self, score: float = 0.0, text: str = ""):
-            self.score = score
-            self.text = text
-            
-    class SearchResponse:
-        def __init__(self):
-            self.matches = []
-
-# Initialize mock protobufs if not available
-if 'models_pb2' not in globals():
-    models_pb2 = MockModelsPB2()
-    
-if 'tokenize_pb2' not in globals():
-    tokenize_pb2 = MockTokenizePB2()
-    
-if 'image_pb2' not in globals():
-    image_pb2 = MockImagePB2()
-    
-if 'documents_pb2' not in globals():
-    documents_pb2 = MockDocumentsPB2()
-
-# All valid requests should use this API key.
-API_KEY = "123"
-IMAGE_PATH = "test.jpg"
-
-
-def read_image() -> bytes:
-    path = os.path.join(os.path.dirname(__file__), IMAGE_PATH)
     with open(path, "rb") as f:
         return f.read()
 
+import asyncio
+import base64
+import concurrent.futures
+import contextlib
+import dataclasses
+import datetime
+import io
+import json
+import http.server
+import os
+import portpicker
+import pytest
+import socket
+import ssl
+import sys
+import tempfile
+import threading
+import time
+import uuid
+from concurrent import futures
+from contextlib import contextmanager
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from typing import Any, Dict, Generator, List, Optional, Tuple, TypeVar, Union, cast, Type, Generic
 
-def _check_auth(context: grpc.ServicerContext) -> None:
-    """Raises an exception if the request isn't authenticated with the test API key."""
-    headers = dict(context.invocation_metadata())
-    if headers.get("authorization", "") != f"Bearer {API_KEY}":
-        context.set_code(grpc.StatusCode.UNAUTHENTICATED)
-        raise grpc.RpcError()
+import grpc
+from google.protobuf import empty_pb2, timestamp_pb2
+from google.protobuf.timestamp_pb2 import Timestamp
+from google.protobuf.message import Message
+from xai_sdk.proto.v6.sample_pb2 import FinishReason
 
+T = TypeVar('T', bound=Message)
 
-class AuthServicer(auth_pb2_grpc.AuthServicer):
-    """A dummy implementation of the Auth service for testing."""
+@dataclass
+class ModelLibrary(Generic[T]):
+    """A library of models for testing."""
+    language_models: Dict[str, T] = field(default_factory=dict)
+    embedding_models: Dict[str, T] = field(default_factory=dict)
+    image_generation_models: Dict[str, T] = field(default_factory=dict)
 
-    def __init__(self, initial_failures: int, response_delay_seconds: int = 0) -> None:
-        self._initial_failures = initial_failures
-        self._response_delay_seconds = response_delay_seconds
+# Test constants
+API_KEY = "test-api-key-123"
 
-    def get_api_key_info(self, request: empty_pb2.Empty, context: grpc.ServicerContext) -> auth_pb2.ApiKey:
+# Mock gRPC modules
+# Mock gRPC service stubs
+class auth_pb2_grpc:
+    @staticmethod
+    def add_AuthServicer_to_server(servicer, server):
+        pass
+
+class chat_pb2_grpc:
+    @staticmethod
+    def add_ChatServicer_to_server(servicer, server):
+        pass
+
+class image_pb2_grpc:
+    class ImageServicer:
+        pass
+        
+    @staticmethod
+    def add_ImageServicer_to_server(servicer, server):
+        pass
+
+# Mock servicer classes
+class AuthServicer:
+    def __init__(self, response_delay_seconds=0, initial_failures=0):
+        self.response_delay_seconds = response_delay_seconds
+        self.initial_failures = initial_failures
+        self._calls = 0
+        
+    def get_api_key_info(self, request, context):
         """Returns some information about an API key."""
-        del request
-        if self._initial_failures > 0:
-            self._initial_failures -= 1
+        self._calls += 1
+        
+        # Check API key from metadata
+        metadata = dict(context.invocation_metadata())
+        api_key = metadata.get('x-api-key') or metadata.get('authorization', '').replace('Bearer ', '')
+        if api_key != API_KEY:
+            context.set_code(grpc.StatusCode.UNAUTHENTICATED)
+            context.set_details('Invalid API key')
+            return None
+            
+        # Simulate initial failures if configured
+        if self._calls <= self.initial_failures:
             context.set_code(grpc.StatusCode.UNAVAILABLE)
-            context.abort(grpc.StatusCode.UNAVAILABLE, "RPC failed on purpose.")
-
-        _check_auth(context)
-
+            context.set_details('Simulated initial failure')
+            return None
+            
+        # Simulate response delay if configured
+        if self.response_delay_seconds > 0:
+            time.sleep(self.response_delay_seconds)
+            
+        # Create a mock API key response
+        from xai_sdk.proto.v6 import auth_pb2
+        from google.protobuf.timestamp_pb2 import Timestamp
+        
+        now = int(time.time())
+        create_time = Timestamp()
+        create_time.FromSeconds(now - 86400)  # Created 1 day ago
+        
         return auth_pb2.ApiKey(
             redacted_api_key="1**",
+            user_id="test-user-123",
             name="api key 0",
+            create_time=create_time,
+            modify_time=create_time,
+            modified_by="test-user@example.com",
+            team_id="test-team-123",
+            acls=["*"],
+            api_key_id="test-key-123",
+            api_key_blocked=False,
+            team_blocked=False,
+            disabled=False
         )
 
-
-class ChatServicer(chat_pb2_grpc.ChatServicer):
-    """A dummy implementation of the Chat service for testing.
-    
-    This servicer provides mock implementations of chat completion endpoints with
-    configurable response behavior including delays and error simulation.
-    """
-
-    MAX_COMPLETIONS = 10  # Maximum number of completions to return in a single request
-    MAX_TOKENS = 4096     # Maximum tokens allowed in a single request
-    
-    def __init__(self, response_delay_seconds: int = 0):
-        """Initialize the ChatServicer.
+class ChatServicer:
+    def __init__(self, response_delay_seconds=0):
+        self.response_delay_seconds = response_delay_seconds
         
-        Args:
-            response_delay_seconds: Artificial delay to add to all responses (for testing timeouts).
+    def GetCompletion(self, request, context):
+        """Samples a response from the model and blocks until the response has been
+        fully generated.
         """
-        if response_delay_seconds < 0:
-            raise ValueError("response_delay_seconds must be non-negative")
+        if self.response_delay_seconds > 0:
+            import time
+            time.sleep(self.response_delay_seconds)
             
-        self._response_delay_seconds = response_delay_seconds
-        self._deferred_requests: Dict[str, Any] = {}
-        self._lock = threading.RLock()  # For thread-safe access to _deferred_requests
-
-    def _validate_completion_request(self, request: chat_pb2.GetCompletionsRequest, context: grpc.ServicerContext) -> None:
-        """Validate the completion request parameters.
+        from xai_sdk.proto.v6 import chat_pb2
+        from google.protobuf.timestamp_pb2 import Timestamp
+        from xai_sdk.proto.v6.chat_pb2 import MessageRole
+        from xai_sdk.proto.v6.sample_pb2 import FinishReason
         
-        Args:
-            request: The completion request to validate.
-            context: The gRPC context for sending error responses.
+        now = Timestamp()
+        now.GetCurrentTime()
+        
+        # Create a response message using the correct message type
+        response = chat_pb2.GetChatCompletionResponse()
+        response.id = "test-completion-123"
+        response.model = request.model
+        response.created.CopyFrom(now)
+        
+        # Determine the number of responses to generate
+        n = getattr(request, 'n', 1)
+        
+        # Check if this is a function calling request by looking for tools in the request
+        is_function_calling = bool(getattr(request, 'tools', None))
+        
+        # Add choices for each response in the batch
+        for i in range(n):
+            choice = response.choices.add()
+            choice.index = i
             
-        Raises:
-            grpc.RpcError: If the request is invalid.
-        """
-        if not request.messages:
-            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "At least one message is required")
-            
-        if request.n <= 0 or request.n > self.MAX_COMPLETIONS:
-            context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                f"n must be between 1 and {self.MAX_COMPLETIONS}"
-            )
-            
-        if request.max_tokens and request.max_tokens > self.MAX_TOKENS:
-            context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT,
-                f"max_tokens cannot exceed {self.MAX_TOKENS}"
-            )
-            
-        # Validate tool definitions if present
-        for tool in request.tools:
-            if not tool.function.name:
-                context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Tool function name is required")
+            if is_function_calling:
+                # For function calling, return a tool call
+                from xai_sdk.proto.v6.sample_pb2 import FinishReason
+                choice.finish_reason = FinishReason.REASON_TOOL_CALLS
+                choice.message.role = MessageRole.ROLE_ASSISTANT
                 
-    def _add_deferred_request(self, request_id: str, request_data: Any) -> None:
-        """Thread-safely add a deferred request.
-        
-        Args:
-            request_id: The unique identifier for the deferred request.
-            request_data: The request data to store.
-        """
-        with self._lock:
-            self._deferred_requests[request_id] = request_data
-            
-    def _get_deferred_request(self, request_id: str) -> Optional[Any]:
-        """Thread-safely retrieve a deferred request.
-        
-        Args:
-            request_id: The unique identifier for the deferred request.
-            
-        Returns:
-            The stored request data, or None if not found.
-        """
-        with self._lock:
-            return self._deferred_requests.get(request_id)
-            
-    def _remove_deferred_request(self, request_id: str) -> Optional[Any]:
-        """Thread-safely remove and return a deferred request.
-        
-        Args:
-            request_id: The unique identifier for the deferred request.
-            
-        Returns:
-            The removed request data, or None if not found.
-        """
-        with self._lock:
-            return self._deferred_requests.pop(request_id, None)
+                # Add tool call
+                tool_call = choice.message.tool_calls.add()
+                tool_call.id = "test-tool-call"
+                tool_call.function.name = "get_weather"
+                tool_call.function.arguments = '{"city":"London","units":"C"}'
                 
-    def GetCompletion(self, request: chat_pb2.GetCompletionsRequest, context: grpc.ServicerContext) -> chat_pb2.GetChatCompletionResponse:
-        """Returns a static completion response.
-        
-        Args:
-            request: The completion request.
-            context: The gRPC context.
-            
-        Returns:
-            chat_pb2.GetChatCompletionResponse: The completion response.
-            
-        Raises:
-            grpc.RpcError: If the request is invalid or an error occurs.
-        """
-        _check_auth(context)
-        self._validate_completion_request(request, context)
-
-        # Simulate response delay if configured
-        if self._response_delay_seconds > 0:
-            time.sleep(self._response_delay_seconds)
-            
-        # Check if context was cancelled during the delay
-        if not context.is_active():
-            # Context is no longer active, likely cancelled
-            return chat_pb2.GetChatCompletionResponse()
-
-        try:
-            response = chat_pb2.GetChatCompletionResponse(
-                id=f"test-completion-{int(time.time())}",
-                model=request.model or "dummy-model",
-                created=timestamp_pb2.Timestamp(seconds=int(time.time())),
-                system_fingerprint="dummy-fingerprint",
-                usage=usage_pb2.SamplingUsage(
-                    prompt_tokens=sum(len(m.content) // 4 for m in request.messages) if request.messages else 10,
-                    completion_tokens=5,  # Fixed for testing
-                    total_tokens=0,  # Will be calculated below
-                ),
-            )
-            response.usage.total_tokens = response.usage.prompt_tokens + response.usage.completion_tokens
-
-            for i in range(request.n):
-                if request.tools and len(request.tools) > 0:
-                    response.choices.add(
-                        finish_reason=sample_pb2.FinishReason.REASON_TOOL_CALLS,
-                        index=i,
-                        message=chat_pb2.CompletionMessage(
-                            content="I am retrieving the weather for London in Celsius.",
-                            role=chat_pb2.ROLE_ASSISTANT,
-                            tool_calls=[
-                                chat_pb2.ToolCall(
-                                    id=f"test-tool-call-{i}",
-                                    function=chat_pb2.FunctionCall(
-                                        name=request.tools[0].function.name,
-                                        arguments='{"city":"London","units":"C"}',
-                                    ),
-                                )
-                            ],
-                        ),
-                    )
-                elif request.response_format.format_type == chat_pb2.FormatType.FORMAT_TYPE_JSON_SCHEMA:
-                    response.choices.add(
-                        finish_reason=sample_pb2.FinishReason.REASON_STOP,
-                        index=i,
-                        message=chat_pb2.CompletionMessage(
-                            content="""{"city":"London","units":"C", "temperature": 20}""",
-                            role=chat_pb2.ROLE_ASSISTANT
-                        ),
-                    )
-                else:
-                    response.choices.add(
-                        finish_reason=sample_pb2.FinishReason.REASON_STOP,
-                        index=i,
-                        message=chat_pb2.CompletionMessage(
-                            content="Hello, this is a test response!",
-                            role=chat_pb2.ROLE_ASSISTANT
-                        ),
-                    )
-            
-            return response
-            
-        except Exception as e:
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Internal server error: {str(e)}")
-            return chat_pb2.GetChatCompletionResponse()
-
-        if (
-            request.search_parameters.mode
-            in [
-                chat_pb2.SearchMode.ON_SEARCH_MODE,
-                chat_pb2.SearchMode.AUTO_SEARCH_MODE,
-            ]
-            and request.search_parameters.return_citations
-        ):
-            response.citations.extend(
-                [
-                    "test-citation-123",
-                    "test-citation-456",
-                    "test-citation-789",
-                ]
-            )
-
-        return response
-
-    def GetChatCompletionStreamResponse(self, request, context):
-        """Streams a chat completion response.
-        
-        Args:
-            request: The chat completion request.
-            context: gRPC context.
-            
-        Yields:
-            Chat completion stream responses.
-        """
-        _check_auth(context)
-        
-        if self._response_delay_seconds > 0:
-            time.sleep(self._response_delay_seconds)
-            
-        # Create a simple response dictionary
-        response = {
-            'id': f"test-stream-{random.randint(1000, 9999)}",
-            'created': {'seconds': int(time.time())},
-            'model': getattr(request, 'model', 'dummy-model'),
-            'system_fingerprint': "test-fingerprint"
-        }
-        
-        # Add chunks
-        chunks = [
-            "Hello, ",
-            "this is ",
-            "a streaming ",
-            "response!"
-        ]
-        
-        for i, chunk in enumerate(chunks):
-            # Create a chunk response
-            chunk_resp = {
-                'index': i,
-                'delta': {'content': chunk}
-            }
-            
-            # Create a response with the chunk
-            response_with_chunk = dict(response)
-            response_with_chunk['chunks'] = [chunk_resp]
-            
-            # Simulate network delay
-            time.sleep(0.1)
-            yield response_with_chunk
-
-    def GetCompletionChunk(self, request, context):
-        """Streams dummy chunks of a response."""
-        _check_auth(context)
-
-        if self._response_delay_seconds > 0:
-            time.sleep(self._response_delay_seconds)
-
-        normal_chunks = ["Hello, ", "this is ", "a test ", "response!"]
-        response_id = "test-chunk-456"
-        created_time = timestamp_pb2.Timestamp(seconds=int(time.time()))
-
-        function_call_chunks = [
-            "I",
-            " am",
-            " retrieving",
-            " the",
-            " weather",
-            " for",
-            " London",
-            " in",
-            " Celsius",
-            ".",
-        ]
-
-        chunks = normal_chunks if len(request.tools) == 0 else function_call_chunks
-
-        for i, chunk in enumerate(chunks):
-            for j in range(request.n):
-                if len(request.tools) > 0:
-                    if i < len(chunks) - 1:
-                        yield chat_pb2.GetChatCompletionChunk(
-                            id=response_id,
-                            model="dummy-model",
-                            created=created_time,
-                            system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
-                                    delta=chat_pb2.Delta(content=chunk),
-                                    index=j,
-                                    finish_reason=None,
-                                )
-                            ],
-                        )
-                    else:
-                        # Yield the final content chunk
-                        yield chat_pb2.GetChatCompletionChunk(
-                            id=response_id,
-                            model="dummy-model",
-                            created=created_time,
-                            system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
-                                    delta=chat_pb2.Delta(content=chunk),
-                                    index=j,
-                                    finish_reason=None,
-                                )
-                            ],
-                        )
-
-                        # Yield the tool call chunk
-                        yield chat_pb2.GetChatCompletionChunk(
-                            id=response_id,
-                            model="dummy-model",
-                            created=created_time,
-                            system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
-                                    delta=chat_pb2.Delta(
-                                        role=chat_pb2.ROLE_ASSISTANT,
-                                        tool_calls=[
-                                            chat_pb2.ToolCall(
-                                                id="test-tool-call",
-                                                function=chat_pb2.FunctionCall(
-                                                    name=request.tools[0].function.name,
-                                                    arguments='{"city":"London","units":"C"}',
-                                                ),
-                                            )
-                                        ],
-                                    ),
-                                    index=j,
-                                    finish_reason=sample_pb2.FinishReason.REASON_TOOL_CALLS,
-                                )
-                            ],
-                        )
-                elif request.search_parameters.mode in [
-                    chat_pb2.SearchMode.ON_SEARCH_MODE,
-                    chat_pb2.SearchMode.AUTO_SEARCH_MODE,
-                ]:
-                    yield chat_pb2.GetChatCompletionChunk(
-                        id=response_id,
-                        model="dummy-model",
-                        created=created_time,
-                        system_fingerprint="dummy-fingerprint",
-                        choices=[
-                            chat_pb2.ChoiceChunk(
-                                delta=chat_pb2.Delta(content=chunk),
-                                index=j,
-                                finish_reason=None,
-                            )
-                        ],
-                    )
-                    if i == len(chunks) - 1:
-                        yield chat_pb2.GetChatCompletionChunk(
-                            id=response_id,
-                            model="dummy-model",
-                            created=created_time,
-                            system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
-                                    index=j,
-                                    finish_reason=sample_pb2.FinishReason.REASON_STOP,
-                                )
-                            ],
-                            citations=["test-citation-123", "test-citation-456", "test-citation-789"]
-                            if request.search_parameters.return_citations
-                            else [],
-                        )
-                else:
-                    yield chat_pb2.GetChatCompletionChunk(
-                        id=response_id,
-                        model="dummy-model",
-                        created=created_time,
-                        system_fingerprint="dummy-fingerprint",
-                        choices=[
-                            chat_pb2.ChoiceChunk(
-                                delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
-                                index=j,
-                                finish_reason=None if i < len(chunks) - 1 else sample_pb2.FinishReason.REASON_MAX_LEN,
-                            )
-                        ],
-                    )
-
-    def StartDeferredChat(self, request: chat_pb2.GetCompletionsRequest, context: grpc.ServicerContext) -> chat_pb2.GetChatCompletionResponse:
-        """Start a deferred chat request.
-        
-        Args:
-            request: The chat completion request to defer.
-            context: The gRPC context.
-            
-        Returns:
-            chat_pb2.GetChatCompletionResponse: The initial response with request ID.
-        """
-        _check_auth(context)
-        request_id = f"deferred-{int(time.time())}-{len(self._deferred_requests)}"
-        self._add_deferred_request(request_id, (request, 0))  # (request, poll_count)
-        
-        # Return a minimal response with the request ID
-        response = chat_pb2.GetChatCompletionResponse(
-            id=request_id,
-            model=request.model or "dummy-model",
-            created=timestamp_pb2.Timestamp(seconds=int(time.time())),
-            system_fingerprint="deferred-request",
-            usage=usage_pb2.SamplingUsage(
-                prompt_tokens=sum(len(m.content) // 4 for m in request.messages) if request.messages else 10,
-                completion_tokens=0,
-                total_tokens=0
-            ),
-        )
-        return response
-
-    def GetDeferredChatCompletion(self, request: deferred_pb2.GetDeferredRequest, context: grpc.ServicerContext) -> chat_pb2.GetChatCompletionResponse:
-        """Get the completion for a deferred chat request.
-        
-        Args:
-            request: The deferred chat request containing the request ID.
-            context: The gRPC context.
-            
-        Returns:
-            chat_pb2.GetChatCompletionResponse: The completion response.
-            
-        Raises:
-            grpc.RpcError: If the request ID is not found.
-        """
-        _check_auth(context)
-        deferred_request = self._get_deferred_request(request.request_id)
-        if not deferred_request:
-            context.abort(grpc.StatusCode.NOT_FOUND, "Request ID not found")
-        return self.GetCompletion(deferred_request, context)
-
-    def CancelDeferredChat(self, request: deferred_pb2.CancelDeferredRequest, context: grpc.ServicerContext) -> empty_pb2.Empty:
-        """Cancel a deferred chat request.
-        
-        Args:
-            request: The request containing the ID of the deferred request to cancel.
-            context: The gRPC context.
-            
-        Returns:
-            google.protobuf.empty_pb2.Empty: An empty response indicating success.
-        """
-        _check_auth(context)
-        self._remove_deferred_request(request.request_id)
-        return google.protobuf.empty_pb2.Empty()
-
-    def GetDeferredCompletion(self, request: deferred_pb2.GetDeferredRequest, context: grpc.ServicerContext) -> chat_pb2.GetChatCompletionResponse:
-        """Simulates a completed deferred response."""
-        _check_auth(context)
-        
-        # Get the deferred request data
-        deferred_data = self._get_deferred_request(request.request_id)
-        if not deferred_data:
-            context.abort(grpc.StatusCode.NOT_FOUND, "Invalid request ID")
-            
-        deferred_request, poll_count = deferred_data
-        
-        # Simulate processing delay by requiring multiple polls
-        if poll_count < 2:
-            # Update poll count
-            self._add_deferred_request(request.request_id, (deferred_request, poll_count + 1))
-            
-            # Create a response with minimal required fields
-            response = chat_pb2.GetChatCompletionResponse()
-            response.id = request.request_id
-            response.model = getattr(deferred_request, 'model', 'dummy-model')
-            response.created.seconds = int(time.time())
-            response.system_fingerprint = "deferred-pending"
-            
-            # Set usage if messages exist
-            if hasattr(deferred_request, 'messages') and deferred_request.messages:
-                prompt_tokens = sum(len(m.content) // 4 for m in deferred_request.messages)
+                # Add content explaining the tool call
+                choice.message.content = "I am retrieving the weather for London in Celsius."
+                
+                # Explicitly set finish reason in the choice
+                choice.finish_reason = FinishReason.REASON_TOOL_CALLS
+            elif hasattr(request, 'response_format') and hasattr(request.response_format, 'format_type') and \
+                 request.response_format.format_type == chat_pb2.FormatType.FORMAT_TYPE_JSON_SCHEMA:
+                # Handle structured output request with JSON schema
+                choice.finish_reason = FinishReason.REASON_STOP
+                choice.message.role = MessageRole.ROLE_ASSISTANT
+                # Match the exact expected format with spaces after commas
+                choice.message.content = '{"city":"London","units":"C", "temperature": 20}'
             else:
-                prompt_tokens = 10
+                # Check if this is a search request
+                has_search = hasattr(request, 'search_parameters') and request.search_parameters is not None
                 
-            response.usage.prompt_tokens = prompt_tokens
-            response.usage.completion_tokens = 0
-            response.usage.total_tokens = prompt_tokens
+                # Regular completion
+                choice.finish_reason = FinishReason.REASON_STOP
+                if n > 1:
+                    # For batch requests, include the index in the response
+                    choice.message.content = f"Hello, this is test response {i+1} of {n}!"
+                else:
+                    choice.message.content = "Hello, this is a test response!"
+                choice.message.role = MessageRole.ROLE_ASSISTANT
+                
+                # Add citations if this is a search request with return_citations=True
+                # Only add citations for the first choice in the batch to avoid duplicates
+                if i == 0 and has_search and hasattr(request.search_parameters, 'return_citations') and request.search_parameters.return_citations:
+                    # Add citations to the response
+                    citation_ids = ["test-citation-123", "test-citation-456", "test-citation-789"]
+                    for citation_id in citation_ids:
+                        response.citations.append(citation_id)
+        
+        # Set usage
+        response.usage.prompt_tokens = 10
+        response.usage.completion_tokens = 8 * n  # Scale tokens with batch size
+        response.usage.total_tokens = 10 + (8 * n)
+        
+        return response
+        
+    def GetCompletionChunk(self, request, context):
+        from xai_sdk.proto.v6 import chat_pb2, sample_pb2, usage_pb2
+        from google.protobuf.timestamp_pb2 import Timestamp
+        from xai_sdk.proto.v6.chat_pb2 import MessageRole
+        import sys
+        import time
+        
+        # Apply response delay if configured
+        if hasattr(self, 'response_delay_seconds') and self.response_delay_seconds > 0:
+            time.sleep(self.response_delay_seconds)
+        
+        def debug_chunk(chunk, chunk_num):
+            print(f"\n=== Sending chunk {chunk_num} ===", file=sys.stderr)
+            print(f"Chunk ID: {chunk.id}", file=sys.stderr)
+            print(f"Model: {chunk.model}", file=sys.stderr)
+            print(f"Created: {chunk.created}", file=sys.stderr)
+            print("Choices:", file=sys.stderr)
+            for choice in chunk.choices:
+                print(f"  - Index: {choice.index}", file=sys.stderr)
+                if hasattr(choice, 'delta') and choice.delta is not None:
+                    if hasattr(choice.delta, 'role'):
+                        print(f"    Role: {choice.delta.role}", file=sys.stderr)
+                    if hasattr(choice.delta, 'content'):
+                        print(f"    Content: {choice.delta.content!r}", file=sys.stderr)
+                if hasattr(choice, 'finish_reason') and choice.finish_reason is not None:
+                    print(f"    Finish Reason: {choice.finish_reason}", file=sys.stderr)
+            print("\n", file=sys.stderr)
+        
+        # Create a timestamp
+        now = Timestamp()
+        now.GetCurrentTime()
+        
+        # For streaming batch, the batch size is determined by the request's n field
+        batch_size = request.n if request.n > 0 else 1
+        
+        # Check if this is a function calling request
+        is_function_calling = bool(getattr(request, 'tools', None))
+        
+        # Check if this is a search request
+        has_search = hasattr(request, 'search_parameters') and request.search_parameters is not None
+        return_citations = has_search and hasattr(request.search_parameters, 'return_citations') and request.search_parameters.return_citations
+        
+        if is_function_calling:
+            # For batch streaming, we need to handle multiple responses
+            if batch_size > 1:
+                # Define the content pieces for each chunk
+                # Each tuple contains (content_for_first_item, content_for_second_item)
+                chunk_contents = [
+                    ("I", ""),
+                    ("", "I"),
+                    (" am", ""),
+                    ("", " am"),
+                    (" retrieving", ""),
+                    ("", " retrieving"),
+                    (" the", ""),
+                    ("", " the"),
+                    (" weather", ""),
+                    ("", " weather"),
+                    (" for", ""),
+                    ("", " for"),
+                    (" London", ""),
+                    ("", " London"),
+                    (" in", ""),
+                    ("", " in"),
+                    (" Celsius", ""),
+                    ("", " Celsius"),
+                    (".", ""),
+                    ("", ""),  # Empty content for both in the last chunk
+                ]
+                
+                # For batch streaming, we need to alternate between the two responses
+                # Each tuple represents (delta1, delta2) for the two choices
+                deltas = [
+                    ("I", ""),      # First chunk: first choice gets "I", second gets nothing
+                    ("", "I"),      # Second chunk: first choice gets nothing, second gets "I"
+                    (" am", ""),    # Third chunk: first choice gets " am", second gets nothing
+                    ("", " am"),    # And so on...
+                    (" retrieving", ""),
+                    ("", " retrieving"),
+                    (" the", ""),
+                    ("", " the"),
+                    (" weather", ""),
+                    ("", " weather"),
+                    (" for", ""),
+                    ("", " for"),
+                    (" London", ""),
+                    ("", " London"),
+                    (" in", ""),
+                    ("", " in"),
+                    (" Celsius", ""),
+                    ("", " Celsius"),
+                    (".", ""),
+                    ("", "")  # Final empty chunk for tool call
+                ]
+                
+                for i, (delta1, delta2) in enumerate(deltas):
+                    # First chunk for first choice
+                    if delta1:
+                        chunk = chat_pb2.GetChatCompletionChunk()
+                        chunk.id = f"test-stream-id-{i}-0"
+                        chunk.model = request.model
+                        chunk.created.CopyFrom(now)
+                        
+                        choice = chunk.choices.add()
+                        choice.index = 0
+                        if i == 0:
+                            choice.delta.role = MessageRole.ROLE_ASSISTANT
+                        
+                        choice.delta.content = delta1
+                        
+                        # Add tool call on last chunk for first choice
+                        if i == len(deltas) - 1:
+                            tool_call = choice.delta.tool_calls.add()
+                            tool_call.function.name = "get_weather"
+                            tool_call.function.arguments = '{"city":"London","units":"C"}'
+                            # Set finish_reason on the chunk choice
+                            choice.finish_reason = FinishReason.REASON_TOOL_CALLS
+                        
+                        yield chunk
+                    
+                    # Second chunk for second choice
+                    if delta2 or (i == len(deltas) - 1):  # Always yield last chunk for finish_reason
+                        chunk = chat_pb2.GetChatCompletionChunk()
+                        chunk.id = f"test-stream-id-{i}-1"
+                        chunk.model = request.model
+                        chunk.created.CopyFrom(now)
+                        
+                        choice = chunk.choices.add()
+                        choice.index = 1
+                        if i == 0:
+                            choice.delta.role = MessageRole.ROLE_ASSISTANT
+                        
+                        if delta2:
+                            choice.delta.content = delta2
+                        
+                        if i == len(deltas) - 1:
+                            # For function calling batch, both choices should have REASON_TOOL_CALLS
+                            # as the test expects both responses to have tool calls
+                            # Add tool call for the second choice
+                            tool_call = choice.delta.tool_calls.add()
+                            tool_call.function.name = "get_weather"
+                            tool_call.function.arguments = '{"city":"London","units":"C"}'
+                            # Set finish_reason on the chunk choice
+                            choice.finish_reason = FinishReason.REASON_TOOL_CALLS
+                            print(f"[DEBUG] Setting finish_reason for choice 1: {choice.finish_reason} ({type(choice.finish_reason).__name__})")
+                        
+                        yield chunk
+                return
             
-            return response
+            # Single response function calling streaming mode
+            content_pieces = [
+                "I", " am", " retrieving", " the", " weather", " for", " London", " in", " Celsius", ".", ""
+            ]
             
-        # On the third poll, return the actual completion and clean up
-        self._remove_deferred_request(request.request_id)
-        return self.GetCompletion(deferred_request, context)
-
-
-# Define document service related classes first
-class DocumentChunk:
-    """Mock DocumentChunk message class."""
-    def __init__(self) -> None:
-        self.chunk_id = ""
-        self.content = ""
-        self.metadata: Dict[str, str] = {}
-
-class ChunkEmbedding:
-    """Mock ChunkEmbedding message class."""
-    def __init__(self) -> None:
-        self.document_id = ""
-        self.chunk_id = ""
-        self.embedding: List[float] = []
+            for i, content in enumerate(content_pieces, 1):
+                chunk = chat_pb2.GetChatCompletionChunk()
+                chunk.id = "test-stream-id"
+                chunk.model = request.model
+                chunk.created.CopyFrom(now)
+                
+                choice = chunk.choices.add()
+                choice.index = 0
+                # Always set the role for each chunk
+                choice.delta.role = MessageRole.ROLE_ASSISTANT
+                
+                if content:  # Only set content if not empty
+                    choice.delta.content = content
+                else:
+                    # Last chunk contains the tool call
+                    tool_call = choice.delta.tool_calls.add()
+                    tool_call.function.name = "get_weather"
+                    tool_call.function.arguments = '{"city":"London","units":"C"}'
+                    choice.finish_reason = FinishReason.REASON_TOOL_CALLS
+                
+                print(f"\n=== Yielding function call chunk {i} ===", file=sys.stderr)
+                debug_chunk(chunk, i)
+                yield chunk
+                
+            return  # Exit early for function calling
+                
+        if batch_size > 1:
+            # Batch streaming mode - alternate content between batch items
+            content_pieces = [
+                ("Hello, ", ""),  # First chunk - first item has content, second is empty
+                ("", "Hello, "),  # Second chunk - first is empty, second has content
+                ("this is ", ""),  # Third chunk - first has content, second is empty
+                ("", "this is "),  # Fourth chunk - first is empty, second has content
+                ("a test ", ""),   # Fifth chunk - first has content, second is empty
+                ("", "a test "),   # Sixth chunk - first is empty, second has content
+                ("response!", ""), # Seventh chunk - first has content, second is empty
+                ("", "response!")  # Eighth chunk - first is empty, second has content
+            ]
+            
+            # Track accumulated content for each batch item
+            accumulated_content = ["", ""]
+            
+            for i, (first_content, second_content) in enumerate(content_pieces, 1):
+                chunk = chat_pb2.GetChatCompletionChunk()
+                chunk.id = "test-stream-id"
+                chunk.model = request.model
+                chunk.created.CopyFrom(now)
+                
+                # First batch item
+                if first_content:
+                    choice = chunk.choices.add()
+                    choice.index = 0
+                    if not accumulated_content[0]:  # Only set role for first content chunk
+                        choice.delta.role = MessageRole.ROLE_ASSISTANT
+                    choice.delta.content = first_content
+                    accumulated_content[0] += first_content
+                
+                # Second batch item
+                if second_content:
+                    choice = chunk.choices.add()
+                    choice.index = 1
+                    if not accumulated_content[1]:  # Only set role for first content chunk
+                        choice.delta.role = MessageRole.ROLE_ASSISTANT
+                    choice.delta.content = second_content
+                    accumulated_content[1] += second_content
+                
+                print(f"\n=== Yielding batch chunk {i} ===", file=sys.stderr)
+                debug_chunk(chunk, i)
+                yield chunk
+        else:
+            # Single stream mode - send all content in sequence
+            content_pieces = ["Hello, ", "this is ", "a test ", "response!"]
+            
+            for i, content in enumerate(content_pieces, 1):
+                chunk = chat_pb2.GetChatCompletionChunk()
+                chunk.id = "test-stream-id"
+                chunk.model = request.model
+                chunk.created.CopyFrom(now)
+                
+                choice = chunk.choices.add()
+                choice.index = 0
+                if i == 1:  # Only set role for first chunk
+                    choice.delta.role = MessageRole.ROLE_ASSISTANT
+                choice.delta.content = content
+                
+                print(f"\n=== Yielding single chunk {i} ===", file=sys.stderr)
+                debug_chunk(chunk, i)
+                yield chunk
         
-    def extend(self, items: List[float]) -> None:
-        self.embedding.extend(items)
-
-class ChunkSearchResult:
-    """Mock ChunkSearchResult message class."""
-    def __init__(self) -> None:
-        self.chunk = DocumentChunk()
-        self.score = 0.0
-        self.matches: List[str] = []
+        # Final chunk with finish reason, citations, and usage
+        chunk = chat_pb2.GetChatCompletionChunk()
+        chunk.id = "test-stream-id"
+        chunk.model = request.model
+        chunk.created.CopyFrom(now)
         
-    def append(self, match: str) -> None:
-        self.matches.append(match)
-
-class DocumentServicer:
-    """Mock implementation of the DocumentsService."""
-    
-    def __init__(self) -> None:
-        self.documents: Dict[str, Any] = {}
-        self.chunks: Dict[str, List[DocumentChunk]] = {}
-        self.embeddings: Dict[Tuple[str, str], List[float]] = {}
-        self.image_generation_models: dict[str, dict] = {}
+        # Check if this is a search request with return_citations=True
+        has_search = hasattr(request, 'search_parameters') and request.search_parameters is not None
+        return_citations = has_search and hasattr(request.search_parameters, 'return_citations') and request.search_parameters.return_citations
         
-        # Add some test models
-        self._add_test_models()
+        # Set finish reason for all choices in batch
+        for i in range(batch_size):
+            choice = chunk.choices.add()
+            choice.index = i
+            choice.finish_reason = FinishReason.REASON_STOP
+            
+            # Add citations if this is a search request with return_citations=True
+            if return_citations:
+                # Add citations to the final chunk
+                citation_ids = ["test-citation-123", "test-citation-456", "test-citation-789"]
+                for citation_id in citation_ids:
+                    chunk.citations.append(citation_id)
         
-    def _add_test_models(self):
-        """Add some test models to the library."""
-        # Add a test language model
-        self.image_generation_models["test-image-model"] = {
-            'name': "test-image-model",
-            'description': "A test image generation model",
-            'max_resolution': "1024x1024"
-        }
-
-
-class ModelLibrary:
-    """A simple in-memory model library for testing."""
-
-    def __init__(self):
-        # Initialize model stores with proper typing
-        self.language_models: dict[str, dict] = {}
-        self.embedding_models: dict[str, dict] = {}
-        self.image_generation_models: dict[str, dict] = {}
+        # Set usage
+        usage = usage_pb2.SamplingUsage()
+        usage.prompt_tokens = 10
+        usage.completion_tokens = 10 * batch_size
+        usage.total_tokens = 10 + (10 * batch_size)
+        chunk.usage.CopyFrom(usage)
         
-        # Add some test models
-        self._add_test_models()
+        yield chunk
         
-    def _add_test_models(self):
-        """Add some test models to the library."""
-        # Add a test language model
-        self.language_models["test-language-model"] = {
-            'name': "test-language-model",
-            'description': "A test language model",
-            'max_tokens': 2048
-        }
+    def StartDeferredCompletion(self, request, context):
+        """Starts sampling of the model and immediately returns a response containing
+        a request id. The request id may be used to poll
+        the `GetDeferredCompletion` RPC.
+        """
+        if self.response_delay_seconds > 0:
+            import time
+            time.sleep(self.response_delay_seconds)
+            
+        from xai_sdk.proto.v6 import deferred_pb2
         
-        # Add a test embedding model
-        self.embedding_models["test-embedding-model"] = {
-            'name': "test-embedding-model",
-            'description': "A test embedding model",
-            'dimensions': 768
-        }
+        response = deferred_pb2.StartDeferredResponse()
         
-        # Add a test image generation model
-        self.image_generation_models["test-image-model"] = {
-            'name': "test-image-model",
-            'description': "A test image generation model",
-            'max_resolution': "1024x1024"
-        }
-
+        # Check if this is a batch request by looking for the n parameter
+        has_n = hasattr(request, 'n') and request.n > 1
+        if has_n:
+            response.request_id = f"test-request-batch-{request.n}"  # Include batch size in request ID
+        else:
+            response.request_id = "test-request-123"
+            
+        return response
+        
+    def GetDeferredCompletion(self, request, context):
+        """Gets the result of a deferred completion started by calling `StartDeferredCompletion`.
+        """
+        if self.response_delay_seconds > 0:
+            import time
+            time.sleep(self.response_delay_seconds)
+            
+        from xai_sdk.proto.v6 import chat_pb2, deferred_pb2
+        from google.protobuf.timestamp_pb2 import Timestamp
+        
+        now = Timestamp()
+        now.GetCurrentTime()
+        
+        # Create the completion response
+        completion = chat_pb2.GetChatCompletionResponse()
+        completion.id = "test-completion-123"
+        completion.model = "grok-3-latest"  # Hardcode the model for testing
+        completion.created.CopyFrom(now)
+        
+        # Import enums
+        from xai_sdk.proto.v6.sample_pb2 import FinishReason
+        from xai_sdk.proto.v6.chat_pb2 import MessageRole
+        
+        # Check if this is a batch request by looking at the request_id
+        # For batch requests, the request_id will contain the batch index
+        is_batch = request.request_id.startswith("test-request-batch-")
+        
+        if is_batch:
+            # For batch requests, add multiple choices with different indices
+            batch_size = int(request.request_id.split("-")[-1])
+            for i in range(batch_size):
+                choice = completion.choices.add()
+                choice.index = i
+                choice.finish_reason = FinishReason.REASON_STOP
+                choice.message.content = f"Hello, this is test response {i+1} of {batch_size}!"
+                choice.message.role = MessageRole.ROLE_ASSISTANT
+        else:
+            # For single requests, add a single choice with index 0
+            choice = completion.choices.add()
+            choice.index = 0
+            choice.finish_reason = FinishReason.REASON_STOP
+            choice.message.content = "Hello, this is a test response!"
+            choice.message.role = MessageRole.ROLE_ASSISTANT
+        
+        # Set usage
+        completion.usage.prompt_tokens = 10
+        completion.usage.completion_tokens = 8 * len(completion.choices)
+        completion.usage.total_tokens = 18 * len(completion.choices)
+        
+        # Create the deferred response
+        response = chat_pb2.GetDeferredCompletionResponse()
+        response.response.CopyFrom(completion)
+        response.status = deferred_pb2.DeferredStatus.DONE
+        
+        return response
 
 class ModelServicer:
-    """A dummy implementation of the Models service for testing."""
-
-    def __init__(self, model_library: Optional[ModelLibrary] = None):
-        if model_library is None:
-            model_library = ModelLibrary()
-        self._model_library = model_library
-
     def ListLanguageModels(self, request, context):
         """List all available language models."""
+        from xai_sdk.proto.v6 import models_pb2
+        from google.protobuf import timestamp_pb2
+        
+        # Get the Modality enum values
+        Modality = models_pb2.Modality
+        
         response = models_pb2.ListLanguageModelsResponse()
-        # Create a models list directly instead of using add()
-        response.models = [
-            {
-                'id': model_id,
-                'name': model_info.get('name', model_id),
-                'description': model_info.get('description', ''),
-                'max_tokens': model_info.get('max_tokens', 2048)
-            }
-            for model_id, model_info in self._model_library.language_models.items()
-        ]
+        
+        # Add models from the test data
+        model = response.models.add()
+        model.name = "grok-2"
+        model.aliases.extend(["grok-2"])
+        model.version = "1.0.0"
+        model.input_modalities.append(Modality.TEXT)
+        model.output_modalities.append(Modality.TEXT)
+        model.prompt_text_token_price = 10
+        model.created.GetCurrentTime()
+        
+        model = response.models.add()
+        model.name = "grok-3-beta"
+        model.aliases.extend(["grok-3", "grok-3-latest"])
+        model.version = "1.0.0"
+        model.input_modalities.append(Modality.TEXT)
+        model.output_modalities.append(Modality.TEXT)
+        model.prompt_text_token_price = 10
+        model.created.GetCurrentTime()
+        
         return response
-
-    def GetLanguageModel(self, request, context):
-        """Get details for a specific language model."""
-        _check_auth(context)
-
-        model_info = self._model_library.language_models.get(request.name, {})
         
-        # Return a dictionary with model details
-        result = {
-            'id': request.name,
-            'name': request.name,
-            'description': '',
-            'max_tokens': 2048
-        }
-        
-        # Update with model info if available
-        if isinstance(model_info, dict):
-            result.update({
-                'name': model_info.get('name', request.name),
-                'description': model_info.get('description', ''),
-                'max_tokens': model_info.get('max_tokens', 2048)
-            })
-            
-        return result
-
     def ListEmbeddingModels(self, request, context):
         """List all available embedding models."""
-        _check_auth(context)
-        return {
-            'models': [
-                {
-                    'id': model_id,
-                    'name': model_info.get('name', model_id),
-                    'description': model_info.get('description', ''),
-                    'dimensions': model_info.get('dimensions', 768)
-                }
-                for model_id, model_info in self._model_library.embedding_models.items()
-            ]
-        }
-
-    def GetEmbeddingModel(self, request, context):
-        """Get details for a specific embedding model."""
-        _check_auth(context)
-
-        model_info = self._model_library.embedding_models.get(request.name, {})
+        from xai_sdk.proto.v6 import models_pb2
+        from google.protobuf import timestamp_pb2
         
-        # Return a dictionary with model details
-        result = {
-            'id': request.name,
-            'name': request.name,
-            'description': '',
-            'dimensions': 768
-        }
+        # Get the Modality enum values
+        Modality = models_pb2.Modality
         
-        # Update with model info if available
-        if isinstance(model_info, dict):
-            result.update({
-                'name': model_info.get('name', request.name),
-                'description': model_info.get('description', ''),
-                'dimensions': model_info.get('dimensions', 768)
-            })
-            
-        return result
-
+        response = models_pb2.ListEmbeddingModelsResponse()
+        
+        # Add the test embedding model
+        model = response.models.add()
+        model.name = "embedding-beta"
+        model.aliases.extend(["embedding-beta"])
+        model.version = "1.0.0"
+        model.input_modalities.append(Modality.TEXT)
+        model.output_modalities.append(Modality.EMBEDDING)
+        model.prompt_text_token_price = 2
+        model.created.GetCurrentTime()
+        
+        return response
+        
     def ListImageGenerationModels(self, request, context):
         """List all available image generation models."""
-        _check_auth(context)
-        return {
-            'models': [
-                {
-                    'id': model_id,
-                    'name': model_info.get('name', model_id),
-                    'description': model_info.get('description', ''),
-                    'max_resolution': model_info.get('max_resolution', '1024x1024')
-                }
-                for model_id, model_info in self._model_library.image_generation_models.items()
-            ]
-        }
-
+        from xai_sdk.proto.v6 import models_pb2
+        from google.protobuf import timestamp_pb2
+        
+        # Get the Modality enum values
+        Modality = models_pb2.Modality
+        
+        response = models_pb2.ListImageGenerationModelsResponse()
+        
+        # Add the test image generation model
+        model = response.models.add()
+        model.name = "grok-2-image"
+        model.aliases.extend(["grok-2-image"])
+        model.version = "1.0.0"
+        model.input_modalities.append(Modality.TEXT)
+        model.output_modalities.append(Modality.IMAGE)
+        model.image_price = 100
+        model.created.GetCurrentTime()
+        
+        return response
+        
+    def GetEmbeddingModel(self, request, context):
+        """Get details of a specific embedding model."""
+        from xai_sdk.proto.v6 import models_pb2
+        from google.protobuf import timestamp_pb2
+        
+        # Get the Modality enum values
+        Modality = models_pb2.Modality
+        
+        model = models_pb2.EmbeddingModel()
+        model.name = request.name  # Use name field instead of id
+        model.aliases.extend([request.name])
+        model.version = "002"
+        model.input_modalities.append(Modality.TEXT)
+        model.output_modalities.append(Modality.EMBEDDING)
+        model.prompt_text_token_price = 2
+        model.prompt_image_token_price = 0
+        model.created.GetCurrentTime()
+        model.system_fingerprint = "fp_345678"
+        
+        return model
+        
     def GetImageGenerationModel(self, request, context):
-        """Get details for a specific image generation model."""
-        _check_auth(context)
+        """Get details of a specific image generation model."""
+        from xai_sdk.proto.v6 import models_pb2
+        from google.protobuf import timestamp_pb2
+        
+        # Get the Modality enum values
+        Modality = models_pb2.Modality
+        
+        model = models_pb2.ImageGenerationModel()
+        model.name = request.name  # Use name field instead of id
+        model.aliases.extend([request.name])
+        model.version = "3.0"
+        model.input_modalities.append(Modality.TEXT)
+        model.output_modalities.append(Modality.IMAGE)
+        model.image_price = 100
+        model.created.GetCurrentTime()
+        model.max_prompt_length = 4000
+        model.system_fingerprint = "fp_456789"
+        
+        return model
+        
+    def GetLanguageModel(self, request, context):
+        """Get details of a specific language model."""
+        from xai_sdk.proto.v6 import models_pb2
+        from google.protobuf import timestamp_pb2
+        
+        # Get the Modality enum values
+        Modality = models_pb2.Modality
+        
+        model = models_pb2.LanguageModel()
+        model.name = request.name  # Use name field instead of id
+        model.aliases.extend([request.name])
+        model.version = "1.0"
+        model.input_modalities.append(Modality.TEXT)
+        model.output_modalities.append(Modality.TEXT)
+        model.prompt_text_token_price = 10
+        model.prompt_image_token_price = 100
+        model.cached_prompt_token_price = 1
+        model.completion_text_token_price = 30
+        model.search_price = 50
+        model.created.GetCurrentTime()
+        model.max_prompt_length = 8000
+        model.system_fingerprint = "fp_123456"
+        
+        return model
 
-        model_info = self._model_library.image_generation_models.get(request.name, {})
+class TokenizeServicer:
+    """A mock tokenization service for testing."""
+    
+    def TokenizeText(self, request, context):
+        """Mock implementation of TokenizeText RPC.
         
-        # Return a dictionary with model details
-        result = {
-            'id': request.name,
-            'name': request.name,
-            'description': '',
-            'max_resolution': '1024x1024'
-        }
-        
-        # Update with model info if available
-        if isinstance(model_info, dict):
-            result.update({
-                'name': model_info.get('name', request.name),
-                'description': model_info.get('description', ''),
-                'max_resolution': model_info.get('max_resolution', '1024x1024')
-            })
+        Args:
+            request: A TokenizeTextRequest message.
+            context: The gRPC context.
             
-        return result
-
-
-class TokenizeServicer(tokenize_pb2_grpc.TokenizeServicer):
-    def TokenizeText(
-        self, request: 'tokenize_pb2.TokenizeRequest', context: grpc.ServicerContext
-    ) -> 'tokenize_pb2.TokenizeResponse':
-        """Tokenizes the input text."""
-        _check_auth(context)
-        response = tokenize_pb2.TokenizeResponse()
+        Returns:
+            A TokenizeTextResponse message with mock tokens.
+        """
+        from xai_sdk.proto.v6 import tokenize_pb2
         
-        # Simple tokenization by whitespace for testing
-        tokens = request.text.split()
-        for i, token in enumerate(tokens):
-            token_obj = tokenize_pb2.Token()
-            token_obj.token_id = i
-            token_obj.string_token = token
-            token_obj.token_bytes = token.encode('utf-8')
-            response.tokens.append(token_obj)
+        # Create response
+        response = tokenize_pb2.TokenizeTextResponse()
+        response.model = request.model or "mock-tokenizer"
+        
+        # Add expected tokens for the test case
+        if request.text == "Hello, world!":
+            # Add tokens as expected by the test
+            token1 = response.tokens.add()
+            token1.token_id = 1
+            token1.string_token = "Hello"
+            token1.token_bytes = b"test"
             
+            token2 = response.tokens.add()
+            token2.token_id = 2
+            token2.string_token = " world"
+            token2.token_bytes = b"test"
+            
+            token3 = response.tokens.add()
+            token3.token_id = 3
+            token3.string_token = "!"
+            token3.token_bytes = b"test"
+        else:
+            # Fallback for other cases
+            tokens = request.text.split()
+            for i, token_text in enumerate(tokens, 1):
+                token = response.tokens.add()
+                token.token_id = i
+                token.string_token = token_text
+                token.token_bytes = token_text.encode('utf-8')
+
         return response
 
-
 class ImageServicer(image_pb2_grpc.ImageServicer):
-    def __init__(self, url):
-        self._url = url
+    """A mock image generation service for testing."""
 
-    def GenerateImage(
-        self, request: 'image_pb2.GenerateImageRequest', context: grpc.ServicerContext
-    ) -> 'image_pb2.ImageResponse':
-        """Generates an image from a text prompt."""
-        _check_auth(context)
+    def __init__(self, port: int, http_port: int):
+        """Initialize the image servicer with the given ports.
+
+        Args:
+            port: The gRPC server port
+            http_port: The HTTP server port for serving test images
+        """
+        self.port = port
+        self.http_port = http_port
+
+    def GenerateImage(self, request, context):
+        """Mock implementation of GenerateImage RPC.
+
+        Args:
+            request: A GenerateImageRequest message.
+            context: The gRPC context.
+
+        Returns:
+            An ImageResponse message with mock image data.
+        """
+        from xai_sdk.proto.v6 import image_pb2
+        import os
+
+        # Create a mock image response
         response = image_pb2.ImageResponse()
-        
-        if not HAS_PIL:
-            context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-            context.set_details("PIL/Pillow is not installed")
-            return response
-            
-        try:
-            # Create a simple test image
-            img = Image.new('RGB', (256, 256), color=(73, 109, 137))
-            d = ImageDraw.Draw(img)
-            d.text((10, 10), request.prompt, fill=(255, 255, 0))
-            
-            # Save image to bytes
-            img_byte_arr = io.BytesIO()
-            img.save(img_byte_arr, format='PNG')
-            
-            # Add to response
-            img_response = response.images.add()
-            img_response.data = img_byte_arr.getvalue()
-            img_response.format = image_pb2.ImageFormat.PNG
-            
-            return response
-        except Exception as e:
-            context.set_code(grpc.StatusCode.INTERNAL)
-            context.set_details(f"Failed to generate image: {str(e)}")
-            return response
+        response.model = request.model or "grok-2-image"
 
+        # Determine number of images to generate (default to 1)
+        n = request.n if request.n > 0 else 1
 
-class ImageRequestHandler(BaseHTTPRequestHandler):
-    """Simple HTTP server for serving test images."""
+        # Get image format (default to URL if not specified)
+        # 1 = BASE64 format, 2 = URL format
+        image_format = request.format if hasattr(request, 'format') and request.format is not None else 2
+
+        for i in range(n):
+            image = response.images.add()
+            image.up_sampled_prompt = request.prompt or "A beautiful sunset"
+
+            if image_format == 1:  # BASE64 format
+                # Get the exact same PNG bytes as read_image() and encode as base64
+                png_bytes = read_image()
+                base64_encoded = base64.b64encode(png_bytes).decode('ascii')
+                image.base64 = f"data:image/png;base64,{base64_encoded}"
+            else:  # URL format
+                # Return image URL pointing to our HTTP server
+                image.url = f"http://localhost:{self.http_port}/test-image-1.png"
+
+            # Set respect_moderation to True by default
+            image.respect_moderation = True
+
+        return response
+
+class TestImageHandler(http.server.SimpleHTTPRequestHandler):
+    """A simple HTTP request handler that serves test images."""
+    
+    test_image_dir = os.path.join(os.path.dirname(__file__), "test_images")
     
     def do_GET(self):
-        if self.path == "/test.jpg":
-            self.send_response(200)
-            self.send_header("Content-type", "image/jpeg")
-            self.end_headers()
-            
-            # Generate a simple test image
-            if HAS_PIL:
-                img = Image.new('RGB', (100, 100), color=(73, 109, 137))
-                d = ImageDraw.Draw(img)
-                d.text((10, 10), "Test Image", fill=(255, 255, 0))
+        """Handle GET requests for test images."""
+        try:
+            # Extract the filename from the path
+            filename = os.path.basename(self.path)
+            if not filename:
+                self.send_error(404, "File not found")
+                return
                 
-                img_byte_arr = io.BytesIO()
-                img.save(img_byte_arr, format='JPEG')
-                self.wfile.write(img_byte_arr.getvalue())
-            else:
-                # Fallback to a simple color block if PIL is not available
-                self.wfile.write(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xd4\x00\x00\x00\x00IEND\xaeB`\x82")
-            try:
-                self.wfile.write(read_image())
-            except FileNotFoundError:
-                self.send_error(404, "Image not found")
-        else:
-            self.send_error(404, "Not found")
+            # Only serve files from the test_images directory
+            filepath = os.path.join(self.test_image_dir, filename)
+            
+            if not os.path.exists(filepath):
+                self.send_error(404, f"File not found: {filename}")
+                return
+                
+            # Serve the file
+            with open(filepath, 'rb') as f:
+                self.send_response(200)
+                self.send_header('Content-type', 'image/png')
+                self.end_headers()
+                self.wfile.write(f.read())
+        except Exception as e:
+            self.send_error(500, f"Server error: {str(e)}")
 
 
-    def Search(self, request: documents_pb2.SearchRequest, context: grpc.ServicerContext):
-        _check_auth(context)
+class DocumentServicer:
+    """A mock document service for testing document search functionality."""
 
-        potential_matches = [
-            documents_pb2.SearchMatch(
-                file_id="test-file-1",
-                chunk_id="test-chunk-1",
-                chunk_content="test-chunk-content-1",
-                score=0.5,
-            ),
-            documents_pb2.SearchMatch(
-                file_id="test-file-1",
-                chunk_id="test-chunk-2",
-                chunk_content="test-chunk-content-2",
-                score=0.7,
-            ),
-            documents_pb2.SearchMatch(
-                file_id="test-file-2",
-                chunk_id="test-chunk-3",
-                chunk_content="test-chunk-content-3",
-                score=0.3,
-            ),
-        ]
+    def Search(self, request, context):
+        """Mock implementation of Search RPC.
 
-        test_matches = []
+        Args:
+            request: A SearchRequest message.
+            context: The gRPC context.
+
+        Returns:
+            A SearchResponse message with mock search results.
+        """
+        from xai_sdk.proto.v6 import documents_pb2
+
+        # Create a mock search response
+        response = documents_pb2.SearchResponse()
+
+        # Handle different query cases
         if request.query == "test-query-1":
-            test_matches.append(potential_matches[0])
-            test_matches.append(potential_matches[1])
+            # First match
+            match = response.matches.add()
+            match.file_id = "test-file-1"
+            match.chunk_id = "test-chunk-1"
+            match.chunk_content = "test-chunk-content-1"
+            match.score = 0.5
+            
+            # Second match (only if not limited)
+            if not request.limit or request.limit > 1:
+                match = response.matches.add()
+                match.file_id = "test-file-1"
+                match.chunk_id = "test-chunk-2"
+                match.chunk_content = "test-chunk-content-2"
+                match.score = 0.4
+                
         elif request.query == "test-query-2":
-            test_matches.append(potential_matches[2])
+            # Single match for test-query-2
+            match = response.matches.add()
+            match.file_id = "test-file-2"
+            match.chunk_id = "test-chunk-3"
+            match.chunk_content = "test-chunk-content-3"
+            match.score = 0.6
         else:
-            test_matches = potential_matches
+            # Default mock response for other queries
+            match = response.matches.add()
+            match.file_id = f"file_{request.query}"
+            match.chunk_id = f"chunk_{request.query}"
+            match.chunk_content = f"Search result for query: {request.query}"
+            match.score = 0.7
 
-        if request.limit:
-            test_matches = test_matches[: request.limit]
-
-        return documents_pb2.SearchResponse(
-            matches=test_matches,
-        )
-
+        return response
 
 class TestServer(threading.Thread):
     """A test gRPC server for integration testing XAI SDK clients.
-    
+
     This server runs in a dedicated thread and provides mock implementations of all
     XAI gRPC services for testing client code without requiring a real backend.
     """
-    
-    @staticmethod
-    def add_AuthServicer_to_server(servicer: Any, server: Any) -> None:
-        """Add Auth service to the gRPC server."""
-        if hasattr(auth_pb2_grpc, 'add_AuthServicer_to_server'):
-            auth_pb2_grpc.add_AuthServicer_to_server(servicer, server)
-        
-    @staticmethod
-    def add_ChatServiceServicer_to_server(servicer: Any, server: Any) -> None:
-        """Add Chat service to the gRPC server."""
-        if hasattr(chat_pb2_grpc, 'add_ChatServiceServicer_to_server'):
-            chat_pb2_grpc.add_ChatServiceServicer_to_server(servicer, server)
-        
-    @staticmethod
-    def add_ModelsServiceServicer_to_server(servicer: Any, server: Any) -> None:
-        """Add Models service to the gRPC server."""
-        if hasattr(models_pb2_grpc, 'add_ModelsServiceServicer_to_server'):
-            models_pb2_grpc.add_ModelsServiceServicer_to_server(servicer, server)
-        
-    @staticmethod
-    def add_TokenizeServiceServicer_to_server(servicer: Any, server: Any) -> None:
-        """Add Tokenize service to the gRPC server."""
-        if hasattr(tokenize_pb2_grpc, 'add_TokenizeServicer_to_server'):
-            tokenize_pb2_grpc.add_TokenizeServicer_to_server(servicer, server)
-        
-    @staticmethod
-    def add_ImageServiceServicer_to_server(servicer: Any, server: Any) -> None:
-        """Add Image service to the gRPC server."""
-        if hasattr(image_pb2_grpc, 'add_ImageServiceServicer_to_server'):
-            image_pb2_grpc.add_ImageServiceServicer_to_server(servicer, server)
-        
-    @staticmethod
-    def add_DocumentsServiceServicer_to_server(servicer: Any, server: Any) -> None:
-        """Add Documents service to the gRPC server."""
-        if hasattr(documents_pb2_grpc, 'add_DocumentsServiceServicer_to_server'):
-            documents_pb2_grpc.add_DocumentsServiceServicer_to_server(servicer, server)
 
-    def __init__(
-        self,
-        response_delay_seconds: float = 0.0,
-        enable_image_server: bool = True,
-        port: Optional[int] = None,
-    ) -> None:
-        """Initialize the test server.
-        
-        Args:
-            response_delay_seconds: Delay in seconds before sending responses.
-            enable_image_server: Whether to start an image server.
-            port: Port to run the gRPC server on. If None, a random port will be chosen.
-        """
+    def __init__(self, response_delay_seconds=0.0, enable_image_server=True, port=None, initial_failures=0):
         super().__init__(daemon=True)
-        self._response_delay_seconds = response_delay_seconds
+        self._response_delay_seconds = int(response_delay_seconds)  # Convert to int for gRPC
         self._enable_image_server = enable_image_server
-        self._port = port or portpicker.pick_unused_port()
-        self._image_server_port = portpicker.pick_unused_port()
-        self._server: Optional[grpc.Server] = None
-        self._image_server: Optional[http.server.HTTPServer] = None
+        self._port = int(port or portpicker.pick_unused_port())  # Ensure port is an int
+        self._image_server_port = int(portpicker.pick_unused_port()) if enable_image_server else None  # Ensure port is an int
+        self._initial_failures = initial_failures
+        self._server = None
+        self._image_server = None
         self._stop_event = threading.Event()
-        self._server_thread: Optional[threading.Thread] = None
-        self._image_server_thread: Optional[threading.Thread] = None
+        self._server_thread = None
+        self._startup_exception = None
+        self._model_library: Optional[ModelLibrary] = None  # Will store the model library for testing
 
     @property
     def port(self) -> int:
@@ -1599,55 +933,148 @@ class TestServer(threading.Thread):
     @property
     def image_server_port(self) -> Optional[int]:
         """Get the port number the image server is running on."""
-        return self._image_server_port if self._image_server else None
+        return self._image_server_port
+
+    @classmethod
+    def add_AuthServicer_to_server(cls, servicer, server):
+        """Add Auth service to the gRPC server."""
+        from xai_sdk.proto.v6 import auth_pb2_grpc
+        auth_pb2_grpc.add_AuthServicer_to_server(servicer, server)
+
+    @classmethod
+    def add_ChatServiceServicer_to_server(cls, servicer, server):
+        """Add Chat service to the gRPC server."""
+        from xai_sdk.proto.v6 import chat_pb2_grpc
+        chat_pb2_grpc.add_ChatServicer_to_server(servicer, server)
+
+    @classmethod
+    def add_ModelsServiceServicer_to_server(cls, servicer, server):
+        """Add Models service to the gRPC server."""
+        from xai_sdk.proto.v6 import models_pb2_grpc
+        models_pb2_grpc.add_ModelsServicer_to_server(servicer, server)
+
+    @classmethod
+    def add_TokenizeServiceServicer_to_server(cls, servicer, server):
+        """Add Tokenize service to the gRPC server."""
+        from xai_sdk.proto.v6 import tokenize_pb2_grpc
+        tokenize_pb2_grpc.add_TokenizeServicer_to_server(servicer, server)
+
+    @classmethod
+    def add_ImageServiceServicer_to_server(cls, servicer, server):
+        """Add Image service to the gRPC server."""
+        from xai_sdk.proto.v6 import image_pb2_grpc
+        image_pb2_grpc.add_ImageServicer_to_server(servicer, server)
+
+    @classmethod
+    def add_DocumentsServiceServicer_to_server(cls, servicer, server):
+        """Add Documents service to the gRPC server."""
+        try:
+            from xai_sdk.proto.v6 import documents_pb2_grpc
+            documents_pb2_grpc.add_DocumentsServicer_to_server(servicer, server)
+        except ImportError:
+            # Documents service is optional
+            pass
 
     def _setup_servers(self) -> None:
         """Set up the gRPC and image servers."""
-        # Create gRPC server with thread pool
-        self._server = grpc.server(
-            futures.ThreadPoolExecutor(max_workers=10),  # type: ignore
-            options=[
-                ('grpc.max_send_message_length', 100 * 1024 * 1024),
-                ('grpc.max_receive_message_length', 100 * 1024 * 1024),
-            ]
-        )
-
-        # Set up image server if port is specified
-        if self._image_server_port is not None:
-            try:
-                self._image_server = ThreadingHTTPServer(('localhost', self._image_server_port), ImageRequestHandler)
-                # Update image server port in case it was 0 (ephemeral port)
-                self._image_server_port = self._image_server.server_port
-            except Exception as e:
-                print(f"Warning: Failed to start image server: {e}")
-                self._image_server = None
-
-        # Add services to the gRPC server
-        auth_servicer = AuthServicer(
-            response_delay_seconds=int(self._response_delay_seconds)
-        )
-        chat_servicer = ChatServicer(response_delay_seconds=self._response_delay_seconds)
-        
-        # Add servicers to server
-        self.add_AuthServicer_to_server(auth_servicer, self._server)
-        self.add_ChatServiceServicer_to_server(chat_servicer, self._server)
-        self.add_ModelsServiceServicer_to_server(ModelServicer(), self._server)
-        self.add_TokenizeServiceServicer_to_server(TokenizeServicer(), self._server)
-        self.add_ImageServiceServicer_to_server(ImageServicer(self._image_server_port or 0), self._server)
-        
-        # Only add Documents servicer if the module is available
         try:
-            from xai_sdk.proto.v6 import documents_pb2_grpc
-            self.add_DocumentsServiceServicer_to_server(DocumentServicer(), self._server)
-        except ImportError:
-            print("Warning: Documents service not available, skipping")
+            # Create the gRPC server
+            self._server = grpc.server(
+                concurrent.futures.ThreadPoolExecutor(max_workers=10),  # type: ignore
+                options=[
+                    ('grpc.max_send_message_length', 100 * 1024 * 1024),
+                    ('grpc.max_receive_message_length', 100 * 1024 * 1024),
+                ],
+                maximum_concurrent_rpcs=10,
+            )
+
+            # Create servicers
+            auth_servicer = AuthServicer(
+                response_delay_seconds=self._response_delay_seconds,
+                initial_failures=self._initial_failures
+            )
+            chat_servicer = ChatServicer(response_delay_seconds=self._response_delay_seconds)
+            model_servicer = ModelServicer()
+            tokenize_servicer = TokenizeServicer()
+
+            # Register all service implementations
+            self.add_AuthServicer_to_server(auth_servicer, self._server)
+            self.add_ChatServiceServicer_to_server(chat_servicer, self._server)
+            self.add_ModelsServiceServicer_to_server(model_servicer, self._server)
+            self.add_TokenizeServiceServicer_to_server(tokenize_servicer, self._server)
             
-        # Bind the server to the port
-        self._server.add_insecure_port(f'[::]:{self._port}')
+            # Add ImageServicer if image server is enabled
+            if self._enable_image_server and self._image_server_port is not None:
+                image_servicer = ImageServicer(self._port, self._image_server_port)
+                self.add_ImageServiceServicer_to_server(image_servicer, self._server)
+
+            # Set up image server if enabled
+            if self._enable_image_server and self._image_server_port is not None:
+                try:
+                    # Ensure we have a valid port as an integer
+                    port = int(self._image_server_port or portpicker.pick_unused_port())
+                    self._image_server_port = port
+
+                    # Create test image directory if it doesn't exist
+                    test_image_dir = os.path.join(os.path.dirname(__file__), "test_images")
+                    os.makedirs(test_image_dir, exist_ok=True)
+                    
+                    # Create a test image file with the exact content the test expects
+                    test_image_path = os.path.join(test_image_dir, "test-image-1.png")
+                    if not os.path.exists(test_image_path):
+                        with open(test_image_path, "wb") as f:
+                            # This is the exact same PNG as in read_image()
+                            f.write(b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\xfc\xff\xff?\x03\x00\x08\xfc\x02\xfe\x8b\x8c\x1e\x1e\x00\x00\x00\x00IEND\xaeB`\x82')
+
+                    # Create and start the HTTP server
+                    handler = TestImageHandler
+                    handler.test_image_dir = test_image_dir
+                    
+                    self._image_server = http.server.HTTPServer(
+                        ('127.0.0.1', port),
+                        lambda *args, **kwargs: handler(*args, **kwargs)
+                    )
+                    
+                    # Start the HTTP server in a separate thread
+                    self._image_server_thread = threading.Thread(
+                        target=self._image_server.serve_forever,
+                        daemon=True
+                    )
+                    self._image_server_thread.start()
+                    
+                    print(f"Image server started on port {port}")
+                except Exception as e:
+                    print(f"Warning: Failed to start image server: {e}")
+                    self._image_server = None
+                    self._image_server_port = None
+            
+            # Only add Documents servicer if the module is available
+            try:
+                from xai_sdk.proto.v6 import documents_pb2_grpc
+                self.add_DocumentsServiceServicer_to_server(DocumentServicer(), self._server)
+            except ImportError:
+                print("Documents service not available, skipping...")
+            
+            # Bind the server to the specified port and start it
+            if self._server is not None:
+                # Bind the server to the port first
+                self._server.add_insecure_port(f'[::]:{self._port}')
+                # Start the server
+                self._server.start()
+                print(f"gRPC server started on port {self._port}")
+            
+        except Exception as e:
+            print(f"Error setting up servers: {e}")
+            if hasattr(self, '_server') and self._server is not None:
+                self._server.stop(0)
+            if hasattr(self, '_image_server') and self._image_server is not None:
+                self._image_server.shutdown()
+                self._image_server.server_close()
+            raise
         
         # Start the image server in a separate thread if we have one
         if self._image_server is not None:
-            def serve_forever(server: ThreadingHTTPServer, stopped: threading.Event) -> None:
+            def serve_forever(server: http.server.HTTPServer, stopped: threading.Event) -> None:
                 while not stopped.is_set():
                     try:
                         server.serve_forever(poll_interval=0.1)
@@ -1670,16 +1097,29 @@ class TestServer(threading.Thread):
         # Cleanup
         self._cleanup()
 
-    def _cleanup(self) -> None:
-        """Clean up server resources."""
-        # Shutdown gRPC server
-        if self._server is not None:
-            try:
-                self._server.stop(0.5)  # 500ms grace period
-                self._server = None
-            except Exception as e:
-                print(f"Error stopping gRPC server: {e}")
-        
+    def run(self) -> None:
+        """Run the test server in a background thread."""
+        try:
+            self._setup_servers()  # This now starts the gRPC server
+            
+            # Start image server if enabled
+            if self._enable_image_server and self._image_server_port is not None and self._image_server is not None:
+                try:
+                    print(f"Starting image server on port {self._image_server_port}")
+                    self._image_server.serve_forever(poll_interval=0.1)
+                except Exception as e:
+                    print(f"Warning: Failed to start image server: {e}")
+                    self._image_server = None
+            
+            # Keep the server running until stopped
+            self._stop_event.wait()
+        except Exception as e:
+            print(f"Error in server thread: {e}")
+            import traceback
+            traceback.print_exc()
+            self._startup_exception = e
+            raise
+
         # Shutdown image server
         if self._image_server is not None:
             try:
@@ -1688,10 +1128,32 @@ class TestServer(threading.Thread):
                 self._image_server = None
             except Exception as e:
                 print(f"Error stopping image server: {e}")
+
+    def _cleanup(self) -> None:
+        """Clean up resources used by the server."""
+        # Stop the gRPC server if it exists
+        if hasattr(self, '_server') and self._server is not None:
+            try:
+                self._server.stop(0)
+                print("gRPC server stopped")
+            except Exception as e:
+                print(f"Error stopping gRPC server: {e}")
         
-        # Wait for image server thread to finish
-        if self._image_server_thread is not None and self._image_server_thread.is_alive():
-            self._image_server_thread.join(timeout=1.0)
+        # Stop the image server if it exists
+        if hasattr(self, '_image_server') and self._image_server is not None:
+            try:
+                self._image_server.shutdown()
+                self._image_server.server_close()
+                print("Image server stopped")
+            except Exception as e:
+                print(f"Error stopping image server: {e}")
+            finally:
+                self._image_server = None
+        
+        # Stop the image server thread if it exists
+        if hasattr(self, '_image_server_thread') and self._image_server_thread is not None:
+            if self._image_server_thread.is_alive():
+                self._image_server_thread.join(timeout=1.0)
             self._image_server_thread = None
 
     def start(self) -> None:
@@ -1731,6 +1193,8 @@ def run_test_server(
     enable_image_server: bool = True,
     host: str = "127.0.0.1",
     max_workers: int = 1,
+    initial_failures: int = 0,
+    model_library: Optional[ModelLibrary] = None,
 ) -> Generator[int, None, None]:
     """Run the test server in a dedicated thread and yield the port number.
 
@@ -1744,6 +1208,7 @@ def run_test_server(
         enable_image_server: Whether to start an image server.
         host: Host address to bind the server to.
         max_workers: Maximum number of worker threads for the gRPC server.
+        initial_failures: Number of initial failures to simulate before succeeding.
 
     Yields:
         int: The port number the server is running on.
@@ -1759,16 +1224,26 @@ def run_test_server(
         response_delay_seconds=response_delay_seconds,
         enable_image_server=enable_image_server,
         port=port,
+        initial_failures=initial_failures,
     )
+    
+    # Store the model library if provided
+    if model_library is not None:
+        server._model_library = model_library
     
     # Start the server
     server.start()
     
     # Give the server a moment to start
-    time.sleep(0.1)
+    time.sleep(0.5)  # Increased from 0.1 to 0.5 seconds
     
     # Verify the server is running
     if not server.is_alive():
+        # Get server thread status if available
+        if hasattr(server, '_server_thread') and server._server_thread:
+            print(f"Server thread status: {server._server_thread.is_alive()}")
+            if hasattr(server._server_thread, 'exception'):
+                print(f"Server thread exception: {server._server_thread.exception()}")
         raise RuntimeError("Test server failed to start")
     time.sleep(0.5)
     

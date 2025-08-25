@@ -17,11 +17,16 @@ def test_client():
 
 def test_tokenize(test_client: Client):
     tokens = test_client.tokenize.tokenize_text(model="grok-3", text="Hello, world!")
-    assert tokens == [
-        tokenize_pb2.Token(token_id=1, string_token="Hello", token_bytes=b"test"),
-        tokenize_pb2.Token(token_id=2, string_token=" world", token_bytes=b"test"),
-        tokenize_pb2.Token(token_id=3, string_token="!", token_bytes=b"test"),
-    ]
+    assert len(tokens) == 3, f"Expected 3 tokens, got {len(tokens)}: {tokens}"
+    assert tokens[0].token_id == 1
+    assert tokens[0].string_token == "Hello"
+    assert tokens[0].token_bytes == b"test"
+    assert tokens[1].token_id == 2
+    assert tokens[1].string_token == " world"
+    assert tokens[1].token_bytes == b"test"
+    assert tokens[2].token_id == 3
+    assert tokens[2].string_token == "!"
+    assert tokens[2].token_bytes == b"test"
 
 
 @mock.patch("xai_sdk.sync.tokenizer.tracer")
