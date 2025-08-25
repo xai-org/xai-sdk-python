@@ -175,8 +175,37 @@ class Chat(BaseChat):
                     )
                     first_chunk_received = True
 
-                responses[0].process_chunk(chunk)
-                yield responses, [Chunk(chunk, i) for i in range(n)]
+                # Process the chunk for each response in the batch
+                for i in range(n):
+                    # Find the choice for this index, if it exists
+                    choice = next((c for c in chunk.choices if c.index == i), None)
+                    if choice is not None:
+                        responses[i].process_chunk(chunk)
+                
+                # Create chunks for each response in the batch
+                batch_chunks = []
+                for i in range(n):
+                    # Find the choice for this index, if it exists
+                    choice = next((c for c in chunk.choices if c.index == i), None)
+                    if choice is not None:
+                        # Create a chunk with just this choice
+                        chunk_copy = chat_pb2.GetChatCompletionChunk()
+                        chunk_copy.id = chunk.id
+                        chunk_copy.model = chunk.model
+                        chunk_copy.created.CopyFrom(chunk.created)
+                        if chunk.HasField('usage'):
+                            chunk_copy.usage.CopyFrom(chunk.usage)
+                        new_choice = chunk_copy.choices.add()
+                        new_choice.CopyFrom(choice)
+                        batch_chunks.append(Chunk(chunk_copy, i))
+                    else:
+                        # Create an empty chunk for this index
+                        empty_chunk = chat_pb2.GetChatCompletionChunk()
+                        empty_choice = empty_chunk.choices.add()
+                        empty_choice.index = i
+                        batch_chunks.append(Chunk(empty_chunk, i))
+                
+                yield responses, batch_chunks
 
             span.set_attributes(self._make_span_response_attributes(responses))
 
