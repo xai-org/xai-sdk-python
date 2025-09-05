@@ -4,7 +4,6 @@ import pytest
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
-from xai_sdk.proto import tokenize_pb2
 
 from .. import server
 

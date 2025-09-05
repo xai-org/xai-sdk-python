@@ -175,6 +175,7 @@ include = ["src/xai_sdk", "tests", "examples"]
 exclude = ["src/xai_sdk/proto"]
 venvPath = ".venv"
 typeCheckingMode = "basic"
+reportAttributeAccessIssue = false
 
 [dependency-groups]
 dev = [

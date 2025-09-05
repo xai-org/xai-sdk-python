@@ -281,11 +281,11 @@ async def test_function_calling_streaming_batch(client):
 
     # Check that we got the expected number of chunks
     assert len(chunks) > 0
-    
+
     # Check the finish reason for each response in the batch
     assert last_responses is not None
     assert len(last_responses) == 2  # Batch size of 2
-    
+
     # The finish_reason is set in the streaming response, not in the final message
     # So we don't check it here as it might not be present in the final message object
 
@@ -319,17 +319,17 @@ async def test_function_calling_streaming_batch(client):
     # Verify the last responses contain the expected content
     assert last_responses is not None
     assert len(last_responses) == 2  # Batch size of 2
-    
+
     # Debug the structure of the final responses
-    print(f"[DEBUG] Last responses: {last_responses}")
+    print(f"[DEBUG] Last responses: {last_responses}")  # noqa: T201
     for i, response in enumerate(last_responses):
-        print(f"[DEBUG] Response {i} type: {type(response)}")
-        print(f"[DEBUG] Response {i} dir: {dir(response)}")
-        print(f"[DEBUG] Response {i} content: {response.content}")
-        print(f"[DEBUG] Response {i} has tool_calls: {hasattr(response, 'tool_calls')}")
-        if hasattr(response, 'tool_calls'):
-            print(f"[DEBUG] Response {i} tool_calls: {response.tool_calls}")
-        
+        print(f"[DEBUG] Response {i} type: {type(response)}")  # noqa: T201
+        print(f"[DEBUG] Response {i} dir: {dir(response)}")  # noqa: T201
+        print(f"[DEBUG] Response {i} content: {response.content}")  # noqa: T201
+        print(f"[DEBUG] Response {i} has tool_calls: {hasattr(response, 'tool_calls')}")  # noqa: T201
+        if hasattr(response, "tool_calls"):
+            print(f"[DEBUG] Response {i} tool_calls: {response.tool_calls}")  # noqa: T201
+
         # The content should contain the weather retrieval message
         assert "retrieving the weather" in response.content.lower()
 

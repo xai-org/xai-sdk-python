@@ -181,7 +181,7 @@ class Chat(BaseChat):
                     choice = next((c for c in chunk.choices if c.index == i), None)
                     if choice is not None:
                         responses[i].process_chunk(chunk)
-                
+
                 # Create chunks for each response in the batch
                 batch_chunks = []
                 for i in range(n):
@@ -193,7 +193,7 @@ class Chat(BaseChat):
                         chunk_copy.id = chunk.id
                         chunk_copy.model = chunk.model
                         chunk_copy.created.CopyFrom(chunk.created)
-                        if chunk.HasField('usage'):
+                        if chunk.HasField("usage"):
                             chunk_copy.usage.CopyFrom(chunk.usage)
                         new_choice = chunk_copy.choices.add()
                         new_choice.CopyFrom(choice)
@@ -204,7 +204,7 @@ class Chat(BaseChat):
                         empty_choice = empty_chunk.choices.add()
                         empty_choice.index = i
                         batch_chunks.append(Chunk(empty_chunk, i))
-                
+
                 yield responses, batch_chunks
 
             span.set_attributes(self._make_span_response_attributes(responses))

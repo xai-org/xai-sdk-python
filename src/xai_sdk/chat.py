@@ -71,11 +71,11 @@ class BaseClient(abc.ABC, Generic[T]):
             )
             response = chat.sample()
             chat.append(response)
-            print(response)
+            print(response) # noqa: T201
 
             chat.append(user("Tell me a joke"))
             response = chat.sample()
-            print(response)
+            print(response) # noqa: T201
             ```
 
         Args:
@@ -237,7 +237,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
             chat = client.chat.create(model="grok-3")
             chat.append(user("Tell me a pirate joke."))
             response = chat.sample()  # Get assistant's response
-            print(f"Grok: {response.content}")
+            print(f"Grok: {response.content}") # noqa: T201
             chat.append(response)  # Add assistant's response to history
             chat.append(user("Another one, please!"))
             ```
@@ -254,7 +254,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
                     break
                 chat.append(user(prompt))
                 response = chat.sample()
-                print(f"Grok: {response.content}")
+                print(f"Grok: {response.content}") # noqa: T201
                 chat.append(response)
             ```
 
@@ -732,7 +732,7 @@ class ChoiceChunk(ProtoDecorator[chat_pb2.ChoiceChunk]):
 
 
 class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]):
-    def process_chunk(self, chunk: chat_pb2.GetChatCompletionChunk):
+    def process_chunk(self, chunk: chat_pb2.GetChatCompletionChunk):  # noqa: C901, PLR0912
         # Consolidate the response.
         self._proto.usage.CopyFrom(chunk.usage)
         self._proto.created.CopyFrom(chunk.created)
@@ -745,10 +745,10 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
             # Ensure we have enough choices in the response
             while len(self._proto.choices) <= c.index:
                 self._proto.choices.add()
-                
+
             choice = self._proto.choices[c.index]
             choice.index = c.index
-            
+
             # Update message content
             if c.delta.content:
                 choice.message.content += c.delta.content
@@ -756,41 +756,47 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
                 choice.message.reasoning_content += c.delta.reasoning_content
             if c.delta.role:
                 choice.message.role = c.delta.role
-                
+
             # Update tool calls from delta to message
             if c.delta.tool_calls:
                 # Clear existing tool calls to avoid duplicates when processing multiple chunks
-                choice.message.ClearField('tool_calls')
+                choice.message.ClearField("tool_calls")
                 # Add all tool calls from delta to message
                 for tool_call in c.delta.tool_calls:
                     new_tool_call = choice.message.tool_calls.add()
                     new_tool_call.CopyFrom(tool_call)
-                print(f"[DEBUG] Updated tool_calls in message for choice {c.index}: {choice.message.tool_calls}")
-            
+
             # Update finish_reason from the chunk if it's set
-            if hasattr(c, 'finish_reason') and c.finish_reason != 0:
+            if hasattr(c, "finish_reason") and c.finish_reason != 0:
                 choice.finish_reason = c.finish_reason
-                print(f"[DEBUG] Set finish_reason for choice {choice.index} to {c.finish_reason}")
-            
+
             # If we have tool calls but no finish reason, set it to REASON_TOOL_CALLS
-            has_tool_calls = hasattr(choice, 'message') and hasattr(choice.message, 'tool_calls') and bool(choice.message.tool_calls)
-            current_reason = getattr(choice, 'finish_reason', 0)
-            
+            has_tool_calls = (
+                hasattr(choice, "message") and hasattr(choice.message, "tool_calls") and bool(choice.message.tool_calls)
+            )
+            current_reason = getattr(choice, "finish_reason", 0)
+
             if has_tool_calls:
                 if current_reason == 0:  # REASON_INVALID
-                    print(f"[DEBUG] Setting finish_reason to REASON_TOOL_CALLS for choice {choice.index} due to tool calls")
+                    print(  # noqa: T201
+                        f"[DEBUG] Setting finish_reason to REASON_TOOL_CALLS for choice "
+                        f"{choice.index} due to tool calls"
+                    )
                     choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
                     # Also update the finish_reason in the response proto
                     for resp_choice in self._proto.choices:
                         if resp_choice.index == c.index:
                             resp_choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
-                            print(f"[DEBUG] Updated finish_reason in response proto for choice {c.index} to REASON_TOOL_CALLS")
+                            print(  # noqa: T201
+                                f"[DEBUG] Updated finish_reason in response proto for choice "
+                                f"{c.index} to REASON_TOOL_CALLS"
+                            )
                             break
                 else:
-                    print(f"[DEBUG] Finish reason already set to {current_reason} for choice {choice.index}")
+                    print(f"[DEBUG] Finish reason already set to {current_reason} for choice {choice.index}")  # noqa: T201
                     # If we have tool calls but finish_reason is not TOOL_CALLS, force it
                     if current_reason != sample_pb2.FinishReason.REASON_TOOL_CALLS:
-                        print(f"[DEBUG] Forcing finish_reason to REASON_TOOL_CALLS for choice {choice.index}")
+                        print(f"[DEBUG] Forcing finish_reason to REASON_TOOL_CALLS for choice {choice.index}")  # noqa: T201
                         choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
                         # Also update in response proto
                         for resp_choice in self._proto.choices:
@@ -810,80 +816,82 @@ class Response(_ResponseProtoDecorator):
     # Cache for finish_reason to prevent it from being recalculated
     _cached_finish_reason: Optional[str] = None
 
-    def __init__(self, response: chat_pb2.GetChatCompletionResponse, index: int) -> None:
+    def __init__(self, response: chat_pb2.GetChatCompletionResponse, index: int) -> None:  # noqa: C901, PLR0912
         """Initializes a new instance of the `Response` class.
-        
+
         Args:
             response: The response proto, which can hold multiple answers.
             index: The index of the answer this class exposes via its convenience methods.
         """
         super().__init__(response)
         self._index = index
-        
+
         # Find the choice with the matching index in the response proto
         matching_choices = [c for c in response.choices if c.index == index]
-        
+
         if not matching_choices:
             raise ValueError(f"No choice found with index {index} in response: {response}")
         elif len(matching_choices) > 1:
             raise ValueError(f"More than one response for index {index} in response: {response}")
-            
+
         # Use the matching choice from the response proto
         self._choice = matching_choices[0]
-        
+
         # Debug logging for choice and tool calls
-        print(f"[DEBUG] Response __init__ - choice attributes: {dir(self._choice)}")
-        
+        print(f"[DEBUG] Response __init__ - choice attributes: {dir(self._choice)}")  # noqa: T201
+
         # Initialize _cached_finish_reason based on the finish_reason in the choice
-        if hasattr(self._choice, 'finish_reason') and self._choice.finish_reason != 0:
+        if hasattr(self._choice, "finish_reason") and self._choice.finish_reason != 0:
             try:
                 self._cached_finish_reason = sample_pb2.FinishReason.Name(self._choice.finish_reason)
-                print(f"[DEBUG] Initialized _cached_finish_reason from choice.finish_reason: {self._cached_finish_reason}")
+                print(  # noqa: T201
+                    f"[DEBUG] Initialized _cached_finish_reason from choice.finish_reason: {self._cached_finish_reason}"
+                )
             except (ValueError, AttributeError, TypeError) as e:
-                print(f"[DEBUG] Error initializing _cached_finish_reason from choice.finish_reason: {e}")
-        
+                print(f"[DEBUG] Error initializing _cached_finish_reason from choice.finish_reason: {e}")  # noqa: T201
+
         # Check for tool calls in the message
         tool_calls = self.tool_calls
         if tool_calls:
-            print(f"[DEBUG] Found {len(tool_calls)} tool_calls in message")
-            print(f"[DEBUG] Tool call function name: {tool_calls[0].function.name}")
+            print(f"[DEBUG] Found {len(tool_calls)} tool_calls in message")  # noqa: T201
+            print(f"[DEBUG] Tool call function name: {tool_calls[0].function.name}")  # noqa: T201
             # If we have tool calls, set the finish reason to REASON_TOOL_CALLS
-            self._cached_finish_reason = 'REASON_TOOL_CALLS'
-            print(f"[DEBUG] Set _cached_finish_reason to {self._cached_finish_reason} due to tool calls")
-            
+            self._cached_finish_reason = "REASON_TOOL_CALLS"
+            print(f"[DEBUG] Set _cached_finish_reason to {self._cached_finish_reason} due to tool calls")  # noqa: T201
+
             # Ensure the choice's finish_reason is also set to REASON_TOOL_CALLS
-            if hasattr(self._choice, 'finish_reason'):
+            if hasattr(self._choice, "finish_reason"):
                 self._choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
-        
+
         # For streaming responses, also check in delta
-        if hasattr(self._choice, 'delta') and hasattr(self._choice.delta, 'tool_calls'):
-            tool_calls = self._choice.delta.tool_calls
+        if hasattr(self._choice, "delta") and hasattr(self._choice.delta, "tool_calls"):
+            tool_calls = self._choice.delta.tool_calls  # type: ignore
             if tool_calls:
-                print(f"[DEBUG] Found {len(tool_calls)} tool_calls in delta")
-                print(f"[DEBUG] Delta tool call function name: {tool_calls[0].function.name}")
-                
+                print(f"[DEBUG] Found {len(tool_calls)} tool_calls in delta")  # noqa: T201
+                print(f"[DEBUG] Delta tool call function name: {tool_calls[0].function.name}")  # noqa: T201
+
                 # If we have tool calls in delta, ensure finish_reason is set to REASON_TOOL_CALLS
-                if not self._cached_finish_reason or self._cached_finish_reason == 'REASON_INVALID':
-                    print("[DEBUG] Setting _cached_finish_reason to REASON_TOOL_CALLS due to tool calls in delta")
-                    self._cached_finish_reason = 'REASON_TOOL_CALLS'
-                    if hasattr(self._choice, 'finish_reason'):
+                if not self._cached_finish_reason or self._cached_finish_reason == "REASON_INVALID":
+                    print("[DEBUG] Setting _cached_finish_reason to REASON_TOOL_CALLS due to tool calls in delta")  # noqa: T201
+                    self._cached_finish_reason = "REASON_TOOL_CALLS"
+                    if hasattr(self._choice, "finish_reason"):
                         self._choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
-        
+
         # For backward compatibility, check direct tool_calls on choice
-        if hasattr(self._choice, 'tool_calls') and self._choice.tool_calls:
-            print(f"[DEBUG] Found {len(self._choice.tool_calls)} tool_calls directly on choice")
-            print(f"[DEBUG] Direct tool call function name: {self._choice.tool_calls[0].function.name}")
-            
+        if hasattr(self._choice, "tool_calls") and self._choice.tool_calls:
+            print(f"[DEBUG] Found {len(self._choice.tool_calls)} tool_calls directly on choice")  # noqa: T201
+            print(f"[DEBUG] Direct tool call function name: {self._choice.tool_calls[0].function.name}")  # noqa: T201
+
             # If we have direct tool calls, ensure finish_reason is set to REASON_TOOL_CALLS
-            if not self._cached_finish_reason or self._cached_finish_reason == 'REASON_INVALID':
-                print("[DEBUG] Setting _cached_finish_reason to REASON_TOOL_CALLS due to direct tool calls")
-                self._cached_finish_reason = 'REASON_TOOL_CALLS'
-                if hasattr(self._choice, 'finish_reason'):
+            if not self._cached_finish_reason or self._cached_finish_reason == "REASON_INVALID":
+                print("[DEBUG] Setting _cached_finish_reason to REASON_TOOL_CALLS due to direct tool calls")  # noqa: T201
+                self._cached_finish_reason = "REASON_TOOL_CALLS"
+                if hasattr(self._choice, "finish_reason"):
                     self._choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
-        
+
         # If we still don't have a cached finish_reason, default to INVALID
         if not self._cached_finish_reason:
-            self._cached_finish_reason = 'REASON_INVALID'
+            self._cached_finish_reason = "REASON_INVALID"
 
     @property
     def id(self) -> str:
@@ -914,58 +922,65 @@ class Response(_ResponseProtoDecorator):
         return self._choice.message.reasoning_content
 
     @property
-    def finish_reason(self) -> str:
+    def finish_reason(self) -> str:  # noqa: C901
         """Returns the finish reason of this response."""
         # Return cached value if available and valid
-        if self._cached_finish_reason is not None and self._cached_finish_reason != 'REASON_INVALID':
-            print(f"[DEBUG] Returning cached finish_reason: {self._cached_finish_reason}")
+        if self._cached_finish_reason is not None and self._cached_finish_reason != "REASON_INVALID":
+            print(f"[DEBUG] Returning cached finish_reason: {self._cached_finish_reason}")  # noqa: T201
             return self._cached_finish_reason
-            
-        print("[DEBUG] Checking for finish reason in choice")
-        print(f"[DEBUG] Choice attributes: {dir(self._choice)}")
-        
+
+        print("[DEBUG] Checking for finish reason in choice")  # noqa: T201
+        print(f"[DEBUG] Choice attributes: {dir(self._choice)}")  # noqa: T201
+
         # First, check if we have a finish_reason in the choice
-        if hasattr(self._choice, 'finish_reason') and self._choice.finish_reason != 0:
+        if hasattr(self._choice, "finish_reason") and self._choice.finish_reason != 0:
             try:
                 # Convert the enum to its string name
                 reason_name = sample_pb2.FinishReason.Name(self._choice.finish_reason)
-                print(f"[DEBUG] Found finish_reason in choice: {reason_name}")
+                print(f"[DEBUG] Found finish_reason in choice: {reason_name}")  # noqa: T201
                 self._cached_finish_reason = reason_name
                 # If we have tool calls but the finish_reason is not TOOL_CALLS, override it
-                if self.tool_calls and self._cached_finish_reason != 'REASON_TOOL_CALLS':
-                    print("[DEBUG] Overriding finish_reason to REASON_TOOL_CALLS due to presence of tool calls")
-                    self._cached_finish_reason = 'REASON_TOOL_CALLS'
-                    if hasattr(self._choice, 'finish_reason'):
+                if self.tool_calls and self._cached_finish_reason != "REASON_TOOL_CALLS":
+                    print("[DEBUG] Overriding finish_reason to REASON_TOOL_CALLS due to presence of tool calls")  # noqa: T201
+                    self._cached_finish_reason = "REASON_TOOL_CALLS"
+                    if hasattr(self._choice, "finish_reason"):
                         self._choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
                 return self._cached_finish_reason
             except (ValueError, AttributeError, TypeError) as e:
-                print(f"[DEBUG] Error converting finish_reason: {e}")
+                print(f"[DEBUG] Error converting finish_reason: {e}")  # noqa: T201
                 # If we can't convert the finish_reason, check if it's 4 (REASON_TOOL_CALLS)
-                if hasattr(self._choice, 'finish_reason') and self._choice.finish_reason == 4:
-                    self._cached_finish_reason = 'REASON_TOOL_CALLS'
+                if (
+                    hasattr(self._choice, "finish_reason")
+                    and self._choice.finish_reason == sample_pb2.FinishReason.REASON_TOOL_CALLS
+                ):
+                    self._cached_finish_reason = "REASON_TOOL_CALLS"
                     return self._cached_finish_reason
-        
+
         # Next, check if we have any tool calls using the tool_calls property
         tool_calls = self.tool_calls
         if tool_calls:
-            print(f"[DEBUG] Found {len(tool_calls)} tool calls via tool_calls property")
-            print(f"[DEBUG] First tool call function: {tool_calls[0].function.name if tool_calls else 'None'}")
-            self._cached_finish_reason = 'REASON_TOOL_CALLS'
-            if hasattr(self._choice, 'finish_reason'):
+            print(f"[DEBUG] Found {len(tool_calls)} tool calls via tool_calls property")  # noqa: T201
+            print(f"[DEBUG] First tool call function: {tool_calls[0].function.name if tool_calls else 'None'}")  # noqa: T201
+            self._cached_finish_reason = "REASON_TOOL_CALLS"
+            if hasattr(self._choice, "finish_reason"):
                 self._choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
             return self._cached_finish_reason
-        
+
         # For streaming responses, check if we have tool calls in delta
-        if hasattr(self._choice, 'delta') and hasattr(self._choice.delta, 'tool_calls') and self._choice.delta.tool_calls:
-            print(f"[DEBUG] Found {len(self._choice.delta.tool_calls)} tool calls in delta")
-            self._cached_finish_reason = 'REASON_TOOL_CALLS'
-            if hasattr(self._choice, 'finish_reason'):
+        if (
+            hasattr(self._choice, "delta")
+            and hasattr(self._choice.delta, "tool_calls")
+            and self._choice.delta.tool_calls
+        ):
+            print(f"[DEBUG] Found {len(self._choice.delta.tool_calls)} tool calls in delta")  # noqa: T201
+            self._cached_finish_reason = "REASON_TOOL_CALLS"
+            if hasattr(self._choice, "finish_reason"):
                 self._choice.finish_reason = sample_pb2.FinishReason.REASON_TOOL_CALLS
             return self._cached_finish_reason
-        
+
         # Default to INVALID if no other reason is found
-        print("[DEBUG] No valid finish reason found, defaulting to REASON_INVALID")
-        self._cached_finish_reason = 'REASON_INVALID'
+        print("[DEBUG] No valid finish reason found, defaulting to REASON_INVALID")  # noqa: T201
+        self._cached_finish_reason = "REASON_INVALID"
         return self._cached_finish_reason
 
     @property
@@ -979,62 +994,62 @@ class Response(_ResponseProtoDecorator):
         return self.proto.system_fingerprint
 
     @property
-    def tool_calls(self) -> list[chat_pb2.ToolCall]:
+    def tool_calls(self) -> list[chat_pb2.ToolCall]:  # noqa: C901
         """Returns the tool calls of this response.
-        
+
         Tool calls can be found in different locations depending on the response type:
         - For non-streaming responses: in choice.message.tool_calls
         - For streaming responses: in choice.delta.tool_calls (for each chunk)
         - For backward compatibility: directly on choice.tool_calls
         """
         tool_calls = []
-        
+
         # Debug logging for choice structure
-        print(f"[DEBUG] tool_calls - choice type: {type(self._choice).__name__}")
-        print(f"[DEBUG] choice attributes: {dir(self._choice)}")
-        
+        print(f"[DEBUG] tool_calls - choice type: {type(self._choice).__name__}")  # noqa: T201
+        print(f"[DEBUG] choice attributes: {dir(self._choice)}")  # noqa: T201
+
         # Check for tool calls in the message first (non-streaming)
-        if hasattr(self._choice, 'message'):
-            print(f"[DEBUG] Found message attribute on choice")
-            print(f"[DEBUG] message type: {type(self._choice.message).__name__}")
-            print(f"[DEBUG] message attributes: {dir(self._choice.message)}")
-            
-            if hasattr(self._choice.message, 'tool_calls'):
-                print(f"[DEBUG] Found message.tool_calls: {self._choice.message.tool_calls}")
-                print(f"[DEBUG] message.tool_calls type: {type(self._choice.message.tool_calls).__name__}")
-                print(f"[DEBUG] message.tool_calls length: {len(self._choice.message.tool_calls)}")
-                
+        if hasattr(self._choice, "message"):
+            print("[DEBUG] Found message attribute on choice")  # noqa: T201
+            print(f"[DEBUG] message type: {type(self._choice.message).__name__}")  # noqa: T201
+            print(f"[DEBUG] message attributes: {dir(self._choice.message)}")  # noqa: T201
+
+            if hasattr(self._choice.message, "tool_calls"):
+                print(f"[DEBUG] Found message.tool_calls: {self._choice.message.tool_calls}")  # noqa: T201
+                print(f"[DEBUG] message.tool_calls type: {type(self._choice.message.tool_calls).__name__}")  # noqa: T201
+                print(f"[DEBUG] message.tool_calls length: {len(self._choice.message.tool_calls)}")  # noqa: T201
+
                 # Try different ways to access the tool calls
                 try:
                     # Try direct iteration
                     for tc in self._choice.message.tool_calls:
-                        print(f"[DEBUG] Found tool call: {tc}")
+                        print(f"[DEBUG] Found tool call: {tc}")  # noqa: T201
                         tool_calls.append(tc)
                 except Exception as e:
-                    print(f"[DEBUG] Error iterating over message.tool_calls: {e}")
+                    print(f"[DEBUG] Error iterating over message.tool_calls: {e}")  # noqa: T201
                     # Try accessing by index if direct iteration fails
                     try:
                         for i in range(len(self._choice.message.tool_calls)):
                             tc = self._choice.message.tool_calls[i]
-                            print(f"[DEBUG] Found tool call at index {i}: {tc}")
+                            print(f"[DEBUG] Found tool call at index {i}: {tc}")  # noqa: T201
                             tool_calls.append(tc)
                     except Exception as e2:
-                        print(f"[DEBUG] Error accessing message.tool_calls by index: {e2}")
-        
+                        print(f"[DEBUG] Error accessing message.tool_calls by index: {e2}")  # noqa: T201
+
         # For streaming responses, check in delta
-        if hasattr(self._choice, 'delta'):
-            print(f"[DEBUG] Found delta attribute on choice")
-            if hasattr(self._choice.delta, 'tool_calls'):
-                print(f"[DEBUG] Found delta.tool_calls: {self._choice.delta.tool_calls}")
+        if hasattr(self._choice, "delta"):
+            print("[DEBUG] Found delta attribute on choice")  # noqa: T201
+            if hasattr(self._choice.delta, "tool_calls"):
+                print(f"[DEBUG] Found delta.tool_calls: {self._choice.delta.tool_calls}")  # noqa: T201
                 tool_calls.extend(self._choice.delta.tool_calls)
-        
+
         # Fall back to direct tool_calls on choice for backward compatibility
-        if hasattr(self._choice, 'tool_calls'):
-            print(f"[DEBUG] Found direct tool_calls on choice: {self._choice.tool_calls}")
+        if hasattr(self._choice, "tool_calls"):
+            print(f"[DEBUG] Found direct tool_calls on choice: {self._choice.tool_calls}")  # noqa: T201
             if self._choice.tool_calls:
                 tool_calls.extend(self._choice.tool_calls)
-        
-        print(f"[DEBUG] Total tool calls found: {len(tool_calls)}")
+
+        print(f"[DEBUG] Total tool calls found: {len(tool_calls)}")  # noqa: T201
         return tool_calls
 
     @property

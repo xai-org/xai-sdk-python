@@ -85,29 +85,29 @@ def test_streaming_batch(client: Client):
     chat.append(user("test message"))
     stream = chat.stream_batch(2)
 
-    print("Starting streaming batch test...")
+    print("Starting streaming batch test...")  # noqa: T201
     chunks = []
     responses = None
     for i, (r, chunk) in enumerate(stream):
-        print(f"\n=== Received chunk {i} ===")
-        print(f"Response object: {r}")
-        print(f"Chunk content: {[c.content for c in chunk]}")
-        print(f"Chunk length: {len(chunk)}")
-        print(f"Chunk types: {[type(c) for c in chunk]}")
-        print(f"Chunk details: {chunk}")
+        print(f"\n=== Received chunk {i} ===")  # noqa: T201
+        print(f"Response object: {r}")  # noqa: T201
+        print(f"Chunk content: {[c.content for c in chunk]}")  # noqa: T201
+        print(f"Chunk length: {len(chunk)}")  # noqa: T201
+        print(f"Chunk types: {[type(c) for c in chunk]}")  # noqa: T201
+        print(f"Chunk details: {chunk}")  # noqa: T201
         responses = r
         chunks.append(chunk)
 
-    print("\n=== All chunks received ===")
+    print("\n=== All chunks received ===")  # noqa: T201
     for i, chunk in enumerate(chunks):
-        print(f"\nChunk {i}:")
+        print(f"\nChunk {i}:")  # noqa: T201
         for j, c in enumerate(chunk):
-            print(f"  Batch item {j}:")
-            print(f"    Content: {c.content!r}")
-            print(f"    Type: {type(c)}")
-            print(f"    Full chunk: {c}")
-    
-    print("\n=== Test assertions ===")
+            print(f"  Batch item {j}:")  # noqa: T201
+            print(f"    Content: {c.content!r}")  # noqa: T201
+            print(f"    Type: {type(c)}")  # noqa: T201
+            print(f"    Full chunk: {c}")  # noqa: T201
+
+    print("\n=== Test assertions ===")  # noqa: T201
 
     # Both batch items should receive the same content but in an interleaved manner
     expected_content = [
@@ -118,14 +118,14 @@ def test_streaming_batch(client: Client):
         ("a test ", ""),
         ("", "a test "),
         ("response!", ""),
-        ("", "response!")
+        ("", "response!"),
     ]
-    
+
     for i, (first_expected, second_expected) in enumerate(expected_content):
         assert len(chunks[i]) == 2, f"Expected 2 items in chunk {i}, got {len(chunks[i])}"
         assert chunks[i][0].content == first_expected, f"Mismatch in chunk {i} first item"
         assert chunks[i][1].content == second_expected, f"Mismatch in chunk {i} second item"
-    
+
     # Verify final responses
     assert responses is not None
     assert len(responses) == 2
@@ -232,7 +232,7 @@ def test_function_calling_streaming(client: Client):
     assert last_response.tool_calls[0].function.arguments == '{"city":"London","units":"C"}'
 
 
-def test_function_calling_streaming_batch(client: Client):
+def test_function_calling_streaming_batch(client: Client):  # noqa: C901
     chat = client.chat.create(
         "grok-3-latest",
         tools=[
@@ -320,69 +320,73 @@ def test_function_calling_streaming_batch(client: Client):
     assert last_response is not None
 
     for i, response in enumerate(last_response):
-        print(f"[DEBUG] Response {i}:")
-        print(f"  content: {response.content}")
-        print(f"  finish_reason: {response.finish_reason}")
-        print(f"  role: {response.role}")
-        print(f"  has tool_calls: {hasattr(response, 'tool_calls')}")
-        
+        print(f"[DEBUG] Response {i}:")  # noqa: T201
+        print(f"  content: {response.content}")  # noqa: T201
+        print(f"  finish_reason: {response.finish_reason}")  # noqa: T201
+        print(f"  role: {response.role}")  # noqa: T201
+        print(f"  has tool_calls: {hasattr(response, 'tool_calls')}")  # noqa: T201
+
         # Debug the response object structure
-        print(f"[DEBUG] Response object type: {type(response).__name__}")
-        print(f"[DEBUG] Response attributes: {dir(response)}")
-        
-        if hasattr(response, '_choice'):
-            print(f"[DEBUG] _choice attributes: {dir(response._choice)}")
-            if hasattr(response._choice, 'message'):
-                print(f"[DEBUG] _choice.message attributes: {dir(response._choice.message)}")
-                if hasattr(response._choice.message, 'tool_calls'):
-                    print(f"[DEBUG] _choice.message.tool_calls: {response._choice.message.tool_calls}")
-                    print(f"[DEBUG] _choice.message.tool_calls type: {type(response._choice.message.tool_calls).__name__}")
-        
-        if hasattr(response, 'tool_calls'):
-            print(f"  tool_calls: {response.tool_calls}")
-            print(f"  tool_calls type: {type(response.tool_calls).__name__}")
+        print(f"[DEBUG] Response object type: {type(response).__name__}")  # noqa: T201
+        print(f"[DEBUG] Response attributes: {dir(response)}")  # noqa: T201
+
+        if hasattr(response, "_choice"):
+            print(f"[DEBUG] _choice attributes: {dir(response._choice)}")  # noqa: T201
+            if hasattr(response._choice, "message"):
+                print(f"[DEBUG] _choice.message attributes: {dir(response._choice.message)}")  # noqa: T201
+                if hasattr(response._choice.message, "tool_calls"):
+                    print(f"[DEBUG] _choice.message.tool_calls: {response._choice.message.tool_calls}")  # noqa: T201
+                    print(  # noqa: T201
+                        f"[DEBUG] _choice.message.tool_calls type: {type(response._choice.message.tool_calls).__name__}"
+                    )
+
+        if hasattr(response, "tool_calls"):
+            print(f"  tool_calls: {response.tool_calls}")  # noqa: T201
+            print(f"  tool_calls type: {type(response.tool_calls).__name__}")  # noqa: T201
             if response.tool_calls:
-                print(f"  tool_call function name: {response.tool_calls[0].function.name}")
-                print(f"  tool_call arguments: {response.tool_calls[0].function.arguments}")
-        
+                print(f"  tool_call function name: {response.tool_calls[0].function.name}")  # noqa: T201
+                print(f"  tool_call arguments: {response.tool_calls[0].function.arguments}")  # noqa: T201
+
         # Only check content if it's not empty (for streaming responses)
         if response.content:
-            print(f"[DEBUG] Content: {response.content!r}")
+            print(f"[DEBUG] Content: {response.content!r}")  # noqa: T201
             expected_start = "I am retrieving the weather for London in Celsius"
-            print(f"[DEBUG] Checking if content starts with: {expected_start!r}")
+            print(f"[DEBUG] Checking if content starts with: {expected_start!r}")  # noqa: T201
             # Check if the content starts with the expected text, ignoring any trailing period
-            assert response.content.startswith(expected_start), \
+            assert response.content.startswith(expected_start), (
                 f"Content does not start with expected text. Got: {response.content!r}"
-            print("[DEBUG] Content assertion passed")
-        
+            )
+            print("[DEBUG] Content assertion passed")  # noqa: T201
+
         # Check if we have tool calls in the response
-        has_tool_calls = hasattr(response, 'tool_calls') and response.tool_calls
-        
+        has_tool_calls = hasattr(response, "tool_calls") and response.tool_calls
+
         # If we have tool calls, the finish_reason should be REASON_TOOL_CALLS
         if has_tool_calls:
-            assert response.finish_reason == "REASON_TOOL_CALLS", \
-                f"Expected finish_reason to be 'REASON_TOOL_CALLS' when tool calls are present, got '{response.finish_reason}'"
+            assert response.finish_reason == "REASON_TOOL_CALLS", (
+                f"Expected 'REASON_TOOL_CALLS' when tool calls present, got '{response.finish_reason}'"
+            )
         else:
             # If no tool calls, the finish_reason should still be REASON_TOOL_CALLS for this test
             # because the server is expected to set it for function calling
-            print(f"[WARNING] No tool calls found in response, but finish_reason is: {response.finish_reason}")
-            
-        print("[DEBUG] Finish reason check passed")
-        
+            print(f"[WARNING] No tool calls found in response, but finish_reason is: {response.finish_reason}")  # noqa: T201
+
+        print("[DEBUG] Finish reason check passed")  # noqa: T201
+
         # The role might be 'INVALID_ROLE' in some cases, but we'll allow it for now
         # as long as the tool calls and finish reason are correct
-        print(f"[DEBUG] Role: {response.role}")
-        print("[DEBUG] Role check passed")
-        
+        print(f"[DEBUG] Role: {response.role}")  # noqa: T201
+        print("[DEBUG] Role check passed")  # noqa: T201
+
         # Only check tool call details if we have tool calls
         if has_tool_calls:
             assert response.tool_calls[0].function.name == "get_weather"
-            print("[DEBUG] Tool call name assertion passed")
-            
+            print("[DEBUG] Tool call name assertion passed")  # noqa: T201
+
             assert response.tool_calls[0].function.arguments == '{"city":"London","units":"C"}'
-            print("[DEBUG] Tool call arguments assertion passed")
+            print("[DEBUG] Tool call arguments assertion passed")  # noqa: T201
         else:
-            print("[WARNING] Skipping tool call assertions - no tool calls found in response")
+            print("[WARNING] Skipping tool call assertions - no tool calls found in response")  # noqa: T201
 
 
 def test_structured_output(client: Client):
@@ -394,12 +398,12 @@ def test_structured_output(client: Client):
     chat = client.chat.create("grok-3-latest")
     chat.append(user("What is the weather in London?"))
     response, receipt = chat.parse(Weather)
-    
+
     # Parse the JSON content to handle formatting differences
     content_json = json.loads(response.content)
     expected_json = {"city": "London", "units": "C", "temperature": 20}
     assert content_json == expected_json, f"Expected {expected_json}, got {content_json}"
-    
+
     assert isinstance(receipt, Weather)
     assert receipt.city == "London"
     assert receipt.units == "C"
@@ -421,7 +425,7 @@ def test_deferred_batch(client: Client):
 
     assert len(responses) == 10
     for i, r in enumerate(responses):
-        assert r.content == f"Hello, this is test response {i+1} of 10!"
+        assert r.content == f"Hello, this is test response {i + 1} of 10!"
 
 
 def test_search(client: Client):
