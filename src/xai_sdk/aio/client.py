@@ -29,7 +29,7 @@ class Client(BaseClient):
             api_host,
             create_channel_credentials(api_key, api_host, metadata),
             options=channel_options,
-            interceptors=[UnaryUnaryAioInterceptor(timeout), UnaryStreamAioInterceptor(timeout)],
+            interceptors=[UnaryUnaryAioInterceptor(timeout), UnaryStreamAioInterceptor(timeout)],  # type: ignore[reportArgumentType]
         )
 
         self.auth = auth.Client(channel)
