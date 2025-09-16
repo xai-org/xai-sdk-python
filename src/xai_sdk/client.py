@@ -2,7 +2,6 @@
 
 import abc
 import json
-import os
 from typing import Any, Optional, Sequence
 
 import grpc
@@ -54,8 +53,10 @@ class BaseClient(abc.ABC):
     def __init__(
         self,
         api_key: Optional[str] = None,
+        management_api_key: Optional[str] = None,
         *,
         api_host: str = "api.x.ai",
+        management_api_host: str = "management-api.x.ai",
         metadata: Optional[tuple[tuple[str, str]]] = None,
         channel_options: Optional[list[tuple[str, Any]]] = None,
         timeout: Optional[float] = None,
@@ -65,7 +66,10 @@ class BaseClient(abc.ABC):
         Args:
             api_key: API key to use. If unspecified, the API key is read from the `XAI_API_KEY`
                 environment variable.
+            management_api_key: Management API key to use. If unspecified, the Management API key is read from the
+                `XAI_MANAGEMENT_KEY` environment variable.
             api_host: Hostname of the API server.
+            management_api_host: Hostname of the Management API server.
             metadata: Metadata to be sent with each gRPC request. Each tuple should contain a
                 key/value pair.
             channel_options: Additional channel options to be sent with each gRPC request, the options defined here
@@ -82,13 +86,23 @@ class BaseClient(abc.ABC):
         default_options = [option for option in _DEFAULT_CHANNEL_OPTIONS if option[0] not in user_defined_options]
         timeout = timeout or _DEFAULT_RPC_TIMEOUT_SECONDS
 
-        self._init(api_key, api_host, metadata, default_options + channel_options, timeout)
+        self._init(
+            api_key,
+            management_api_key,
+            api_host,
+            management_api_host,
+            metadata,
+            default_options + channel_options,
+            timeout,
+        )
 
     @abc.abstractmethod
     def _init(
         self,
         api_key: Optional[str],
+        management_api_key: Optional[str],
         api_host: str,
+        management_api_host: str,
         metadata: Optional[tuple[tuple[str, str]]],
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
@@ -97,7 +111,7 @@ class BaseClient(abc.ABC):
 
 
 def create_channel_credentials(
-    api_key: Optional[str], api_host: str, metadata: Optional[tuple[tuple[str, str]]]
+    api_key: str, api_host: str, metadata: Optional[tuple[tuple[str, str]]]
 ) -> grpc.ChannelCredentials:
     """Creates the credentials for the gRPC channel.
 
@@ -109,9 +123,6 @@ def create_channel_credentials(
     Returns:
         The credentials for the gRPC channel.
     """
-    if api_key is None:
-        api_key = _get_api_from_env()
-
     if not api_key:
         raise ValueError("Empty xAI API key provided.")
 
@@ -122,24 +133,6 @@ def create_channel_credentials(
     else:
         channel_credentials = grpc.ssl_channel_credentials()
     return grpc.composite_channel_credentials(channel_credentials, call_credentials)
-
-
-def _get_api_from_env() -> str:
-    """Reads the API key from the `XAI_API_KEY` environment variable.
-
-    Returns:
-        The API key.
-
-    Raises:
-        ValueError: If the `XAI_API_KEY` environment variable is not set.
-    """
-    api_key = os.environ.get("XAI_API_KEY")
-    if api_key is None:
-        raise ValueError(
-            "Trying to read the xAI API key from the XAI_API_KEY environment variable but it doesn't exist."
-        )
-    else:
-        return api_key
 
 
 class _APIAuthPlugin(grpc.AuthMetadataPlugin):
@@ -210,7 +203,7 @@ class UnaryUnaryAioInterceptor(
 
     async def intercept_unary_unary(self, continuation, client_call_details, request):
         """Intercepts a unary-unary RPC call."""
-        new_details = client_call_details._replace(timeout=self.timeout)
+        new_details = client_call_details._replace(timeout=self.timeout)  # type: ignore
         response = await continuation(new_details, request)
         return await response
 
@@ -230,5 +223,5 @@ class UnaryStreamAioInterceptor(
 
     async def intercept_unary_stream(self, continuation, client_call_details, request):
         """Intercepts a unary-stream RPC call."""
-        client_call_details = client_call_details._replace(timeout=self.timeout)
+        client_call_details = client_call_details._replace(timeout=self.timeout)  # type: ignore
         return await continuation(client_call_details, request)  # type: ignore

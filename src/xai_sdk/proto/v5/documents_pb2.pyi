@@ -22,16 +22,18 @@ class SearchResponse(_message.Message):
     def __init__(self, matches: _Optional[_Iterable[_Union[SearchMatch, _Mapping]]] = ...) -> None: ...
 
 class SearchMatch(_message.Message):
-    __slots__ = ("file_id", "chunk_id", "chunk_content", "score")
+    __slots__ = ("file_id", "chunk_id", "chunk_content", "score", "collection_ids")
     FILE_ID_FIELD_NUMBER: _ClassVar[int]
     CHUNK_ID_FIELD_NUMBER: _ClassVar[int]
     CHUNK_CONTENT_FIELD_NUMBER: _ClassVar[int]
     SCORE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_IDS_FIELD_NUMBER: _ClassVar[int]
     file_id: str
     chunk_id: str
     chunk_content: str
     score: float
-    def __init__(self, file_id: _Optional[str] = ..., chunk_id: _Optional[str] = ..., chunk_content: _Optional[str] = ..., score: _Optional[float] = ...) -> None: ...
+    collection_ids: _containers.RepeatedScalarFieldContainer[str]
+    def __init__(self, file_id: _Optional[str] = ..., chunk_id: _Optional[str] = ..., chunk_content: _Optional[str] = ..., score: _Optional[float] = ..., collection_ids: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class DocumentsSource(_message.Message):
     __slots__ = ("collection_ids",)
