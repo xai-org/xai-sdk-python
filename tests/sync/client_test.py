@@ -13,6 +13,12 @@ def test_server_port():
         yield port
 
 
+@pytest.fixture
+def test_management_server_port():
+    with server.run_test_management_server() as port:
+        yield port
+
+
 def test_client(test_server_port):
     client = Client(api_key=server.API_KEY, api_host=f"localhost:{test_server_port}")
 
@@ -25,6 +31,39 @@ def test_client_wrong_api_key(test_server_port):
 
     with pytest.raises(grpc.RpcError):
         client.auth.get_api_key_info()
+
+
+def test_unified_client(test_server_port, test_management_server_port):
+    client = Client(
+        api_key=server.API_KEY,
+        api_host=f"localhost:{test_server_port}",
+        management_api_key=server.MANAGEMENT_API_KEY,
+        management_api_host=f"localhost:{test_management_server_port}",
+    )
+    assert client.collections.list() is not None
+    assert client.collections.search(query="test-query-1", collection_ids=["test-collection-1"]) is not None
+
+
+def test_unified_client_always_requires_api_key(test_server_port, test_management_server_port):
+    with pytest.raises(ValueError) as e:
+        Client(
+            api_host=f"localhost:{test_server_port}",
+            management_api_key=server.MANAGEMENT_API_KEY,
+            management_api_host=f"localhost:{test_management_server_port}",
+        )
+
+    assert (
+        e.value.args[0]
+        == "Trying to read the xAI API key from the XAI_API_KEY environment variable but it doesn't exist."
+    )
+
+
+def test_client_requires_management_api_key_for_management_endpoints(test_management_server_port):
+    client = Client(api_key=server.API_KEY, api_host=f"localhost:{test_management_server_port}")
+    with pytest.raises(ValueError) as e:
+        client.collections.list()
+
+    assert e.value.args[0] == "Please provide a management API key."
 
 
 def test_retries():

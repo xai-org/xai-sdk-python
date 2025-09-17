@@ -8,6 +8,8 @@ if version.parse(google.protobuf.__version__).major == 5:
         auth_pb2_grpc,
         chat_pb2,
         chat_pb2_grpc,
+        collections_pb2,
+        collections_pb2_grpc,
         deferred_pb2,
         deferred_pb2_grpc,
         documents_pb2,
@@ -20,8 +22,10 @@ if version.parse(google.protobuf.__version__).major == 5:
         models_pb2_grpc,
         sample_pb2,
         sample_pb2_grpc,
+        shared_pb2,
         tokenize_pb2,
         tokenize_pb2_grpc,
+        types_pb2,
         usage_pb2,
     )
 elif version.parse(google.protobuf.__version__).major == 6:
@@ -30,6 +34,8 @@ elif version.parse(google.protobuf.__version__).major == 6:
         auth_pb2_grpc,
         chat_pb2,
         chat_pb2_grpc,
+        collections_pb2,
+        collections_pb2_grpc,
         deferred_pb2,
         deferred_pb2_grpc,
         documents_pb2,
@@ -42,8 +48,10 @@ elif version.parse(google.protobuf.__version__).major == 6:
         models_pb2_grpc,
         sample_pb2,
         sample_pb2_grpc,
+        shared_pb2,
         tokenize_pb2,
         tokenize_pb2_grpc,
+        types_pb2,
         usage_pb2,
     )
 else:
