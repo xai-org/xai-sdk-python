@@ -36,6 +36,16 @@ class ChatStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_deferred__pb2.GetDeferredRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.GetDeferredCompletionResponse.FromString,
                 _registered_method=True)
+        self.GetStoredCompletion = channel.unary_unary(
+                '/xai_api.Chat/GetStoredCompletion',
+                request_serializer=xai_dot_api_dot_v1_dot_chat__pb2.GetStoredCompletionRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.GetChatCompletionResponse.FromString,
+                _registered_method=True)
+        self.DeleteStoredCompletion = channel.unary_unary(
+                '/xai_api.Chat/DeleteStoredCompletion',
+                request_serializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionResponse.FromString,
+                _registered_method=True)
 
 
 class ChatServicer(object):
@@ -74,6 +84,20 @@ class ChatServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetStoredCompletion(self, request, context):
+        """Retrieve a stored response using the response ID.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DeleteStoredCompletion(self, request, context):
+        """Delete a stored response using the response ID.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChatServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -96,6 +120,16 @@ def add_ChatServicer_to_server(servicer, server):
                     servicer.GetDeferredCompletion,
                     request_deserializer=xai_dot_api_dot_v1_dot_deferred__pb2.GetDeferredRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_chat__pb2.GetDeferredCompletionResponse.SerializeToString,
+            ),
+            'GetStoredCompletion': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetStoredCompletion,
+                    request_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.GetStoredCompletionRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_chat__pb2.GetChatCompletionResponse.SerializeToString,
+            ),
+            'DeleteStoredCompletion': grpc.unary_unary_rpc_method_handler(
+                    servicer.DeleteStoredCompletion,
+                    request_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -207,6 +241,60 @@ class Chat(object):
             '/xai_api.Chat/GetDeferredCompletion',
             xai_dot_api_dot_v1_dot_deferred__pb2.GetDeferredRequest.SerializeToString,
             xai_dot_api_dot_v1_dot_chat__pb2.GetDeferredCompletionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetStoredCompletion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/xai_api.Chat/GetStoredCompletion',
+            xai_dot_api_dot_v1_dot_chat__pb2.GetStoredCompletionRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_chat__pb2.GetChatCompletionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DeleteStoredCompletion(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/xai_api.Chat/DeleteStoredCompletion',
+            xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionResponse.FromString,
             options,
             channel_credentials,
             insecure,
