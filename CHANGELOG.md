@@ -13,6 +13,22 @@
 ### Removed
 - Features or functionalities that have been removed.
 
+## [v1.2.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.2.0) - 2025-09-18
+### Added
+- Added support for the new [collections API](https://docs.x.ai/docs/guides/using-collections)
+- Added a new `collections` sub-client to `Client` and `AsyncClient` which can be used to interact with the collections API.
+- The `Client` and `AsyncClient` objects now accept an optional `management_api_key` parameter which can be used to authenticate requests to the management API (e.g. CRUD operations on collections). Alternatively, the `XAI_MANAGEMENT_API_KEY` environment variable can be used to set this value without having to pass it as a parameter.
+- Added support for the new [stateful chat API](https://docs.x.ai/docs/guides/responses-api)
+- Added two new parameters to the `chat.create` method:
+    - `store_messages` whether to persist messages on xAI servers such that they can be referenced and retrieved later.
+    - `previous_response_id` allows you to specify the ID of a previously stored response to use as the starting point for the new chat.
+- Added two new methods to the `chat` object:
+    - `get_stored_completion` allows you to retrieve a previously stored response by its ID.
+    - `delete_stored_completion` allows you to delete a previously stored response by its ID.
+
+### Removed
+- **Breaking Change**: Removed the `documents` sub-client from `Client` and `AsyncClient`. In order to search for documents within collections, use the `client.collections.search` method instead.
+
 ## [v1.1.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.1.0) - 2025-08-21
 ### Added
 - Added OpenTelemetry integration for distributed tracing and monitoring of SDK operations
