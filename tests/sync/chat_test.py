@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Sequence, Union
 from unittest import mock
 
+import grpc
 import pytest
 from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
@@ -437,6 +438,77 @@ def test_search_with_streaming(client: Client):
     assert last_response.citations[2] == "test-citation-789"
 
 
+def test_get_stored_completion_returns_single_completion(client: Client):
+    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat.append(user("Hello, how are you?"))
+    response = chat.sample()
+
+    assert response.content == "Hello, this is a test response!"
+
+    retrieved_response = client.chat.get_stored_completion(response.id)
+    assert len(retrieved_response) == 1
+    retrieved_response = retrieved_response[0]
+    assert retrieved_response.content == "Hello, this is a test response!"
+    assert retrieved_response.request_settings == chat_pb2.RequestSettings(temperature=0.5, top_p=0.9)
+
+
+def test_get_stored_completion_returns_multiple_completions(client: Client):
+    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat.append(user("Hello, how are you?"))
+    responses = chat.sample_batch(3)
+    assert len(responses) == 3
+    for r in responses:
+        assert r.content == "Hello, this is a test response!"
+
+    # All response objects have the same response id so just use the first one
+    retrieved_response = client.chat.get_stored_completion(responses[0].id)
+    assert len(retrieved_response) == 3
+    for r in retrieved_response:
+        assert r.content == "Hello, this is a test response!"
+        assert r.request_settings == chat_pb2.RequestSettings(temperature=0.5, top_p=0.9)
+
+
+def test_delete_stored_completion_deletes_single_completion(client: Client):
+    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat.append(user("Hello, how are you?"))
+    response = chat.sample()
+
+    assert response.content == "Hello, this is a test response!"
+
+    deleted_id = client.chat.delete_stored_completion(response.id)
+    assert deleted_id == response.id
+
+    with pytest.raises(grpc.RpcError) as e:
+        client.chat.get_stored_completion(response.id)
+
+    assert e.value.code() == grpc.StatusCode.NOT_FOUND  # type: ignore
+    assert e.value.details() == "Response not found"  # type: ignore
+
+
+def test_get_stored_completion_raises_not_found_error_if_response_not_found(client: Client):
+    chat = client.chat.create(model="grok-3", store_messages=False)
+    chat.append(user("Hello, how are you?"))
+    response = chat.sample()
+
+    with pytest.raises(grpc.RpcError) as e:
+        client.chat.get_stored_completion(response.id)
+
+    assert e.value.code() == grpc.StatusCode.NOT_FOUND  # type: ignore
+    assert e.value.details() == "Response not found"  # type: ignore
+
+
+def test_delete_stored_completion_raises_not_found_error_if_response_not_found(client: Client):
+    chat = client.chat.create(model="grok-3", store_messages=False)
+    chat.append(user("Hello, how are you?"))
+    response = chat.sample()
+
+    with pytest.raises(grpc.RpcError) as e:
+        client.chat.delete_stored_completion(response.id)
+
+    assert e.value.code() == grpc.StatusCode.NOT_FOUND  # type: ignore
+    assert e.value.details() == "Response not found"  # type: ignore
+
+
 @mock.patch("xai_sdk.sync.chat.tracer")
 def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: Client):
     mock_span = mock.MagicMock()
@@ -462,6 +534,7 @@ def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -518,6 +591,8 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
         user="test-user",
         response_format="json_object",
         parallel_tool_calls=False,
+        store_messages=True,
+        previous_response_id="test-previous-response-id",
     )
 
     chat.sample()
@@ -548,6 +623,8 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
         "gen_ai.prompt.1.content": "Hello, how are you?",
         "gen_ai.prompt.2.role": "assistant",
         "gen_ai.prompt.2.content": "I'm doing well, thank you!",
+        "gen_ai.request.store_messages": True,
+        "gen_ai.request.previous_response_id": "test-previous-response-id",
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -582,6 +659,7 @@ def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -647,6 +725,7 @@ def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -710,6 +789,7 @@ def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -777,6 +857,7 @@ def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "What's the weather in London?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -828,6 +909,7 @@ def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -883,6 +965,7 @@ def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: mock.Magi
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -947,6 +1030,7 @@ def test_chat_with_function_calling_creates_span_with_correct_attributes(mock_tr
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "What's the weather in London?",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1038,6 +1122,7 @@ def test_chat_with_function_call_result_creates_span_with_correct_attributes(
         ),
         "gen_ai.prompt.2.role": "tool",
         "gen_ai.prompt.2.content": "The weather in London is 20 degrees Fahrenheit.",
+        "gen_ai.request.store_messages": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(

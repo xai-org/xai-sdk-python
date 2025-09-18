@@ -17,6 +17,60 @@ class Client(BaseClient["Chat"]):
     def _make_chat(self, conversation_id: Optional[str], **settings) -> "Chat":
         return Chat(self._stub, conversation_id, **settings)
 
+    def get_stored_completion(self, response_id: str) -> Sequence[Response]:
+        """Retrieves a stored chat completion response by its ID.
+
+        This method fetches the a model completion by a given response_id.
+        The response_id must be from a chat instance that was created
+        with `store_messages=True`.
+
+        Returns a sequence since the stored response may contain multiple
+        choices if it was generated using one of the batch methods such as `sample_batch()`, `stream_batch()`,
+        or `defer_batch()`.
+
+        If the response was generated using a non-batch method such as `sample()`,
+        the sequence will contain a single response.
+
+        Args:
+            response_id: The ID of the stored response to retrieve.
+
+        Returns:
+            Sequence[Response]: A sequence of `Response` objects. Contains a single response for
+                responses generated with non-batch methods such as `sample()` or multiple responses for those generated
+                with batch methods such as `sample_batch()`.
+
+        Example:
+            >>> # Retrieve a previously stored response
+            >>> stored_responses = client.chat.get_stored_completion("response_abc123")
+            >>> print(stored_responses[0].content)
+            "Previously generated response content"
+        """
+        response = self._stub.GetStoredCompletion(chat_pb2.GetStoredCompletionRequest(response_id=response_id))
+        return [Response(response, i) for i in range(len(response.choices))]
+
+    def delete_stored_completion(self, response_id: str) -> str:
+        """Deletes a stored chat completion response from the xAI backend.
+
+        This method permanently removes a previously stored chat completion response by its ID.
+        The response_id must be from a chat instance that was created with `store_messages=True`.
+        Once deleted, the response can no longer be retrieved via `get_stored_completion()` or referenced by
+        `previous_response_id` in new chat instances.
+
+        Args:
+            response_id: The ID of the stored response to delete.
+
+        Returns:
+            str: The ID of the deleted response, confirming successful deletion.
+
+        Example:
+            >>> # Delete a stored response
+            >>> deleted_id = client.chat.delete_stored_completion("response_abc123")
+            >>> print(f"Deleted response: {deleted_id}")
+            "Deleted response: response_abc123"
+        """
+        response = self._stub.DeleteStoredCompletion(chat_pb2.DeleteStoredCompletionRequest(response_id=response_id))
+        return response.response_id
+
 
 T = TypeVar("T", bound=BaseModel)
 

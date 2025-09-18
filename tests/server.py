@@ -94,6 +94,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
     def __init__(self, response_delay_seconds: int = 0):
         self._response_delay_seconds = response_delay_seconds
         self._deferred_requests = {}
+        self._stored_completions = {}
 
     def GetCompletion(self, request: chat_pb2.GetCompletionsRequest, context: grpc.ServicerContext):
         """Returns a static completion response."""
@@ -103,11 +104,12 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
             time.sleep(self._response_delay_seconds)
 
         response = chat_pb2.GetChatCompletionResponse(
-            id="test-completion-123",
+            id=f"test-completion-{uuid.uuid4()}",
             model="dummy-model",
             created=timestamp_pb2.Timestamp(seconds=int(time.time())),
             system_fingerprint="dummy-fingerprint",
             usage=usage_pb2.SamplingUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            settings=chat_pb2.RequestSettings(temperature=0.5, top_p=0.9),
         )
 
         for i in range(request.n):
@@ -161,6 +163,9 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                     "test-citation-789",
                 ]
             )
+
+        if request.store_messages:
+            self._stored_completions[response.id] = response
 
         return response
 
@@ -337,6 +342,26 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                 ),
             )
         return response
+
+    def GetStoredCompletion(self, request: chat_pb2.GetStoredCompletionRequest, context: grpc.ServicerContext):
+        """Returns a stored completion response."""
+        _check_auth(context)
+
+        if request.response_id not in self._stored_completions:
+            context.abort(grpc.StatusCode.NOT_FOUND, "Response not found")
+
+        return self._stored_completions[request.response_id]
+
+    def DeleteStoredCompletion(self, request: chat_pb2.DeleteStoredCompletionRequest, context: grpc.ServicerContext):
+        """Deletes a stored completion response."""
+        _check_auth(context)
+
+        if request.response_id not in self._stored_completions:
+            context.abort(grpc.StatusCode.NOT_FOUND, "Response not found")
+
+        del self._stored_completions[request.response_id]
+
+        return chat_pb2.DeleteStoredCompletionResponse(response_id=request.response_id)
 
 
 @dataclass
