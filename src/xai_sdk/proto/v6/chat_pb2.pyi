@@ -270,10 +270,22 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function",)
+    __slots__ = ("function", "web_search", "x_search")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
+    WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
+    X_SEARCH_FIELD_NUMBER: _ClassVar[int]
     function: Function
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ...) -> None: ...
+    web_search: WebSearch
+    x_search: XSearch
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ...) -> None: ...
+
+class WebSearch(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
+
+class XSearch(_message.Message):
+    __slots__ = ()
+    def __init__(self) -> None: ...
 
 class Function(_message.Message):
     __slots__ = ("name", "description", "strict", "parameters")
