@@ -349,18 +349,16 @@ class SearchParameters(_message.Message):
     def __init__(self, mode: _Optional[_Union[SearchMode, str]] = ..., sources: _Optional[_Iterable[_Union[Source, _Mapping]]] = ..., from_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., to_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., return_citations: bool = ..., max_search_results: _Optional[int] = ...) -> None: ...
 
 class Source(_message.Message):
-    __slots__ = ("web", "news", "x", "rss", "documents")
+    __slots__ = ("web", "news", "x", "rss")
     WEB_FIELD_NUMBER: _ClassVar[int]
     NEWS_FIELD_NUMBER: _ClassVar[int]
     X_FIELD_NUMBER: _ClassVar[int]
     RSS_FIELD_NUMBER: _ClassVar[int]
-    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
     web: WebSource
     news: NewsSource
     x: XSource
     rss: RssSource
-    documents: _documents_pb2.DocumentsSource
-    def __init__(self, web: _Optional[_Union[WebSource, _Mapping]] = ..., news: _Optional[_Union[NewsSource, _Mapping]] = ..., x: _Optional[_Union[XSource, _Mapping]] = ..., rss: _Optional[_Union[RssSource, _Mapping]] = ..., documents: _Optional[_Union[_documents_pb2.DocumentsSource, _Mapping]] = ...) -> None: ...
+    def __init__(self, web: _Optional[_Union[WebSource, _Mapping]] = ..., news: _Optional[_Union[NewsSource, _Mapping]] = ..., x: _Optional[_Union[XSource, _Mapping]] = ..., rss: _Optional[_Union[RssSource, _Mapping]] = ...) -> None: ...
 
 class WebSource(_message.Message):
     __slots__ = ("excluded_websites", "allowed_websites", "country", "safe_search")
