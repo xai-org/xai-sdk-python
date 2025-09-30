@@ -1,5 +1,6 @@
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from . import deferred_pb2 as _deferred_pb2
+from . import documents_pb2 as _documents_pb2
 from . import image_pb2 as _image_pb2
 from . import sample_pb2 as _sample_pb2
 from . import usage_pb2 as _usage_pb2
@@ -71,7 +72,7 @@ ON_SEARCH_MODE: SearchMode
 AUTO_SEARCH_MODE: SearchMode
 
 class GetCompletionsRequest(_message.Message):
-    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages")
+    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages", "use_encrypted_content")
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     USER_FIELD_NUMBER: _ClassVar[int]
@@ -93,6 +94,7 @@ class GetCompletionsRequest(_message.Message):
     PARALLEL_TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
     PREVIOUS_RESPONSE_ID_FIELD_NUMBER: _ClassVar[int]
     STORE_MESSAGES_FIELD_NUMBER: _ClassVar[int]
+    USE_ENCRYPTED_CONTENT_FIELD_NUMBER: _ClassVar[int]
     messages: _containers.RepeatedCompositeFieldContainer[Message]
     model: str
     user: str
@@ -114,7 +116,8 @@ class GetCompletionsRequest(_message.Message):
     parallel_tool_calls: bool
     previous_response_id: str
     store_messages: bool
-    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ...) -> None: ...
+    use_encrypted_content: bool
+    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ...) -> None: ...
 
 class GetChatCompletionResponse(_message.Message):
     __slots__ = ("id", "choices", "created", "model", "system_fingerprint", "usage", "citations", "settings")
@@ -175,16 +178,18 @@ class Choice(_message.Message):
     def __init__(self, finish_reason: _Optional[_Union[_sample_pb2.FinishReason, str]] = ..., index: _Optional[int] = ..., message: _Optional[_Union[CompletionMessage, _Mapping]] = ..., logprobs: _Optional[_Union[LogProbs, _Mapping]] = ...) -> None: ...
 
 class CompletionMessage(_message.Message):
-    __slots__ = ("content", "reasoning_content", "role", "tool_calls")
+    __slots__ = ("content", "reasoning_content", "role", "tool_calls", "encrypted_content")
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     REASONING_CONTENT_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
+    ENCRYPTED_CONTENT_FIELD_NUMBER: _ClassVar[int]
     content: str
     reasoning_content: str
     role: MessageRole
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
-    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ...) -> None: ...
+    encrypted_content: str
+    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., encrypted_content: _Optional[str] = ...) -> None: ...
 
 class ChoiceChunk(_message.Message):
     __slots__ = ("delta", "logprobs", "finish_reason", "index")
@@ -199,16 +204,18 @@ class ChoiceChunk(_message.Message):
     def __init__(self, delta: _Optional[_Union[Delta, _Mapping]] = ..., logprobs: _Optional[_Union[LogProbs, _Mapping]] = ..., finish_reason: _Optional[_Union[_sample_pb2.FinishReason, str]] = ..., index: _Optional[int] = ...) -> None: ...
 
 class Delta(_message.Message):
-    __slots__ = ("content", "reasoning_content", "role", "tool_calls")
+    __slots__ = ("content", "reasoning_content", "role", "tool_calls", "encrypted_content")
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     REASONING_CONTENT_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
+    ENCRYPTED_CONTENT_FIELD_NUMBER: _ClassVar[int]
     content: str
     reasoning_content: str
     role: MessageRole
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
-    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ...) -> None: ...
+    encrypted_content: str
+    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., encrypted_content: _Optional[str] = ...) -> None: ...
 
 class LogProbs(_message.Message):
     __slots__ = ("content",)
@@ -247,18 +254,20 @@ class Content(_message.Message):
     def __init__(self, text: _Optional[str] = ..., image_url: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ...) -> None: ...
 
 class Message(_message.Message):
-    __slots__ = ("content", "reasoning_content", "role", "name", "tool_calls")
+    __slots__ = ("content", "reasoning_content", "role", "name", "tool_calls", "encrypted_content")
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     REASONING_CONTENT_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
+    ENCRYPTED_CONTENT_FIELD_NUMBER: _ClassVar[int]
     content: _containers.RepeatedCompositeFieldContainer[Content]
     reasoning_content: str
     role: MessageRole
     name: str
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
-    def __init__(self, content: _Optional[_Iterable[_Union[Content, _Mapping]]] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., name: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ...) -> None: ...
+    encrypted_content: str
+    def __init__(self, content: _Optional[_Iterable[_Union[Content, _Mapping]]] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., name: _Optional[str] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., encrypted_content: _Optional[str] = ...) -> None: ...
 
 class ToolChoice(_message.Message):
     __slots__ = ("mode", "function_name")
@@ -269,14 +278,16 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "web_search", "x_search")
+    __slots__ = ("function", "live_search", "web_search", "x_search")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
+    LIVE_SEARCH_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
     function: Function
+    live_search: LiveSearch
     web_search: WebSearch
     x_search: XSearch
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ...) -> None: ...
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., live_search: _Optional[_Union[LiveSearch, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ...) -> None: ...
 
 class WebSearch(_message.Message):
     __slots__ = ()
@@ -297,6 +308,12 @@ class Function(_message.Message):
     strict: bool
     parameters: str
     def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., strict: bool = ..., parameters: _Optional[str] = ...) -> None: ...
+
+class LiveSearch(_message.Message):
+    __slots__ = ("sources",)
+    SOURCES_FIELD_NUMBER: _ClassVar[int]
+    sources: _containers.RepeatedCompositeFieldContainer[Source]
+    def __init__(self, sources: _Optional[_Iterable[_Union[Source, _Mapping]]] = ...) -> None: ...
 
 class ToolCall(_message.Message):
     __slots__ = ("id", "function")
@@ -339,16 +356,18 @@ class SearchParameters(_message.Message):
     def __init__(self, mode: _Optional[_Union[SearchMode, str]] = ..., sources: _Optional[_Iterable[_Union[Source, _Mapping]]] = ..., from_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., to_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., return_citations: bool = ..., max_search_results: _Optional[int] = ...) -> None: ...
 
 class Source(_message.Message):
-    __slots__ = ("web", "news", "x", "rss")
+    __slots__ = ("web", "news", "x", "rss", "documents")
     WEB_FIELD_NUMBER: _ClassVar[int]
     NEWS_FIELD_NUMBER: _ClassVar[int]
     X_FIELD_NUMBER: _ClassVar[int]
     RSS_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
     web: WebSource
     news: NewsSource
     x: XSource
     rss: RssSource
-    def __init__(self, web: _Optional[_Union[WebSource, _Mapping]] = ..., news: _Optional[_Union[NewsSource, _Mapping]] = ..., x: _Optional[_Union[XSource, _Mapping]] = ..., rss: _Optional[_Union[RssSource, _Mapping]] = ...) -> None: ...
+    documents: _documents_pb2.DocumentsSource
+    def __init__(self, web: _Optional[_Union[WebSource, _Mapping]] = ..., news: _Optional[_Union[NewsSource, _Mapping]] = ..., x: _Optional[_Union[XSource, _Mapping]] = ..., rss: _Optional[_Union[RssSource, _Mapping]] = ..., documents: _Optional[_Union[_documents_pb2.DocumentsSource, _Mapping]] = ...) -> None: ...
 
 class WebSource(_message.Message):
     __slots__ = ("excluded_websites", "allowed_websites", "country", "safe_search")
@@ -391,7 +410,7 @@ class RssSource(_message.Message):
     def __init__(self, links: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class RequestSettings(_message.Message):
-    __slots__ = ("max_tokens", "parallel_tool_calls", "previous_response_id", "reasoning_effort", "temperature", "response_format", "tool_choice", "tools", "top_p", "user", "search_parameters", "store_messages")
+    __slots__ = ("max_tokens", "parallel_tool_calls", "previous_response_id", "reasoning_effort", "temperature", "response_format", "tool_choice", "tools", "top_p", "user", "search_parameters", "store_messages", "use_encrypted_content")
     MAX_TOKENS_FIELD_NUMBER: _ClassVar[int]
     PARALLEL_TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
     PREVIOUS_RESPONSE_ID_FIELD_NUMBER: _ClassVar[int]
@@ -404,6 +423,7 @@ class RequestSettings(_message.Message):
     USER_FIELD_NUMBER: _ClassVar[int]
     SEARCH_PARAMETERS_FIELD_NUMBER: _ClassVar[int]
     STORE_MESSAGES_FIELD_NUMBER: _ClassVar[int]
+    USE_ENCRYPTED_CONTENT_FIELD_NUMBER: _ClassVar[int]
     max_tokens: int
     parallel_tool_calls: bool
     previous_response_id: str
@@ -416,7 +436,16 @@ class RequestSettings(_message.Message):
     user: str
     search_parameters: SearchParameters
     store_messages: bool
-    def __init__(self, max_tokens: _Optional[int] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., temperature: _Optional[float] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., top_p: _Optional[float] = ..., user: _Optional[str] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., store_messages: bool = ...) -> None: ...
+    use_encrypted_content: bool
+    def __init__(self, max_tokens: _Optional[int] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., temperature: _Optional[float] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., top_p: _Optional[float] = ..., user: _Optional[str] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., store_messages: bool = ..., use_encrypted_content: bool = ...) -> None: ...
+
+class ResponseHistory(_message.Message):
+    __slots__ = ("messages", "response")
+    MESSAGES_FIELD_NUMBER: _ClassVar[int]
+    RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    messages: _containers.RepeatedCompositeFieldContainer[Message]
+    response: GetChatCompletionResponse
+    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., response: _Optional[_Union[GetChatCompletionResponse, _Mapping]] = ...) -> None: ...
 
 class GetStoredCompletionRequest(_message.Message):
     __slots__ = ("response_id",)
