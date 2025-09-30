@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1axai/api/v1/documents.proto\x12\x07xai_api\"|\n\rSearchRequest\x12\x14\n\x05query\x18\x01 \x01(\tR\x05query\x12\x30\n\x06source\x18\x02 \x01(\x0b\x32\x18.xai_api.DocumentsSourceR\x06source\x12\x19\n\x05limit\x18\x03 \x01(\x05H\x00R\x05limit\x88\x01\x01\x42\x08\n\x06_limit\"@\n\x0eSearchResponse\x12.\n\x07matches\x18\x01 \x03(\x0b\x32\x14.xai_api.SearchMatchR\x07matches\"\xa3\x01\n\x0bSearchMatch\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12\x19\n\x08\x63hunk_id\x18\x02 \x01(\tR\x07\x63hunkId\x12#\n\rchunk_content\x18\x03 \x01(\tR\x0c\x63hunkContent\x12\x14\n\x05score\x18\x04 \x01(\x02R\x05score\x12%\n\x0e\x63ollection_ids\x18\x05 \x03(\tR\rcollectionIds\"8\n\x0f\x44ocumentsSource\x12%\n\x0e\x63ollection_ids\x18\x01 \x03(\tR\rcollectionIds2H\n\tDocuments\x12;\n\x06Search\x12\x16.xai_api.SearchRequest\x1a\x17.xai_api.SearchResponse\"\x00\x42U\n\x0b\x63om.xai_apiB\x0e\x44ocumentsProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1axai/api/v1/documents.proto\x12\x07xai_api\"\x8d\x02\n\rSearchRequest\x12\x14\n\x05query\x18\x01 \x01(\tR\x05query\x12\x30\n\x06source\x18\x02 \x01(\x0b\x32\x18.xai_api.DocumentsSourceR\x06source\x12\x19\n\x05limit\x18\x03 \x01(\x05H\x00R\x05limit\x88\x01\x01\x12\x42\n\x0eranking_metric\x18\x04 \x01(\x0e\x32\x16.xai_api.RankingMetricH\x01R\rrankingMetric\x88\x01\x01\x12\'\n\x0cinstructions\x18\x05 \x01(\tH\x02R\x0cinstructions\x88\x01\x01\x42\x08\n\x06_limitB\x11\n\x0f_ranking_metricB\x0f\n\r_instructions\"@\n\x0eSearchResponse\x12.\n\x07matches\x18\x01 \x03(\x0b\x32\x14.xai_api.SearchMatchR\x07matches\"\xa3\x01\n\x0bSearchMatch\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12\x19\n\x08\x63hunk_id\x18\x02 \x01(\tR\x07\x63hunkId\x12#\n\rchunk_content\x18\x03 \x01(\tR\x0c\x63hunkContent\x12\x14\n\x05score\x18\x04 \x01(\x02R\x05score\x12%\n\x0e\x63ollection_ids\x18\x05 \x03(\tR\rcollectionIds\"8\n\x0f\x44ocumentsSource\x12%\n\x0e\x63ollection_ids\x18\x01 \x03(\tR\rcollectionIds*q\n\rRankingMetric\x12\x1a\n\x16RANKING_METRIC_UNKNOWN\x10\x00\x12\x1e\n\x1aRANKING_METRIC_L2_DISTANCE\x10\x01\x12$\n RANKING_METRIC_COSINE_SIMILARITY\x10\x02\x32H\n\tDocuments\x12;\n\x06Search\x12\x16.xai_api.SearchRequest\x1a\x17.xai_api.SearchResponse\"\x00\x42U\n\x0b\x63om.xai_apiB\x0e\x44ocumentsProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,14 +32,16 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'xai.api.v1.documents_pb2', 
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\013com.xai_apiB\016DocumentsProtoP\001\242\002\003XXX\252\002\006XaiApi\312\002\006XaiApi\342\002\022XaiApi\\GPBMetadata\352\002\006XaiApi'
-  _globals['_SEARCHREQUEST']._serialized_start=39
-  _globals['_SEARCHREQUEST']._serialized_end=163
-  _globals['_SEARCHRESPONSE']._serialized_start=165
-  _globals['_SEARCHRESPONSE']._serialized_end=229
-  _globals['_SEARCHMATCH']._serialized_start=232
-  _globals['_SEARCHMATCH']._serialized_end=395
-  _globals['_DOCUMENTSSOURCE']._serialized_start=397
-  _globals['_DOCUMENTSSOURCE']._serialized_end=453
-  _globals['_DOCUMENTS']._serialized_start=455
-  _globals['_DOCUMENTS']._serialized_end=527
+  _globals['_RANKINGMETRIC']._serialized_start=601
+  _globals['_RANKINGMETRIC']._serialized_end=714
+  _globals['_SEARCHREQUEST']._serialized_start=40
+  _globals['_SEARCHREQUEST']._serialized_end=309
+  _globals['_SEARCHRESPONSE']._serialized_start=311
+  _globals['_SEARCHRESPONSE']._serialized_end=375
+  _globals['_SEARCHMATCH']._serialized_start=378
+  _globals['_SEARCHMATCH']._serialized_end=541
+  _globals['_DOCUMENTSSOURCE']._serialized_start=543
+  _globals['_DOCUMENTSSOURCE']._serialized_end=599
+  _globals['_DOCUMENTS']._serialized_start=716
+  _globals['_DOCUMENTS']._serialized_end=788
 # @@protoc_insertion_point(module_scope)
