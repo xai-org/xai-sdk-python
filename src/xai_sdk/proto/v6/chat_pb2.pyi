@@ -1,5 +1,6 @@
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from . import deferred_pb2 as _deferred_pb2
+from . import documents_pb2 as _documents_pb2
 from . import image_pb2 as _image_pb2
 from . import sample_pb2 as _sample_pb2
 from . import usage_pb2 as _usage_pb2
@@ -278,16 +279,14 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "live_search", "web_search", "x_search")
+    __slots__ = ("function", "web_search", "x_search")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
-    LIVE_SEARCH_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
     function: Function
-    live_search: LiveSearch
     web_search: WebSearch
     x_search: XSearch
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., live_search: _Optional[_Union[LiveSearch, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ...) -> None: ...
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ...) -> None: ...
 
 class WebSearch(_message.Message):
     __slots__ = ()
@@ -308,12 +307,6 @@ class Function(_message.Message):
     strict: bool
     parameters: str
     def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., strict: bool = ..., parameters: _Optional[str] = ...) -> None: ...
-
-class LiveSearch(_message.Message):
-    __slots__ = ("sources",)
-    SOURCES_FIELD_NUMBER: _ClassVar[int]
-    sources: _containers.RepeatedCompositeFieldContainer[Source]
-    def __init__(self, sources: _Optional[_Iterable[_Union[Source, _Mapping]]] = ...) -> None: ...
 
 class ToolCall(_message.Message):
     __slots__ = ("id", "function")
