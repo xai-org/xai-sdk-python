@@ -27,6 +27,7 @@ from xai_sdk.chat import (
 )
 from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
+from xai_sdk.tools import code_execution, web_search, x_search
 
 from .. import server
 
@@ -1224,6 +1225,61 @@ def test_chat_create_with_tools(client: Client):
 
     assert chat_completion_request.tools[0] == expected_weather_tool
     assert chat_completion_request.tools[1] == expected_news_tool
+
+
+def test_chat_create_with_server_side_tools(client: Client):
+    from_date = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    to_date = datetime(2024, 12, 31, tzinfo=timezone.utc)
+
+    chat = client.chat.create(
+        "grok-3",
+        tools=[
+            web_search(
+                excluded_domains=["spam.com", "unwanted.com"],
+                enable_image_understanding=True,
+            ),
+            x_search(
+                from_date=from_date,
+                to_date=to_date,
+                allowed_x_handles=["xai", "elonmusk"],
+                enable_image_understanding=True,
+                enable_video_understanding=True,
+            ),
+            code_execution(),
+        ],
+    )
+
+    chat_completion_request = chat.proto
+    assert len(chat_completion_request.tools) == 3
+
+    expected_from_date_pb = timestamp_pb2.Timestamp()
+    expected_from_date_pb.FromDatetime(from_date)
+
+    expected_to_date_pb = timestamp_pb2.Timestamp()
+    expected_to_date_pb.FromDatetime(to_date)
+
+    expected_web_search_tool = chat_pb2.Tool(
+        web_search=chat_pb2.WebSearch(
+            excluded_domains=["spam.com", "unwanted.com"],
+            enable_image_understanding=True,
+        )
+    )
+
+    expected_x_search_tool = chat_pb2.Tool(
+        x_search=chat_pb2.XSearch(
+            from_date=expected_from_date_pb,
+            to_date=expected_to_date_pb,
+            allowed_x_handles=["xai", "elonmusk"],
+            enable_image_understanding=True,
+            enable_video_understanding=True,
+        )
+    )
+
+    expected_code_execution_tool = chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
+
+    assert chat_completion_request.tools[0] == expected_web_search_tool
+    assert chat_completion_request.tools[1] == expected_x_search_tool
+    assert chat_completion_request.tools[2] == expected_code_execution_tool
 
 
 @pytest.mark.parametrize(

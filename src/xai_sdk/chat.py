@@ -2,6 +2,7 @@ import abc
 import datetime
 import json
 import time
+from collections import Counter
 from typing import Any, Generic, Literal, Optional, Sequence, TypeVar, Union
 
 import grpc
@@ -714,6 +715,12 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         return "".join(c.reasoning_content for c in self.choices)
 
     @property
+    def server_side_tool_usage(self) -> dict[str, int]:
+        """Returns the server side tools used for this chunk."""
+        tools_used = [usage_pb2.ServerSideTool.Name(tool) for tool in self.proto.usage.server_side_tools_used]
+        return dict(Counter(tools_used))
+
+    @property
     def citations(self) -> Sequence[str]:
         """Returns the citations of this chunk."""
         return self.proto.citations
@@ -853,6 +860,12 @@ class Response(_ResponseProtoDecorator):
     def citations(self) -> Sequence[str]:
         """Returns the citations of this response."""
         return self.proto.citations
+
+    @property
+    def server_side_tool_usage(self) -> dict[str, int]:
+        """Returns the server side tools used for this response."""
+        tools_used = [usage_pb2.ServerSideTool.Name(tool) for tool in self.proto.usage.server_side_tools_used]
+        return dict(Counter(tools_used))
 
     @property
     def request_settings(self) -> chat_pb2.RequestSettings:
