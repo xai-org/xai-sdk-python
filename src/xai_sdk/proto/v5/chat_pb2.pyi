@@ -269,20 +269,44 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "web_search", "x_search")
+    __slots__ = ("function", "web_search", "x_search", "code_execution")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
+    CODE_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     function: Function
     web_search: WebSearch
     x_search: XSearch
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ...) -> None: ...
+    code_execution: CodeExecution
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ...) -> None: ...
 
 class WebSearch(_message.Message):
-    __slots__ = ()
-    def __init__(self) -> None: ...
+    __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding")
+    EXCLUDED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
+    ALLOWED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
+    ENABLE_IMAGE_UNDERSTANDING_FIELD_NUMBER: _ClassVar[int]
+    excluded_domains: _containers.RepeatedScalarFieldContainer[str]
+    allowed_domains: _containers.RepeatedScalarFieldContainer[str]
+    enable_image_understanding: bool
+    def __init__(self, excluded_domains: _Optional[_Iterable[str]] = ..., allowed_domains: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ...) -> None: ...
 
 class XSearch(_message.Message):
+    __slots__ = ("from_date", "to_date", "allowed_x_handles", "excluded_x_handles", "enable_image_understanding", "enable_video_understanding")
+    FROM_DATE_FIELD_NUMBER: _ClassVar[int]
+    TO_DATE_FIELD_NUMBER: _ClassVar[int]
+    ALLOWED_X_HANDLES_FIELD_NUMBER: _ClassVar[int]
+    EXCLUDED_X_HANDLES_FIELD_NUMBER: _ClassVar[int]
+    ENABLE_IMAGE_UNDERSTANDING_FIELD_NUMBER: _ClassVar[int]
+    ENABLE_VIDEO_UNDERSTANDING_FIELD_NUMBER: _ClassVar[int]
+    from_date: _timestamp_pb2.Timestamp
+    to_date: _timestamp_pb2.Timestamp
+    allowed_x_handles: _containers.RepeatedScalarFieldContainer[str]
+    excluded_x_handles: _containers.RepeatedScalarFieldContainer[str]
+    enable_image_understanding: bool
+    enable_video_understanding: bool
+    def __init__(self, from_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., to_date: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., allowed_x_handles: _Optional[_Iterable[str]] = ..., excluded_x_handles: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ..., enable_video_understanding: bool = ...) -> None: ...
+
+class CodeExecution(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
 
