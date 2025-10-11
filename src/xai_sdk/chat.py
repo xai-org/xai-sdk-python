@@ -716,9 +716,21 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
 
     @property
     def server_side_tool_usage(self) -> dict[str, int]:
-        """Returns the server side tools used for this chunk."""
+        """Returns a dictionary mapping server-side tool names to their usage count in this chunk."""
         tools_used = [usage_pb2.ServerSideTool.Name(tool) for tool in self.proto.usage.server_side_tools_used]
         return dict(Counter(tools_used))
+
+    @property
+    def agent_trace(self) -> Sequence[chat_pb2.AgentTraceEntry]:
+        """Returns the agent trace for this chunk."""
+        if len(self.choices) == 0:
+            return []
+        return self.choices[0].proto.delta.agent_trace
+
+    @property
+    def server_side_tool_calls(self) -> list[chat_pb2.ToolCall]:
+        """Returns the list of server-side tool calls made in this chunk."""
+        return [trace.tool_call for trace in self.agent_trace if trace.WhichOneof("content") == "tool_call"]
 
     @property
     def citations(self) -> Sequence[str]:
@@ -776,6 +788,7 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
             choice.message.reasoning_content += c.delta.reasoning_content
             choice.message.role = c.delta.role
             choice.message.tool_calls.extend(c.delta.tool_calls)
+            choice.message.agent_trace.extend(c.delta.agent_trace)
             choice.finish_reason = c.finish_reason
 
 
@@ -862,8 +875,18 @@ class Response(_ResponseProtoDecorator):
         return self.proto.citations
 
     @property
+    def agent_trace(self) -> Sequence[chat_pb2.AgentTraceEntry]:
+        """Returns the agent trace of this response."""
+        return self._choice.message.agent_trace
+
+    @property
+    def server_side_tool_calls(self) -> list[chat_pb2.ToolCall]:
+        """Returns the list of server-side tool calls made in this response."""
+        return [trace.tool_call for trace in self.agent_trace if trace.WhichOneof("content") == "tool_call"]
+
+    @property
     def server_side_tool_usage(self) -> dict[str, int]:
-        """Returns the server side tools used for this response."""
+        """Returns a dictionary mapping server-side tool names to their usage count in this response."""
         tools_used = [usage_pb2.ServerSideTool.Name(tool) for tool in self.proto.usage.server_side_tools_used]
         return dict(Counter(tools_used))
 

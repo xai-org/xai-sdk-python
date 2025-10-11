@@ -17,6 +17,8 @@ def agentic_search(client: Client, model: str, query: str) -> None:
 
     is_thinking = True
     for response, chunk in chat.stream():
+        for tool_call in chunk.server_side_tool_calls:
+            print(f"\nCalling tool: {tool_call.function.name} with arguments: {tool_call.function.arguments}")
         if response.usage.reasoning_tokens and is_thinking:
             print(f"\rThinking... ({response.usage.reasoning_tokens} tokens)", end="", flush=True)
         if chunk.content and is_thinking:
@@ -30,6 +32,8 @@ def agentic_search(client: Client, model: str, query: str) -> None:
     print("\n\nUsage:")
     print(response.usage)
     print(response.server_side_tool_usage)
+    print("\n\nServer Side Tool Calls:")
+    print(response.server_side_tool_calls)
 
 
 def main() -> None:
@@ -54,7 +58,7 @@ def main() -> None:
     # Trigger x search/web search
     # agentic_search(
     #     client,
-    #     model="grok-4-fast-non-reasoning",
+    #     model="grok-4-fast",
     #     query="What can you tell me about the X user 0xPromar and his recent activity?",
     # )
 

@@ -175,16 +175,18 @@ class Choice(_message.Message):
     def __init__(self, finish_reason: _Optional[_Union[_sample_pb2.FinishReason, str]] = ..., index: _Optional[int] = ..., message: _Optional[_Union[CompletionMessage, _Mapping]] = ..., logprobs: _Optional[_Union[LogProbs, _Mapping]] = ...) -> None: ...
 
 class CompletionMessage(_message.Message):
-    __slots__ = ("content", "reasoning_content", "role", "tool_calls")
+    __slots__ = ("content", "reasoning_content", "role", "tool_calls", "agent_trace")
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     REASONING_CONTENT_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
+    AGENT_TRACE_FIELD_NUMBER: _ClassVar[int]
     content: str
     reasoning_content: str
     role: MessageRole
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
-    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ...) -> None: ...
+    agent_trace: _containers.RepeatedCompositeFieldContainer[AgentTraceEntry]
+    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., agent_trace: _Optional[_Iterable[_Union[AgentTraceEntry, _Mapping]]] = ...) -> None: ...
 
 class ChoiceChunk(_message.Message):
     __slots__ = ("delta", "logprobs", "finish_reason", "index")
@@ -199,16 +201,18 @@ class ChoiceChunk(_message.Message):
     def __init__(self, delta: _Optional[_Union[Delta, _Mapping]] = ..., logprobs: _Optional[_Union[LogProbs, _Mapping]] = ..., finish_reason: _Optional[_Union[_sample_pb2.FinishReason, str]] = ..., index: _Optional[int] = ...) -> None: ...
 
 class Delta(_message.Message):
-    __slots__ = ("content", "reasoning_content", "role", "tool_calls")
+    __slots__ = ("content", "reasoning_content", "role", "tool_calls", "agent_trace")
     CONTENT_FIELD_NUMBER: _ClassVar[int]
     REASONING_CONTENT_FIELD_NUMBER: _ClassVar[int]
     ROLE_FIELD_NUMBER: _ClassVar[int]
     TOOL_CALLS_FIELD_NUMBER: _ClassVar[int]
+    AGENT_TRACE_FIELD_NUMBER: _ClassVar[int]
     content: str
     reasoning_content: str
     role: MessageRole
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
-    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ...) -> None: ...
+    agent_trace: _containers.RepeatedCompositeFieldContainer[AgentTraceEntry]
+    def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., agent_trace: _Optional[_Iterable[_Union[AgentTraceEntry, _Mapping]]] = ...) -> None: ...
 
 class LogProbs(_message.Message):
     __slots__ = ("content",)
@@ -337,6 +341,12 @@ class FunctionCall(_message.Message):
     name: str
     arguments: str
     def __init__(self, name: _Optional[str] = ..., arguments: _Optional[str] = ...) -> None: ...
+
+class AgentTraceEntry(_message.Message):
+    __slots__ = ("tool_call",)
+    TOOL_CALL_FIELD_NUMBER: _ClassVar[int]
+    tool_call: ToolCall
+    def __init__(self, tool_call: _Optional[_Union[ToolCall, _Mapping]] = ...) -> None: ...
 
 class ResponseFormat(_message.Message):
     __slots__ = ("format_type", "schema")
