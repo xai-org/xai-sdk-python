@@ -32,7 +32,7 @@ def agentic_search(client: Client, model: str, query: str) -> None:
     print("\n\nUsage:")
     print(response.usage)
     print(response.server_side_tool_usage)
-    print("\n\nServer Side Tool Calls:")
+    print("\n\nTool Calls:")
     print(response.tool_calls)
 
 
