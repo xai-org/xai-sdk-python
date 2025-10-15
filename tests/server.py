@@ -114,7 +114,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
 
         for i in range(request.n):
             if len(request.tools) > 0:
-                response.choices.add(
+                response.outputs.add(
                     finish_reason=sample_pb2.FinishReason.REASON_TOOL_CALLS,
                     index=i,
                     message=chat_pb2.CompletionMessage(
@@ -132,7 +132,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                     ),
                 )
             elif request.response_format.format_type == chat_pb2.FormatType.FORMAT_TYPE_JSON_SCHEMA:
-                response.choices.add(
+                response.outputs.add(
                     finish_reason=sample_pb2.FinishReason.REASON_STOP,
                     index=i,
                     message=chat_pb2.CompletionMessage(
@@ -140,7 +140,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                     ),
                 )
             else:
-                response.choices.add(
+                response.outputs.add(
                     finish_reason=sample_pb2.FinishReason.REASON_STOP,
                     index=i,
                     message=chat_pb2.CompletionMessage(
@@ -204,8 +204,8 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                             model="dummy-model",
                             created=created_time,
                             system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
+                            outputs=[
+                                chat_pb2.CompletionOutputChunk(
                                     delta=chat_pb2.Delta(content=chunk),
                                     index=j,
                                     finish_reason=None,
@@ -219,8 +219,8 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                             model="dummy-model",
                             created=created_time,
                             system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
+                            outputs=[
+                                chat_pb2.CompletionOutputChunk(
                                     delta=chat_pb2.Delta(content=chunk),
                                     index=j,
                                     finish_reason=None,
@@ -234,8 +234,8 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                             model="dummy-model",
                             created=created_time,
                             system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
+                            outputs=[
+                                chat_pb2.CompletionOutputChunk(
                                     delta=chat_pb2.Delta(
                                         role=chat_pb2.ROLE_ASSISTANT,
                                         tool_calls=[
@@ -262,8 +262,8 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                         model="dummy-model",
                         created=created_time,
                         system_fingerprint="dummy-fingerprint",
-                        choices=[
-                            chat_pb2.ChoiceChunk(
+                        outputs=[
+                            chat_pb2.CompletionOutputChunk(
                                 delta=chat_pb2.Delta(content=chunk),
                                 index=j,
                                 finish_reason=None,
@@ -276,8 +276,8 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                             model="dummy-model",
                             created=created_time,
                             system_fingerprint="dummy-fingerprint",
-                            choices=[
-                                chat_pb2.ChoiceChunk(
+                            outputs=[
+                                chat_pb2.CompletionOutputChunk(
                                     index=j,
                                     finish_reason=sample_pb2.FinishReason.REASON_STOP,
                                 )
@@ -292,8 +292,8 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                         model="dummy-model",
                         created=created_time,
                         system_fingerprint="dummy-fingerprint",
-                        choices=[
-                            chat_pb2.ChoiceChunk(
+                        outputs=[
+                            chat_pb2.CompletionOutputChunk(
                                 delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
                                 index=j,
                                 finish_reason=None if i < len(chunks) - 1 else sample_pb2.FinishReason.REASON_MAX_LEN,
@@ -334,7 +334,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
         )
 
         for i in range(self._deferred_requests[request.request_id][0].n):
-            response.response.choices.add(
+            response.response.outputs.add(
                 finish_reason=sample_pb2.FinishReason.REASON_MAX_CONTEXT,
                 index=i,
                 message=chat_pb2.CompletionMessage(

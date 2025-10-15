@@ -1,6 +1,7 @@
 import datetime
 import json
 import time
+import warnings
 from typing import Iterator, Optional, Sequence, TypeVar
 
 from opentelemetry.trace import SpanKind
@@ -46,7 +47,7 @@ class Client(BaseClient["Chat"]):
             "Previously generated response content"
         """
         response = self._stub.GetStoredCompletion(chat_pb2.GetStoredCompletionRequest(response_id=response_id))
-        return [Response(response, i) for i in range(len(response.choices))]
+        return [Response(response, i) for i in range(len(response.outputs))]
 
     def delete_stored_completion(self, response_id: str) -> str:
         """Deletes a stored chat completion response from the xAI backend.
@@ -131,6 +132,12 @@ class Chat(BaseChat):
             Option 2: A scarf
             Option 3: A gift card
         """
+        warnings.warn(
+            "chat.sample_batch will be deprecated in a future version release. Use chat.sample() instead.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+
         with tracer.start_as_current_span(
             name=f"chat.sample_batch {self._proto.model}",
             kind=SpanKind.CLIENT,
@@ -169,7 +176,7 @@ class Chat(BaseChat):
             kind=SpanKind.CLIENT,
             attributes=self._make_span_request_attributes(),
         ) as span:
-            response = Response(chat_pb2.GetChatCompletionResponse(choices=[chat_pb2.Choice()]), 0)
+            response = Response(chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput()]), 0)
             stream = self._stub.GetCompletionChunk(self._make_request(1))
 
             for chunk in stream:
@@ -212,7 +219,13 @@ class Chat(BaseChat):
             Option 1: A book...
             Option 2: A scarf...
         """
-        proto = chat_pb2.GetChatCompletionResponse(choices=[chat_pb2.Choice(index=i) for i in range(n)])
+        warnings.warn(
+            "chat.stream_batch will be deprecated in a future version release. Use chat.stream() instead.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+
+        proto = chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput(index=i) for i in range(n)])
         responses = [Response(proto, i) for i in range(n)]
         first_chunk_received = False
 
@@ -384,5 +397,11 @@ class Chat(BaseChat):
             Option 2: A scarf
             Option 3: A gift card
         """
+        warnings.warn(
+            "chat.defer_batch will be deprecated in a future version release. Use chat.defer() instead.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
+
         response = self._defer(n, timeout, interval)
         return [Response(response, i) for i in range(n)]
