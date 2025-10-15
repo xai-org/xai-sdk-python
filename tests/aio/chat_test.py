@@ -1558,8 +1558,8 @@ def test_chat_append_response(client: AsyncClient):
     chat.append(user("test message"))
 
     chat_completion_response = chat_pb2.GetChatCompletionResponse(
-        choices=[
-            chat_pb2.Choice(
+        outputs=[
+            chat_pb2.CompletionOutput(
                 finish_reason=sample_pb2.FinishReason.REASON_STOP,
                 index=0,
                 message=chat_pb2.CompletionMessage(

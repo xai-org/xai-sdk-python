@@ -118,9 +118,9 @@ class GetCompletionsRequest(_message.Message):
     def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ...) -> None: ...
 
 class GetChatCompletionResponse(_message.Message):
-    __slots__ = ("id", "choices", "created", "model", "system_fingerprint", "usage", "citations", "settings")
+    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "settings")
     ID_FIELD_NUMBER: _ClassVar[int]
-    CHOICES_FIELD_NUMBER: _ClassVar[int]
+    OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     CREATED_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     SYSTEM_FINGERPRINT_FIELD_NUMBER: _ClassVar[int]
@@ -128,32 +128,32 @@ class GetChatCompletionResponse(_message.Message):
     CITATIONS_FIELD_NUMBER: _ClassVar[int]
     SETTINGS_FIELD_NUMBER: _ClassVar[int]
     id: str
-    choices: _containers.RepeatedCompositeFieldContainer[Choice]
+    outputs: _containers.RepeatedCompositeFieldContainer[CompletionOutput]
     created: _timestamp_pb2.Timestamp
     model: str
     system_fingerprint: str
     usage: _usage_pb2.SamplingUsage
     citations: _containers.RepeatedScalarFieldContainer[str]
     settings: RequestSettings
-    def __init__(self, id: _Optional[str] = ..., choices: _Optional[_Iterable[_Union[Choice, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., settings: _Optional[_Union[RequestSettings, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutput, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., settings: _Optional[_Union[RequestSettings, _Mapping]] = ...) -> None: ...
 
 class GetChatCompletionChunk(_message.Message):
-    __slots__ = ("id", "choices", "created", "model", "system_fingerprint", "usage", "citations")
+    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations")
     ID_FIELD_NUMBER: _ClassVar[int]
-    CHOICES_FIELD_NUMBER: _ClassVar[int]
+    OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     CREATED_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     SYSTEM_FINGERPRINT_FIELD_NUMBER: _ClassVar[int]
     USAGE_FIELD_NUMBER: _ClassVar[int]
     CITATIONS_FIELD_NUMBER: _ClassVar[int]
     id: str
-    choices: _containers.RepeatedCompositeFieldContainer[ChoiceChunk]
+    outputs: _containers.RepeatedCompositeFieldContainer[CompletionOutputChunk]
     created: _timestamp_pb2.Timestamp
     model: str
     system_fingerprint: str
     usage: _usage_pb2.SamplingUsage
     citations: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, id: _Optional[str] = ..., choices: _Optional[_Iterable[_Union[ChoiceChunk, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutputChunk, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ...) -> None: ...
 
 class GetDeferredCompletionResponse(_message.Message):
     __slots__ = ("status", "response")
@@ -163,7 +163,7 @@ class GetDeferredCompletionResponse(_message.Message):
     response: GetChatCompletionResponse
     def __init__(self, status: _Optional[_Union[_deferred_pb2.DeferredStatus, str]] = ..., response: _Optional[_Union[GetChatCompletionResponse, _Mapping]] = ...) -> None: ...
 
-class Choice(_message.Message):
+class CompletionOutput(_message.Message):
     __slots__ = ("finish_reason", "index", "message", "logprobs")
     FINISH_REASON_FIELD_NUMBER: _ClassVar[int]
     INDEX_FIELD_NUMBER: _ClassVar[int]
@@ -187,7 +187,7 @@ class CompletionMessage(_message.Message):
     tool_calls: _containers.RepeatedCompositeFieldContainer[ToolCall]
     def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ...) -> None: ...
 
-class ChoiceChunk(_message.Message):
+class CompletionOutputChunk(_message.Message):
     __slots__ = ("delta", "logprobs", "finish_reason", "index")
     DELTA_FIELD_NUMBER: _ClassVar[int]
     LOGPROBS_FIELD_NUMBER: _ClassVar[int]

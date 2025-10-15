@@ -19,6 +19,8 @@ async def agentic_search(client: AsyncClient, model: str, query: str) -> None:
 
     is_thinking = True
     async for response, chunk in chat.stream():
+        for tool_call in chunk.tool_calls:
+            print(f"\nCalling tool: {tool_call.function.name} with arguments: {tool_call.function.arguments}")
         if response.usage.reasoning_tokens and is_thinking:
             print(f"\rThinking... ({response.usage.reasoning_tokens} tokens)", end="", flush=True)
         if chunk.content and is_thinking:
@@ -30,8 +32,10 @@ async def agentic_search(client: AsyncClient, model: str, query: str) -> None:
     print("\n\nCitations:")
     print(response.citations)
     print("\n\nUsage:")
-    print(response.usage.server_side_tools_used)
+    print(response.usage)
     print(response.server_side_tool_usage)
+    print("\n\nTool Calls:")
+    print(response.tool_calls)
 
 
 async def main() -> None:
@@ -56,7 +60,7 @@ async def main() -> None:
     # Trigger x search/web search
     # await agentic_search(
     #     client,
-    #     model="grok-4-fast-non-reasoning",
+    #     model="grok-4-fast",
     #     query="What can you tell me about the X user 0xPromar and his recent activity?",
     # )
 

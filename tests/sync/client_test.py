@@ -44,7 +44,8 @@ def test_unified_client(test_server_port, test_management_server_port):
     assert client.collections.search(query="test-query-1", collection_ids=["test-collection-1"]) is not None
 
 
-def test_unified_client_always_requires_api_key(test_server_port, test_management_server_port):
+def test_unified_client_always_requires_api_key(test_server_port, test_management_server_port, monkeypatch):
+    monkeypatch.delenv("XAI_API_KEY", raising=False)
     with pytest.raises(ValueError) as e:
         Client(
             api_host=f"localhost:{test_server_port}",

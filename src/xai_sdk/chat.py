@@ -697,7 +697,7 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
     @property
     def choices(self) -> Sequence["ChoiceChunk"]:
         """Returns the choices belonging to this index."""
-        return [ChoiceChunk(c) for c in self.proto.choices if c.index == self._index]
+        return [ChoiceChunk(c) for c in self.proto.outputs if c.index == self._index]
 
     @property
     def output(self) -> str:
@@ -715,6 +715,14 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         return "".join(c.reasoning_content for c in self.choices)
 
     @property
+    def tool_calls(self) -> Sequence[chat_pb2.ToolCall]:
+        """Returns the tool calls of this chunk."""
+        tool_calls = []
+        for c in self.choices:
+            tool_calls.extend(c.tool_calls)
+        return tool_calls
+
+    @property
     def server_side_tool_usage(self) -> dict[str, int]:
         """Returns the server side tools used for this chunk."""
         tools_used = [usage_pb2.ServerSideTool.Name(tool) for tool in self.proto.usage.server_side_tools_used]
@@ -730,7 +738,7 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         return "".join(c.content + c.reasoning_content for c in self.choices)
 
 
-class ChoiceChunk(ProtoDecorator[chat_pb2.ChoiceChunk]):
+class ChoiceChunk(ProtoDecorator[chat_pb2.CompletionOutputChunk]):
     """Adds convenience functions to the choice chunk proto."""
 
     @property
@@ -769,8 +777,8 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
         self._proto.system_fingerprint = chunk.system_fingerprint
         self._proto.citations.extend(chunk.citations)
 
-        for c in chunk.choices:
-            choice = self._proto.choices[c.index]
+        for c in chunk.outputs:
+            choice = self._proto.outputs[c.index]
             choice.index = c.index
             choice.message.content += c.delta.content
             choice.message.reasoning_content += c.delta.reasoning_content
@@ -786,7 +794,7 @@ class Response(_ResponseProtoDecorator):
     # a single answer from the response proto.
     _index: int
     # Cache to the answer indexed by this response.
-    _choice: chat_pb2.Choice
+    _choice: chat_pb2.CompletionOutput
 
     def __init__(self, response: chat_pb2.GetChatCompletionResponse, index: int) -> None:
         """Initializes a new instance of the `Response` class.
@@ -799,7 +807,7 @@ class Response(_ResponseProtoDecorator):
         self._index = index
 
         # Find and cache the answer identified by the index.
-        choices = [c for c in response.choices if c.index == index]
+        choices = [c for c in response.outputs if c.index == index]
 
         if not choices:
             raise ValueError(f"Invalid response proto or index. {response:} {index:}")
