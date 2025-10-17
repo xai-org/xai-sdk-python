@@ -104,8 +104,9 @@ class Chat(BaseChat):
             kind=SpanKind.CLIENT,
             attributes=self._make_span_request_attributes(),
         ) as span:
+            index = None if self._uses_server_side_tools() else 0
             response_pb = self._stub.GetCompletion(self._make_request(1))
-            response = Response(response_pb, 0)
+            response = Response(response_pb, index)
             span.set_attributes(self._make_span_response_attributes([response]))
             return response
 
@@ -176,7 +177,8 @@ class Chat(BaseChat):
             kind=SpanKind.CLIENT,
             attributes=self._make_span_request_attributes(),
         ) as span:
-            response = Response(chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput()]), 0)
+            index = None if self._uses_server_side_tools() else 0
+            response = Response(chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput()]), index)
             stream = self._stub.GetCompletionChunk(self._make_request(1))
 
             for chunk in stream:
@@ -187,7 +189,7 @@ class Chat(BaseChat):
                     first_chunk_received = True
 
                 response.process_chunk(chunk)
-                chunk_obj = Chunk(chunk, 0)
+                chunk_obj = Chunk(chunk, index)
                 yield response, chunk_obj
 
             span.set_attributes(self._make_span_response_attributes([response]))
