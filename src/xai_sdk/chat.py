@@ -288,7 +288,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         elif isinstance(message, Response):
             self._proto.messages.append(
                 chat_pb2.Message(
-                    role=message._choice.message.role,
+                    role=message._get_output().message.role,
                     content=[text(message.content)],
                     tool_calls=message.tool_calls,
                 )
@@ -471,6 +471,10 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
                 )
 
         return completion_attributes
+
+    def _uses_server_side_tools(self) -> bool:
+        """Returns True if the server side tool is used in the request."""
+        return any(tool.WhichOneof("tool") != "function" for tool in self._proto.tools)
 
     @property
     def messages(self) -> Sequence[chat_pb2.Message]:
@@ -682,14 +686,14 @@ def _format_type_to_proto(format_type: ResponseFormat) -> chat_pb2.FormatType:
 class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
     """Adds convenience functions to the chunk proto."""
 
-    _index: int
+    _index: int | None
 
-    def __init__(self, proto: chat_pb2.GetChatCompletionChunk, index: int):
+    def __init__(self, proto: chat_pb2.GetChatCompletionChunk, index: int | None):
         """Creates a new decorator instance.
 
         Args:
             proto: Chunk proto to wrap.
-            index: Index of the response to track.
+            index: Index of the response to track. If set to None, the chunk will expose all assistant outputs.
         """
         super().__init__(proto)
         self._index = index
@@ -697,7 +701,11 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
     @property
     def choices(self) -> Sequence["ChoiceChunk"]:
         """Returns the choices belonging to this index."""
-        return [ChoiceChunk(c) for c in self.proto.outputs if c.index == self._index]
+        return [
+            ChoiceChunk(c)
+            for c in self.proto.outputs
+            if c.delta.role == chat_pb2.MessageRole.ROLE_ASSISTANT and (c.index == self._index or self._index is None)
+        ]
 
     @property
     def output(self) -> str:
@@ -777,6 +785,14 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
         self._proto.system_fingerprint = chunk.system_fingerprint
         self._proto.citations.extend(chunk.citations)
 
+        # Make sure all chunk outputs has corresponding response outputs.
+        if chunk.outputs:
+            max_index = max(c.index for c in chunk.outputs)
+            if max_index >= len(self._proto.outputs):
+                self._proto.outputs.extend(
+                    [chat_pb2.CompletionOutput() for _ in range(max_index + 1 - len(self._proto.outputs))]
+                )
+
         for c in chunk.outputs:
             choice = self._proto.outputs[c.index]
             choice.index = c.index
@@ -792,29 +808,30 @@ class Response(_ResponseProtoDecorator):
 
     # A single request can produce multiple responses. This index is used to retrieve the content of
     # a single answer from the response proto.
-    _index: int
-    # Cache to the answer indexed by this response.
-    _choice: chat_pb2.CompletionOutput
+    _index: int | None
 
-    def __init__(self, response: chat_pb2.GetChatCompletionResponse, index: int) -> None:
+    def __init__(self, response: chat_pb2.GetChatCompletionResponse, index: int | None) -> None:
         """Initializes a new instance of the `Response` class.
 
         Args:
             response: The response proto, which can hold multiple answers.
             index: The index of the answer this class exposes via its convenience methods.
+                If set to None, the response will expose all answers, the content and reasoning content
+                will be only from the assistant response.
         """
         super().__init__(response)
         self._index = index
 
-        # Find and cache the answer identified by the index.
-        choices = [c for c in response.outputs if c.index == index]
-
-        if not choices:
-            raise ValueError(f"Invalid response proto or index. {response:} {index:}")
-        elif len(choices) > 1:
-            raise ValueError(f"More than one response for index {index:}. {response:}")
-        else:
-            self._choice = choices[0]
+    def _get_output(self) -> chat_pb2.CompletionOutput:
+        outputs = [
+            output
+            for output in self.proto.outputs
+            if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
+            and (output.index == self._index or self._index is None)
+        ]
+        if not outputs:
+            return chat_pb2.CompletionOutput()
+        return outputs[-1]
 
     @property
     def id(self) -> str:
@@ -824,12 +841,12 @@ class Response(_ResponseProtoDecorator):
     @property
     def content(self) -> str:
         """Returns the answer content of this response."""
-        return self._choice.message.content
+        return self._get_output().message.content
 
     @property
     def role(self) -> str:
         """Returns the role of this response."""
-        return chat_pb2.MessageRole.Name(self._choice.message.role)
+        return chat_pb2.MessageRole.Name(self._get_output().message.role)
 
     @property
     def usage(self) -> usage_pb2.SamplingUsage:
@@ -842,17 +859,17 @@ class Response(_ResponseProtoDecorator):
 
         This is only available for models that support reasoning.
         """
-        return self._choice.message.reasoning_content
+        return self._get_output().message.reasoning_content
 
     @property
     def finish_reason(self) -> str:
         """Returns the finish reason of this response."""
-        return sample_pb2.FinishReason.Name(self._choice.finish_reason)
+        return sample_pb2.FinishReason.Name(self._get_output().finish_reason)
 
     @property
     def logprobs(self) -> chat_pb2.LogProbs:
         """Returns the logprobs of this response."""
-        return self._choice.logprobs
+        return self._get_output().logprobs
 
     @property
     def system_fingerprint(self) -> str:
@@ -861,8 +878,13 @@ class Response(_ResponseProtoDecorator):
 
     @property
     def tool_calls(self) -> Sequence[chat_pb2.ToolCall]:
-        """Returns the tool calls of this response."""
-        return self._choice.message.tool_calls
+        """Returns the all tool calls of this response."""
+        return [
+            tc
+            for c in self.proto.outputs
+            if c.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
+            for tc in c.message.tool_calls
+        ]
 
     @property
     def citations(self) -> Sequence[str]:

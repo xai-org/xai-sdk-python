@@ -316,6 +316,63 @@ def test_function_calling_streaming_batch(client: Client):
         assert response.tool_calls[0].function.arguments == '{"city":"London","units":"C"}'
 
 
+def test_agentic_tool_calling_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[web_search()],
+    )
+    chat.append(user("What is the weather in London?"))
+    stream = chat.stream()
+
+    expected_chunks = [
+        "I",
+        " am",
+        " searching",
+        ".",
+        "",  # Final chunk is a tool call which has no content set
+    ]
+
+    last_response = None
+    for i, (response, chunk) in enumerate(stream):
+        last_response = response
+        if i == 0:
+            assert chunk.tool_calls[0].function.name == "web_search"
+            assert chunk.tool_calls[0].function.arguments == '{"query":"What is the weather in London?"}'
+        elif i == 1:
+            assert chunk.proto.outputs[0].delta.role == chat_pb2.ROLE_TOOL
+            assert chunk.proto.outputs[0].delta.content == "I am tool response"
+            assert chunk.content == ""
+        else:
+            assert chunk.content == expected_chunks[i - 2]
+
+    assert last_response is not None
+    assert last_response.content == "I am searching."
+    assert len(last_response.tool_calls) == 1
+    assert last_response.finish_reason == "REASON_STOP"
+    assert last_response.role == "ROLE_ASSISTANT"
+    assert last_response.tool_calls[0].function.name == "web_search"
+    assert last_response.tool_calls[0].function.arguments == '{"query":"What is the weather in London?"}'
+
+
+def test_agentic_tool_calling_non_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[web_search()],
+    )
+    chat.append(user("What is the weather in London?"))
+    response = chat.sample()
+
+    assert len(response.proto.outputs) == 3
+    assert response.proto.outputs[1].message.role == chat_pb2.ROLE_TOOL
+    assert response.proto.outputs[1].message.content == "I am tool response"
+    assert response.content == "I am searching."
+    assert len(response.tool_calls) == 1
+    assert response.finish_reason == "REASON_STOP"
+    assert response.role == "ROLE_ASSISTANT"
+    assert response.tool_calls[0].function.name == "web_search"
+    assert response.tool_calls[0].function.arguments == '{"query":"What is the weather in London?"}'
+
+
 def test_structured_output(client: Client):
     class Weather(BaseModel):
         city: str

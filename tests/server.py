@@ -65,6 +65,10 @@ def _check_management_auth(context: grpc.ServicerContext):
         raise grpc.RpcError()
 
 
+def _use_server_side_tools(request: chat_pb2.GetCompletionsRequest) -> bool:
+    return any(tool.WhichOneof("tool") != "function" for tool in request.tools)
+
+
 class AuthServicer(auth_pb2_grpc.AuthServicer):
     """A dummy implementation of the Auth service for testing."""
 
@@ -113,7 +117,38 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
         )
 
         for i in range(request.n):
-            if len(request.tools) > 0:
+            if len(request.tools) > 0 and _use_server_side_tools(request):
+                response.outputs.add(
+                    index=0,
+                    message=chat_pb2.CompletionMessage(
+                        role=chat_pb2.ROLE_ASSISTANT,
+                        tool_calls=[
+                            chat_pb2.ToolCall(
+                                id="test-tool-call",
+                                function=chat_pb2.FunctionCall(
+                                    name="web_search",
+                                    arguments='{"query":"What is the weather in London?"}',
+                                ),
+                            )
+                        ],
+                    ),
+                )
+                response.outputs.add(
+                    index=1,
+                    message=chat_pb2.CompletionMessage(
+                        role=chat_pb2.ROLE_TOOL,
+                        content="I am tool response",
+                    ),
+                )
+                response.outputs.add(
+                    index=2,
+                    finish_reason=sample_pb2.FinishReason.REASON_STOP,
+                    message=chat_pb2.CompletionMessage(
+                        role=chat_pb2.ROLE_ASSISTANT,
+                        content="I am searching.",
+                    ),
+                )
+            elif len(request.tools) > 0:
                 response.outputs.add(
                     finish_reason=sample_pb2.FinishReason.REASON_TOOL_CALLS,
                     index=i,
@@ -169,7 +204,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
 
         return response
 
-    def GetCompletionChunk(self, request: chat_pb2.GetCompletionsRequest, context: grpc.ServicerContext):
+    def GetCompletionChunk(self, request: chat_pb2.GetCompletionsRequest, context: grpc.ServicerContext):  # noqa: C901
         """Streams dummy chunks of a response."""
         _check_auth(context)
 
@@ -193,11 +228,74 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
             ".",
         ]
 
+        agentic_tool_calling_chunks = [
+            chat_pb2.CompletionOutputChunk(
+                delta=chat_pb2.Delta(
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            id="test-tool-call",
+                            function=chat_pb2.FunctionCall(
+                                name="web_search",
+                                arguments='{"query":"What is the weather in London?"}',
+                            ),
+                        )
+                    ],
+                    role=chat_pb2.ROLE_ASSISTANT,
+                ),
+                index=0,
+            ),
+            chat_pb2.CompletionOutputChunk(
+                delta=chat_pb2.Delta(role=chat_pb2.ROLE_TOOL, content="I am tool response"),
+                index=1,
+            ),
+            "I",
+            " am",
+            " searching",
+            ".",
+        ]
+
         chunks = normal_chunks if len(request.tools) == 0 else function_call_chunks
+        if len(request.tools) > 0 and _use_server_side_tools(request):
+            # Agentic tool calling.
+            chunks = agentic_tool_calling_chunks
+        elif len(request.tools) == 0:
+            chunks = normal_chunks
+        else:
+            chunks = function_call_chunks
 
         for i, chunk in enumerate(chunks):
             for j in range(request.n):
-                if len(request.tools) > 0:
+                if len(request.tools) > 0 and _use_server_side_tools(request):
+                    if i < len(chunks) - 1:
+                        if isinstance(chunk, str):
+                            output_chunk = chat_pb2.CompletionOutputChunk(
+                                delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
+                                index=2,
+                            )
+                        else:
+                            output_chunk = chunk
+                        yield chat_pb2.GetChatCompletionChunk(
+                            id=response_id,
+                            model="dummy-model",
+                            created=created_time,
+                            system_fingerprint="dummy-fingerprint",
+                            outputs=[output_chunk],
+                        )
+                    else:
+                        yield chat_pb2.GetChatCompletionChunk(
+                            id=response_id,
+                            model="dummy-model",
+                            created=created_time,
+                            system_fingerprint="dummy-fingerprint",
+                            outputs=[
+                                chat_pb2.CompletionOutputChunk(
+                                    delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
+                                    index=2,
+                                    finish_reason=sample_pb2.FinishReason.REASON_STOP,
+                                )
+                            ],
+                        )
+                elif len(request.tools) > 0:
                     if i < len(chunks) - 1:
                         yield chat_pb2.GetChatCompletionChunk(
                             id=response_id,
@@ -206,7 +304,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                             system_fingerprint="dummy-fingerprint",
                             outputs=[
                                 chat_pb2.CompletionOutputChunk(
-                                    delta=chat_pb2.Delta(content=chunk),
+                                    delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
                                     index=j,
                                     finish_reason=None,
                                 )
@@ -221,7 +319,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                             system_fingerprint="dummy-fingerprint",
                             outputs=[
                                 chat_pb2.CompletionOutputChunk(
-                                    delta=chat_pb2.Delta(content=chunk),
+                                    delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
                                     index=j,
                                     finish_reason=None,
                                 )
@@ -264,7 +362,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                         system_fingerprint="dummy-fingerprint",
                         outputs=[
                             chat_pb2.CompletionOutputChunk(
-                                delta=chat_pb2.Delta(content=chunk),
+                                delta=chat_pb2.Delta(content=chunk, role=chat_pb2.ROLE_ASSISTANT),
                                 index=j,
                                 finish_reason=None,
                             )
@@ -278,6 +376,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                             system_fingerprint="dummy-fingerprint",
                             outputs=[
                                 chat_pb2.CompletionOutputChunk(
+                                    delta=chat_pb2.Delta(role=chat_pb2.ROLE_ASSISTANT),
                                     index=j,
                                     finish_reason=sample_pb2.FinishReason.REASON_STOP,
                                 )
