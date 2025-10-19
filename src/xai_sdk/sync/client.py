@@ -23,7 +23,7 @@ class Client(BaseClient):
         management_api_key: Optional[str],
         api_host: str,
         management_api_host: str,
-        metadata: Optional[tuple[tuple[str, str]]],
+        metadata: Optional[tuple[tuple[str, str], ...]],
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
     ) -> None:
@@ -54,7 +54,7 @@ class Client(BaseClient):
         self,
         api_key: str,
         api_host: str,
-        metadata: Optional[tuple[tuple[str, str]]],
+        metadata: Optional[tuple[tuple[str, str], ...]],
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
     ) -> grpc.Channel:
