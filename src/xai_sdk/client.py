@@ -6,6 +6,8 @@ from typing import Any, Optional, Sequence
 
 import grpc
 
+from .__about__ import __version__
+
 # Retries if the service returns an UNAVAILABLE error.
 _DEFAULT_SERVICE_CONFIG_JSON = json.dumps(
     {
@@ -57,7 +59,7 @@ class BaseClient(abc.ABC):
         *,
         api_host: str = "api.x.ai",
         management_api_host: str = "management-api.x.ai",
-        metadata: Optional[tuple[tuple[str, str]]] = None,
+        metadata: Optional[tuple[tuple[str, str], ...]] = None,
         channel_options: Optional[list[tuple[str, Any]]] = None,
         timeout: Optional[float] = None,
     ) -> None:
@@ -86,6 +88,9 @@ class BaseClient(abc.ABC):
         default_options = [option for option in _DEFAULT_CHANNEL_OPTIONS if option[0] not in user_defined_options]
         timeout = timeout or _DEFAULT_RPC_TIMEOUT_SECONDS
 
+        # Add the xAI SDK version to the metadata
+        metadata = (metadata or ()) + (("xai-sdk-version", __version__),)
+
         self._init(
             api_key,
             management_api_key,
@@ -103,7 +108,7 @@ class BaseClient(abc.ABC):
         management_api_key: Optional[str],
         api_host: str,
         management_api_host: str,
-        metadata: Optional[tuple[tuple[str, str]]],
+        metadata: Optional[tuple[tuple[str, str], ...]],
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
     ) -> None:
@@ -111,7 +116,7 @@ class BaseClient(abc.ABC):
 
 
 def create_channel_credentials(
-    api_key: str, api_host: str, metadata: Optional[tuple[tuple[str, str]]]
+    api_key: str, api_host: str, metadata: Optional[tuple[tuple[str, str], ...]]
 ) -> grpc.ChannelCredentials:
     """Creates the credentials for the gRPC channel.
 
@@ -138,7 +143,7 @@ def create_channel_credentials(
 class _APIAuthPlugin(grpc.AuthMetadataPlugin):
     """A specification for API-key based authentication."""
 
-    def __init__(self, api_key: str, metadata: Optional[tuple[tuple[str, str]]]) -> None:
+    def __init__(self, api_key: str, metadata: Optional[tuple[tuple[str, str], ...]]) -> None:
         """Initializes a new instance of the `_APIAuthPlugin` class.
 
         Args:
