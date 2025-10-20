@@ -11,6 +11,7 @@ from typing_extensions import Self
 from .meta import ProtoDecorator
 from .proto import chat_pb2, chat_pb2_grpc, image_pb2, sample_pb2, usage_pb2
 from .search import SearchParameters
+from .telemetry import should_disable_sensitive_attributes
 
 Content = Union[str, chat_pb2.Content]
 
@@ -315,23 +316,28 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         request.n = n
         return request
 
-    def _make_span_request_attributes(self) -> dict[str, Any]:  # noqa: C901
+    def _make_span_request_attributes(self) -> dict[str, Any]:  # noqa: C901, PLR0912
         """Creates a dictionary with all relevant request attributes to be set on the span as it is created."""
-        # Initialize optional fields to their default values (as set server-side).
-        # Override with user-set values only if they are provided by the user.
         attributes: dict[str, Any] = {
             "gen_ai.operation.name": "chat",
             "gen_ai.system": "xai",
             "gen_ai.output.type": "text",
             "gen_ai.request.model": self._proto.model,
-            "gen_ai.request.logprobs": self._proto.logprobs,
-            "gen_ai.request.frequency_penalty": 0.0,
-            "gen_ai.request.presence_penalty": 0.0,
-            "gen_ai.request.temperature": 1.0,
-            "gen_ai.request.parallel_tool_calls": True,
-            "gen_ai.request.store_messages": False,
             "server.port": 443,
         }
+
+        if should_disable_sensitive_attributes():
+            return attributes
+
+        # Initialize optional fields to their default values (as set server-side).
+        # Override with user-set values only if they are provided by the user.
+        attributes["gen_ai.request.frequency_penalty"] = 0.0
+        attributes["gen_ai.request.presence_penalty"] = 0.0
+        attributes["gen_ai.request.temperature"] = 1.0
+        attributes["gen_ai.request.parallel_tool_calls"] = True
+        attributes["gen_ai.request.store_messages"] = False
+
+        attributes["gen_ai.request.logprobs"] = self._proto.logprobs
 
         # Float fields that need rounding
         float_fields = [
@@ -390,6 +396,10 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         """Creates a dictionary with prompt message attributes for span telemetry."""
         prompt_attributes: dict[str, Any] = {}
 
+        # Skip collecting sensitive attributes if disabled
+        if should_disable_sensitive_attributes():
+            return prompt_attributes
+
         # Only text content is included in span attributes.
         for index, message in enumerate(self._proto.messages):
             if message.role == chat_pb2.MessageRole.ROLE_USER:
@@ -425,6 +435,9 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         """Creates a dictionary with response metadata and completion attributes for span telemetry."""
         attributes: dict[str, Any] = {}
 
+        if should_disable_sensitive_attributes():
+            return attributes
+
         # All of these attributes are the same for all responses, so we can just use the first response to access them.
         response = responses[0]
         attributes["gen_ai.response.id"] = response.id
@@ -449,6 +462,10 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
     def _get_span_completion_attributes(self, responses: Sequence["Response"]) -> dict[str, Any]:
         """Creates a dictionary with completion content attributes for span telemetry."""
         completion_attributes: dict[str, Any] = {}
+
+        # Skip collecting sensitive attributes if disabled
+        if should_disable_sensitive_attributes():
+            return completion_attributes
 
         for index, response in enumerate(responses):
             completion_attributes[f"gen_ai.completion.{index}.role"] = response.role.removeprefix("ROLE_").lower()

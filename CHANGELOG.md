@@ -2,13 +2,13 @@
 
 ## [Unreleased]
 ### Added
-- New features or functionalities added to the project.
+- Add ability to exclude sensitive attributes from telemetry spans/traces via the `XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES` environment variable.
 
 ### Changed
 - Updates or modifications to existing features.
 
 ### Fixed
-- Bug fixes or corrections to existing issues.
+- Double await in `UnaryStreamAioInterceptor`
 
 ### Removed
 - Features or functionalities that have been removed.

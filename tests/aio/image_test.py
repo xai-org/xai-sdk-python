@@ -95,6 +95,41 @@ async def test_sample_creates_span_with_correct_attributes(
 @mock.patch("xai_sdk.aio.image.tracer")
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.parametrize("image_format", ["url", "base64"])
+async def test_sample_creates_span_without_sensitive_attributes_when_disabled(
+    mock_tracer: mock.MagicMock, client: AsyncClient, image_format: ImageFormat
+):
+    """Test that sensitive attributes are not included when XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES is set."""
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    user = "test-user-123"
+    with mock.patch.dict("os.environ", {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": "1"}):
+        await client.image.sample(
+            prompt="A beautiful sunset", model="grok-2-image", image_format=image_format, user=user
+        )
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "generate_image",
+        "gen_ai.system": "xai",
+        "gen_ai.request.model": "grok-2-image",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="image.sample grok-2-image",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.model": "grok-2-image",
+    }
+
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.aio.image.tracer")
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("image_format", ["url", "base64"])
 async def test_sample_batch_creates_span_with_correct_attributes(
     mock_tracer: mock.MagicMock, client: AsyncClient, image_format: ImageFormat
 ):

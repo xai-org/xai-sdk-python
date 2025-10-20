@@ -7,7 +7,7 @@ from opentelemetry.sdk.resources import SERVICE_NAME, SERVICE_VERSION
 from opentelemetry.sdk.trace import TracerProvider
 
 from xai_sdk.__about__ import __version__ as xai_sdk_version
-from xai_sdk.telemetry import Telemetry, get_tracer
+from xai_sdk.telemetry import Telemetry, get_tracer, should_disable_sensitive_attributes
 
 
 def test_telemetry_creates_provider():
@@ -52,3 +52,20 @@ def test_get_tracer_returns_noop_tracer_when_disabled(disable_value):
     with mock.patch.dict(os.environ, {"XAI_SDK_DISABLE_TRACING": disable_value}):
         tracer = get_tracer("test-tracer")
         assert isinstance(tracer, otel_trace.NoOpTracer)
+
+
+def test_should_disable_sensitive_attributes_returns_false_by_default():
+    # By default, without env var, it should return False
+    assert not should_disable_sensitive_attributes()
+
+
+@pytest.mark.parametrize("disable_value", ["1", "true", "True", "TRUE"])
+def test_should_disable_sensitive_attributes_returns_true_when_disabled(disable_value):
+    with mock.patch.dict(os.environ, {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": disable_value}):
+        assert should_disable_sensitive_attributes()
+
+
+@pytest.mark.parametrize("enable_value", ["0", "false", "False", "FALSE", "anything_else"])
+def test_should_disable_sensitive_attributes_returns_false_when_enabled(enable_value):
+    with mock.patch.dict(os.environ, {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": enable_value}):
+        assert not should_disable_sensitive_attributes()
