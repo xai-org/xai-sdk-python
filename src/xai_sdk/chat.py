@@ -490,7 +490,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         return completion_attributes
 
     def _uses_server_side_tools(self) -> bool:
-        """Returns True if the server side tool is used in the request."""
+        """Returns True if any server-side tools are specified in the completions request."""
         return any(tool.WhichOneof("tool") != "function" for tool in self._proto.tools)
 
     @property
@@ -716,12 +716,13 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         self._index = index
 
     @property
-    def choices(self) -> Sequence["ChoiceChunk"]:
-        """Returns the choices belonging to this index."""
+    def choices(self) -> Sequence["CompletionOutputChunk"]:
+        """Returns the completion output chunks belonging to this index."""
         return [
-            ChoiceChunk(c)
-            for c in self.proto.outputs
-            if c.delta.role == chat_pb2.MessageRole.ROLE_ASSISTANT and (c.index == self._index or self._index is None)
+            CompletionOutputChunk(output)
+            for output in self.proto.outputs
+            if output.delta.role == chat_pb2.MessageRole.ROLE_ASSISTANT
+            and (output.index == self._index or self._index is None)
         ]
 
     @property
@@ -763,32 +764,32 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         return "".join(c.content + c.reasoning_content for c in self.choices)
 
 
-class ChoiceChunk(ProtoDecorator[chat_pb2.CompletionOutputChunk]):
-    """Adds convenience functions to the choice chunk proto."""
+class CompletionOutputChunk(ProtoDecorator[chat_pb2.CompletionOutputChunk]):
+    """Adds convenience functions to the completion output chunk proto."""
 
     @property
     def content(self) -> str:
-        """Returns the main content/answer of this choice chunk."""
+        """Returns the main content/answer of this completion output chunk."""
         return self.proto.delta.content
 
     @property
     def reasoning_content(self) -> str:
-        """Returns the reasoning content of this choice chunk."""
+        """Returns the reasoning content of this completion output chunk."""
         return self.proto.delta.reasoning_content
 
     @property
     def role(self) -> chat_pb2.MessageRole:
-        """Returns the role of this choice chunk."""
+        """Returns the role of this completion output chunk."""
         return self.proto.delta.role
 
     @property
     def tool_calls(self) -> Sequence[chat_pb2.ToolCall]:
-        """Returns the tool calls of this choice chunk."""
+        """Returns the tool calls of this completion output chunk."""
         return self.proto.delta.tool_calls
 
     @property
     def finish_reason(self) -> sample_pb2.FinishReason:
-        """Returns the finish reason of this choice chunk."""
+        """Returns the finish reason of this completion output chunk."""
         return self.proto.finish_reason
 
 
@@ -898,9 +899,9 @@ class Response(_ResponseProtoDecorator):
         """Returns the all tool calls of this response."""
         return [
             tc
-            for c in self.proto.outputs
-            if c.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
-            for tc in c.message.tool_calls
+            for output in self.proto.outputs
+            if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
+            for tc in output.message.tool_calls
         ]
 
     @property

@@ -1656,7 +1656,6 @@ def test_chat_append_response(client: AsyncClient):
         outputs=[
             chat_pb2.CompletionOutput(
                 finish_reason=sample_pb2.FinishReason.REASON_STOP,
-                index=0,
                 message=chat_pb2.CompletionMessage(
                     role=chat_pb2.ROLE_ASSISTANT, content="Hello, this is a test response!"
                 ),
