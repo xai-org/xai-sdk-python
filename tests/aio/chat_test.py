@@ -647,6 +647,40 @@ async def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.Mag
 
 @mock.patch("xai_sdk.aio.chat.tracer")
 @pytest.mark.asyncio(loop_scope="session")
+async def test_sample_creates_span_without_sensitive_attributes_when_disabled(
+    mock_tracer: mock.MagicMock, client: AsyncClient
+):
+    """Test that sensitive attributes are not included when XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES is set."""
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    conversation_id = "test-conversation-id"
+    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat.append(user("Hello, how are you?"))
+
+    with mock.patch.dict("os.environ", {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": "1"}):
+        await chat.sample()
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "chat",
+        "gen_ai.system": "xai",
+        "gen_ai.output.type": "text",
+        "gen_ai.request.model": "grok-3",
+        "server.port": 443,
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="chat.sample grok-3",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {}
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.aio.chat.tracer")
+@pytest.mark.asyncio(loop_scope="session")
 async def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
     mock_span = mock.MagicMock()
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span

@@ -5,6 +5,7 @@ import grpc
 
 from .meta import ProtoDecorator
 from .proto import image_pb2, image_pb2_grpc
+from .telemetry import should_disable_sensitive_attributes
 
 ImageFormat = Literal["base64", "url"]
 
@@ -70,12 +71,18 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
 def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> dict[str, str | int]:
     """Creates the image sampling span request attributes."""
     attributes: dict[str, str | int] = {
-        "gen_ai.prompt": request.prompt,
         "gen_ai.operation.name": "generate_image",
-        "gen_ai.system": "xai",
         "gen_ai.request.model": request.model,
-        "gen_ai.request.image.format": image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower(),
+        "gen_ai.system": "xai",
     }
+
+    if should_disable_sensitive_attributes():
+        return attributes
+
+    attributes["gen_ai.request.image.format"] = (
+        image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower()
+    )
+    attributes["gen_ai.prompt"] = request.prompt
 
     if request.HasField("n"):
         attributes["gen_ai.request.image.count"] = request.n
@@ -91,9 +98,14 @@ def _make_span_response_attributes(
     """Creates the image sampling span response attributes."""
     attributes: dict[str, Any] = {
         "gen_ai.response.model": request.model,
-        "gen_ai.response.image.format": image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower(),
     }
 
+    if should_disable_sensitive_attributes():
+        return attributes
+
+    attributes["gen_ai.response.image.format"] = (
+        image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower()
+    )
     for index, response in enumerate(responses):
         attributes[f"gen_ai.response.{index}.image.up_sampled_prompt"] = response.prompt
         if request.format == image_pb2.ImageFormat.IMG_FORMAT_URL:

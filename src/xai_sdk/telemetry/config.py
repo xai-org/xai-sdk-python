@@ -29,6 +29,11 @@ class Telemetry:
     - OTEL_EXPORTER_OTLP_HEADERS: Authentication headers (e.g., "Authorization=Bearer token")
     - And many others as defined in the OpenTelemetry specification
 
+    Additionally, the following xAI SDK specific environment variables are supported:
+    - XAI_SDK_DISABLE_TRACING: Disables all tracing if set to "1" or "true"
+    - XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES: Disables collection of sensitive attributes
+      (user inputs, AI responses, prompts) in traces if set to "1" or "true"
+
     Examples:
         Basic setup with console output for development:
         ```python
@@ -183,3 +188,11 @@ def get_tracer(name: str) -> otel_trace.Tracer:
     if os.getenv("XAI_SDK_DISABLE_TRACING", "0").lower() in ["1", "true"]:
         return otel_trace.NoOpTracer()
     return otel_trace.get_tracer(name)
+
+
+def should_disable_sensitive_attributes() -> bool:
+    """Check if sensitive attributes should be disabled in telemetry.
+
+    Returns True if XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES is set to "1" or "true".
+    """
+    return os.getenv("XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES", "0").lower() in ["1", "true"]

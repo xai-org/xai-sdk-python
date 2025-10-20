@@ -293,6 +293,10 @@ telemetry.setup_otlp_exporter()
 
 If you're using the xAI SDK within an application that is already using OpenTelemetry to export other traces, you may want to selectively disable xAI SDK traces only, this can be done by setting the environment variable `XAI_SDK_DISABLE_TRACING` to `1` or `true`.
 
+### Disabling Sensitive Attributes
+
+For privacy reasons, you may want to disable the collection of sensitive attributes such as user inputs and AI responses in traces. This can be done by setting the environment variable `XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES` to `1` or `true`. When enabled, traces will still be collected but without the content of messages, prompts, or responses.
+
 ## Timeouts
 
 The xAI SDK allows you to set a timeout for API requests during client initialization. This timeout applies to all RPCs and methods used with that client instance. The default timeout is 15 minutes (900 seconds).
