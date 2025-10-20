@@ -209,8 +209,7 @@ class UnaryUnaryAioInterceptor(
     async def intercept_unary_unary(self, continuation, client_call_details, request):
         """Intercepts a unary-unary RPC call."""
         new_details = client_call_details._replace(timeout=self.timeout)  # type: ignore
-        response = await continuation(new_details, request)
-        return await response
+        return await continuation(new_details, request)
 
 
 class UnaryStreamAioInterceptor(
