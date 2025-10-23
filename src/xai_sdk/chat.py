@@ -58,6 +58,7 @@ class BaseClient(abc.ABC, Generic[T]):
         search_parameters: Optional[Union[SearchParameters, chat_pb2.SearchParameters]] = None,
         store_messages: Optional[bool] = None,
         previous_response_id: Optional[str] = None,
+        use_encrypted_content: Optional[bool] = None,
     ) -> T:
         """Creates a new chat conversation.
 
@@ -145,6 +146,12 @@ class BaseClient(abc.ABC, Generic[T]):
                 stored point. This prepending happens automatically on the server side and is opaque to the user.
                 Note: Adding `previous_response_id` to a chat instance will not update the local message list of the
                 chat instance (i.e., `chat.messages`).
+            use_encrypted_content: Whether to return encrypted reasoning content from the model response.
+                When enabled, encrypted reasoning content is included in responses, enabling optimal hydration
+                of reasoning traces in follow-up conversations. Calling `append(response)` automatically passes
+                this encrypted content back for subsequent requests. This is particularly useful for users with
+                zero data retention (ZDR) enabled who cannot use `store_messages` and `previous_response_id`
+                for conversation continuity. Defaults to False.
 
         Returns:
             A new chat request bound to a client.
@@ -195,6 +202,7 @@ class BaseClient(abc.ABC, Generic[T]):
             search_parameters=search_parameters_pb,
             store_messages=store_messages,
             previous_response_id=previous_response_id,
+            use_encrypted_content=use_encrypted_content,
         )
 
     @abc.abstractmethod
@@ -291,6 +299,8 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
                 chat_pb2.Message(
                     role=message._get_output().message.role,
                     content=[text(message.content)],
+                    reasoning_content=message.reasoning_content,
+                    encrypted_content=message.encrypted_content,
                     tool_calls=message.tool_calls,
                 )
             )
@@ -336,6 +346,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         attributes["gen_ai.request.temperature"] = 1.0
         attributes["gen_ai.request.parallel_tool_calls"] = True
         attributes["gen_ai.request.store_messages"] = False
+        attributes["gen_ai.request.use_encrypted_content"] = False
 
         attributes["gen_ai.request.logprobs"] = self._proto.logprobs
 
@@ -386,6 +397,8 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
             attributes["gen_ai.request.store_messages"] = self._proto.store_messages
         if self._proto.previous_response_id:
             attributes["gen_ai.request.previous_response_id"] = self._proto.previous_response_id
+        if self._proto.use_encrypted_content:
+            attributes["gen_ai.request.use_encrypted_content"] = self._proto.use_encrypted_content
 
         prompt_attributes = self._get_span_prompt_attributes()
         attributes.update(prompt_attributes)
@@ -816,6 +829,7 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
             choice.index = c.index
             choice.message.content += c.delta.content
             choice.message.reasoning_content += c.delta.reasoning_content
+            choice.message.encrypted_content += c.delta.encrypted_content
             choice.message.role = c.delta.role
             choice.message.tool_calls.extend(c.delta.tool_calls)
             choice.finish_reason = c.finish_reason
@@ -860,6 +874,11 @@ class Response(_ResponseProtoDecorator):
     def content(self) -> str:
         """Returns the answer content of this response."""
         return self._get_output().message.content
+
+    @property
+    def encrypted_content(self) -> str:
+        """Returns the encrypted reasoning content from the model response."""
+        return self._get_output().message.encrypted_content
 
     @property
     def role(self) -> str:
