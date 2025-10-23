@@ -2,7 +2,7 @@ import abc
 import datetime
 import json
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from typing import Any, Generic, Literal, Optional, Sequence, TypeVar, Union
 
 import grpc
@@ -807,6 +807,44 @@ class CompletionOutputChunk(ProtoDecorator[chat_pb2.CompletionOutputChunk]):
 
 
 class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]):
+    def __init__(self, proto: chat_pb2.GetChatCompletionResponse) -> None:
+        """Initialize with proto and content buffers for efficient accumulation."""
+        super().__init__(proto)
+        # Buffers for efficient string accumulation: dict[output_index, [chunk_ones_content, chunk_twos_content, ...]]
+        # for chunks with the same index
+        self._content_buffers: dict[int, list[str]] = defaultdict(list)
+        self._reasoning_content_buffers: dict[int, list[str]] = defaultdict(list)
+        self._encrypted_content_buffers: dict[int, list[str]] = defaultdict(list)
+        self._proto_in_sync = True
+
+    def _sync_buffers_to_proto(self) -> None:
+        """Materialize buffered content into proto messages."""
+        if self._proto_in_sync:
+            return
+
+        for index, buffer in self._content_buffers.items():
+            if buffer and index < len(self._proto.outputs):
+                self._proto.outputs[index].message.content = "".join(buffer)
+                self._content_buffers[index] = [self._proto.outputs[index].message.content]
+
+        for index, buffer in self._reasoning_content_buffers.items():
+            if buffer and index < len(self._proto.outputs):
+                self._proto.outputs[index].message.reasoning_content = "".join(buffer)
+                self._reasoning_content_buffers[index] = [self._proto.outputs[index].message.reasoning_content]
+
+        for index, buffer in self._encrypted_content_buffers.items():
+            if buffer and index < len(self._proto.outputs):
+                self._proto.outputs[index].message.encrypted_content = "".join(buffer)
+                self._encrypted_content_buffers[index] = [self._proto.outputs[index].message.encrypted_content]
+
+        self._proto_in_sync = True
+
+    @property
+    def proto(self) -> chat_pb2.GetChatCompletionResponse:
+        """Ensure buffers are synced before returning proto."""
+        self._sync_buffers_to_proto()
+        return self._proto
+
     def process_chunk(self, chunk: chat_pb2.GetChatCompletionChunk):
         # Consolidate the response.
         self._proto.usage.CopyFrom(chunk.usage)
@@ -827,12 +865,22 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
         for c in chunk.outputs:
             choice = self._proto.outputs[c.index]
             choice.index = c.index
-            choice.message.content += c.delta.content
-            choice.message.reasoning_content += c.delta.reasoning_content
-            choice.message.encrypted_content += c.delta.encrypted_content
             choice.message.role = c.delta.role
             choice.message.tool_calls.extend(c.delta.tool_calls)
             choice.finish_reason = c.finish_reason
+
+            # Accumulate content in buffers instead of concatenating strings
+            if c.delta.content:
+                self._content_buffers[c.index].append(c.delta.content)
+                self._proto_in_sync = False
+
+            if c.delta.reasoning_content:
+                self._reasoning_content_buffers[c.index].append(c.delta.reasoning_content)
+                self._proto_in_sync = False
+
+            if c.delta.encrypted_content:
+                self._encrypted_content_buffers[c.index].append(c.delta.encrypted_content)
+                self._proto_in_sync = False
 
 
 class Response(_ResponseProtoDecorator):
@@ -854,10 +902,14 @@ class Response(_ResponseProtoDecorator):
         super().__init__(response)
         self._index = index
 
-    def _get_output(self) -> chat_pb2.CompletionOutput:
+    def _get_output(self, *, sync: bool = False) -> chat_pb2.CompletionOutput:
+        # Sync buffers to proto only when content is needed
+        if sync:
+            self._sync_buffers_to_proto()
+
         outputs = [
             output
-            for output in self.proto.outputs
+            for output in self._proto.outputs
             if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
             and (output.index == self._index or self._index is None)
         ]
@@ -868,27 +920,27 @@ class Response(_ResponseProtoDecorator):
     @property
     def id(self) -> str:
         """Returns the id of this response."""
-        return self.proto.id
+        return self._proto.id
 
     @property
     def content(self) -> str:
         """Returns the answer content of this response."""
-        return self._get_output().message.content
+        return self._get_output(sync=True).message.content
 
     @property
     def encrypted_content(self) -> str:
         """Returns the encrypted reasoning content from the model response."""
-        return self._get_output().message.encrypted_content
+        return self._get_output(sync=True).message.encrypted_content
 
     @property
     def role(self) -> str:
         """Returns the role of this response."""
-        return chat_pb2.MessageRole.Name(self._get_output().message.role)
+        return chat_pb2.MessageRole.Name(self._get_output(sync=False).message.role)
 
     @property
     def usage(self) -> usage_pb2.SamplingUsage:
         """Returns the usage of this response."""
-        return self.proto.usage
+        return self._proto.usage
 
     @property
     def reasoning_content(self) -> str:
@@ -896,17 +948,17 @@ class Response(_ResponseProtoDecorator):
 
         This is only available for models that support reasoning.
         """
-        return self._get_output().message.reasoning_content
+        return self._get_output(sync=True).message.reasoning_content
 
     @property
     def finish_reason(self) -> str:
         """Returns the finish reason of this response."""
-        return sample_pb2.FinishReason.Name(self._get_output().finish_reason)
+        return sample_pb2.FinishReason.Name(self._get_output(sync=False).finish_reason)
 
     @property
     def logprobs(self) -> chat_pb2.LogProbs:
         """Returns the logprobs of this response."""
-        return self._get_output().logprobs
+        return self._get_output(sync=False).logprobs
 
     @property
     def system_fingerprint(self) -> str:
