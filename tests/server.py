@@ -174,6 +174,17 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                         content="""{"city":"London","units":"C", "temperature": 20}""", role=chat_pb2.ROLE_ASSISTANT
                     ),
                 )
+            elif request.use_encrypted_content:
+                response.outputs.add(
+                    finish_reason=sample_pb2.FinishReason.REASON_STOP,
+                    index=i,
+                    message=chat_pb2.CompletionMessage(
+                        content="Hello, this is a test response!",
+                        role=chat_pb2.ROLE_ASSISTANT,
+                        reasoning_content="test reasoning content",
+                        encrypted_content="test encrypted content",
+                    ),
+                )
             else:
                 response.outputs.add(
                     finish_reason=sample_pb2.FinishReason.REASON_STOP,

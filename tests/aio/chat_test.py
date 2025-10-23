@@ -592,6 +592,17 @@ async def test_delete_stored_completion_raises_not_found_error_if_response_not_f
     assert e.value.details() == "Response not found"  # type: ignore
 
 
+@pytest.mark.asyncio(loop_scope="session")
+async def test_use_encrypted_content(client: AsyncClient):
+    chat = client.chat.create(model="grok-3", use_encrypted_content=True)
+    chat.append(user("Hello, how are you?"))
+    response = await chat.sample()
+
+    assert response.content == "Hello, this is a test response!"
+    assert response.reasoning_content == "test reasoning content"
+    assert response.encrypted_content == "test encrypted content"
+
+
 @mock.patch("xai_sdk.aio.chat.tracer")
 @pytest.mark.asyncio(loop_scope="session")
 async def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
@@ -619,6 +630,7 @@ async def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -711,6 +723,7 @@ async def test_sample_creates_span_with_correct_optional_attributes(mock_tracer:
         parallel_tool_calls=False,
         store_messages=True,
         previous_response_id="test-previous-response-id",
+        use_encrypted_content=True,
     )
 
     await chat.sample()
@@ -742,6 +755,7 @@ async def test_sample_creates_span_with_correct_optional_attributes(mock_tracer:
         "gen_ai.prompt.2.role": "assistant",
         "gen_ai.prompt.2.content": "I'm doing well, thank you!",
         "gen_ai.request.store_messages": True,
+        "gen_ai.request.use_encrypted_content": True,
         "gen_ai.request.previous_response_id": "test-previous-response-id",
     }
 
@@ -779,6 +793,7 @@ async def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -845,6 +860,7 @@ async def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -909,6 +925,7 @@ async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -980,6 +997,7 @@ async def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.Magi
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "What's the weather in London?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1033,6 +1051,7 @@ async def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.Magi
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1090,6 +1109,7 @@ async def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: moc
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1158,6 +1178,7 @@ async def test_chat_with_function_calling_creates_span_with_correct_attributes(
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "What's the weather in London?",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1251,6 +1272,7 @@ async def test_chat_with_function_call_result_creates_span_with_correct_attribut
         "gen_ai.prompt.2.role": "tool",
         "gen_ai.prompt.2.content": "The weather in London is 20 degrees Fahrenheit.",
         "gen_ai.request.store_messages": False,
+        "gen_ai.request.use_encrypted_content": False,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1657,7 +1679,10 @@ def test_chat_append_response(client: AsyncClient):
             chat_pb2.CompletionOutput(
                 finish_reason=sample_pb2.FinishReason.REASON_STOP,
                 message=chat_pb2.CompletionMessage(
-                    role=chat_pb2.ROLE_ASSISTANT, content="Hello, this is a test response!"
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    content="Hello, this is a test response!",
+                    reasoning_content="test reasoning content",
+                    encrypted_content="test encrypted content",
                 ),
             )
         ]
@@ -1670,7 +1695,10 @@ def test_chat_append_response(client: AsyncClient):
     expected_messages = [
         chat_pb2.Message(role=chat_pb2.ROLE_USER, content=[chat_pb2.Content(text="test message")]),
         chat_pb2.Message(
-            role=chat_pb2.ROLE_ASSISTANT, content=[chat_pb2.Content(text="Hello, this is a test response!")]
+            role=chat_pb2.ROLE_ASSISTANT,
+            content=[chat_pb2.Content(text="Hello, this is a test response!")],
+            reasoning_content="test reasoning content",
+            encrypted_content="test encrypted content",
         ),
     ]
 
