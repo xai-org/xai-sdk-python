@@ -939,6 +939,11 @@ class Response(_ResponseProtoDecorator):
         """Returns the request settings, i.e. the model parameters set on the request used to generate this response."""
         return self.proto.settings
 
+    @property
+    def debug_output(self) -> chat_pb2.DebugOutput:
+        """Returns the debug output of this response. Only available to trusted testers."""
+        return self.proto.debug_output
+
 
 class PollTimer:
     """Utility for making sure the request timeout is not exceeded when polling.

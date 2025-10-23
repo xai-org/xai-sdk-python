@@ -119,7 +119,7 @@ class GetCompletionsRequest(_message.Message):
     def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ...) -> None: ...
 
 class GetChatCompletionResponse(_message.Message):
-    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "settings")
+    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "settings", "debug_output")
     ID_FIELD_NUMBER: _ClassVar[int]
     OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     CREATED_FIELD_NUMBER: _ClassVar[int]
@@ -128,6 +128,7 @@ class GetChatCompletionResponse(_message.Message):
     USAGE_FIELD_NUMBER: _ClassVar[int]
     CITATIONS_FIELD_NUMBER: _ClassVar[int]
     SETTINGS_FIELD_NUMBER: _ClassVar[int]
+    DEBUG_OUTPUT_FIELD_NUMBER: _ClassVar[int]
     id: str
     outputs: _containers.RepeatedCompositeFieldContainer[CompletionOutput]
     created: _timestamp_pb2.Timestamp
@@ -136,7 +137,8 @@ class GetChatCompletionResponse(_message.Message):
     usage: _usage_pb2.SamplingUsage
     citations: _containers.RepeatedScalarFieldContainer[str]
     settings: RequestSettings
-    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutput, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., settings: _Optional[_Union[RequestSettings, _Mapping]] = ...) -> None: ...
+    debug_output: DebugOutput
+    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutput, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., settings: _Optional[_Union[RequestSettings, _Mapping]] = ..., debug_output: _Optional[_Union[DebugOutput, _Mapping]] = ...) -> None: ...
 
 class GetChatCompletionChunk(_message.Message):
     __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations")
@@ -469,3 +471,31 @@ class DeleteStoredCompletionResponse(_message.Message):
     RESPONSE_ID_FIELD_NUMBER: _ClassVar[int]
     response_id: str
     def __init__(self, response_id: _Optional[str] = ...) -> None: ...
+
+class DebugOutput(_message.Message):
+    __slots__ = ("attempts", "request", "prompt", "engine_request", "responses", "chunks", "cache_read_count", "cache_read_input_bytes", "cache_write_count", "cache_write_input_bytes", "lb_address", "sampler_tag")
+    ATTEMPTS_FIELD_NUMBER: _ClassVar[int]
+    REQUEST_FIELD_NUMBER: _ClassVar[int]
+    PROMPT_FIELD_NUMBER: _ClassVar[int]
+    ENGINE_REQUEST_FIELD_NUMBER: _ClassVar[int]
+    RESPONSES_FIELD_NUMBER: _ClassVar[int]
+    CHUNKS_FIELD_NUMBER: _ClassVar[int]
+    CACHE_READ_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CACHE_READ_INPUT_BYTES_FIELD_NUMBER: _ClassVar[int]
+    CACHE_WRITE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    CACHE_WRITE_INPUT_BYTES_FIELD_NUMBER: _ClassVar[int]
+    LB_ADDRESS_FIELD_NUMBER: _ClassVar[int]
+    SAMPLER_TAG_FIELD_NUMBER: _ClassVar[int]
+    attempts: int
+    request: str
+    prompt: str
+    engine_request: str
+    responses: _containers.RepeatedScalarFieldContainer[str]
+    chunks: _containers.RepeatedScalarFieldContainer[str]
+    cache_read_count: int
+    cache_read_input_bytes: int
+    cache_write_count: int
+    cache_write_input_bytes: int
+    lb_address: str
+    sampler_tag: str
+    def __init__(self, attempts: _Optional[int] = ..., request: _Optional[str] = ..., prompt: _Optional[str] = ..., engine_request: _Optional[str] = ..., responses: _Optional[_Iterable[str]] = ..., chunks: _Optional[_Iterable[str]] = ..., cache_read_count: _Optional[int] = ..., cache_read_input_bytes: _Optional[int] = ..., cache_write_count: _Optional[int] = ..., cache_write_input_bytes: _Optional[int] = ..., lb_address: _Optional[str] = ..., sampler_tag: _Optional[str] = ...) -> None: ...
