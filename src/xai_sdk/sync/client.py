@@ -3,7 +3,11 @@ from typing import Any, Optional, Sequence
 
 import grpc
 
-from ..client import BaseClient, TimeoutInterceptor, create_channel_credentials
+from ..client import (
+    BaseClient,
+    create_channel_credentials,
+)
+from ..interceptors import AuthInterceptor, TimeoutInterceptor
 from . import auth, chat, collections, image, models, tokenizer
 
 
@@ -26,6 +30,7 @@ class Client(BaseClient):
         metadata: Optional[tuple[tuple[str, str], ...]],
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
+        use_insecure_channel: bool,  # noqa: FBT001
     ) -> None:
         """Creates the channel and sets up the sub-client."""
         api_key = api_key or os.getenv("XAI_API_KEY")
@@ -33,12 +38,26 @@ class Client(BaseClient):
             raise ValueError(
                 "Trying to read the xAI API key from the XAI_API_KEY environment variable but it doesn't exist."
             )
-        self._api_channel = self._make_grpc_channel(api_key, api_host, metadata, channel_options, timeout)
+        self._api_channel = self._make_grpc_channel(
+            api_key,
+            api_host,
+            metadata,
+            channel_options,
+            timeout,
+            use_insecure_channel,
+        )
 
         # Management channel is optional, we perform further checks in the collections client
         management_api_key = management_api_key or os.getenv("XAI_MANAGEMENT_KEY")
         self._management_channel = (
-            self._make_grpc_channel(management_api_key, management_api_host, metadata, channel_options, timeout)
+            self._make_grpc_channel(
+                management_api_key,
+                management_api_host,
+                metadata,
+                channel_options,
+                timeout,
+                use_insecure_channel,
+            )
             if management_api_key
             else None
         )
@@ -57,14 +76,17 @@ class Client(BaseClient):
         metadata: Optional[tuple[tuple[str, str], ...]],
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
+        use_insecure_channel: bool,  # noqa: FBT001
     ) -> grpc.Channel:
-        """Creates a gRPC channel with a default timeout."""
-        channel = grpc.secure_channel(
-            api_host,
-            create_channel_credentials(api_key, api_host, metadata),
-            options=channel_options,
-        )
-        channel = grpc.intercept_channel(channel, TimeoutInterceptor(timeout))
+        """Creates a gRPC channel with authentication and timeout."""
+        timeout_interceptor = TimeoutInterceptor(timeout)
+        if use_insecure_channel:
+            channel = grpc.insecure_channel(api_host, options=channel_options)
+            channel = grpc.intercept_channel(channel, AuthInterceptor(api_key, metadata), timeout_interceptor)
+        else:
+            credentials = create_channel_credentials(api_key, api_host, metadata)
+            channel = grpc.secure_channel(api_host, credentials, options=channel_options)
+            channel = grpc.intercept_channel(channel, timeout_interceptor)
         return channel
 
     def close(self) -> None:
