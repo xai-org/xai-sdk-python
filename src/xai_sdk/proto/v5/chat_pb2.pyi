@@ -41,6 +41,14 @@ class FormatType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FORMAT_TYPE_JSON_OBJECT: _ClassVar[FormatType]
     FORMAT_TYPE_JSON_SCHEMA: _ClassVar[FormatType]
 
+class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    TOOL_CALL_TYPE_INVALID: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_CLIENT_SIDE_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_WEB_SEARCH_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_X_SEARCH_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: _ClassVar[ToolCallType]
+
 class SearchMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     INVALID_SEARCH_MODE: _ClassVar[SearchMode]
@@ -65,6 +73,11 @@ FORMAT_TYPE_INVALID: FormatType
 FORMAT_TYPE_TEXT: FormatType
 FORMAT_TYPE_JSON_OBJECT: FormatType
 FORMAT_TYPE_JSON_SCHEMA: FormatType
+TOOL_CALL_TYPE_INVALID: ToolCallType
+TOOL_CALL_TYPE_CLIENT_SIDE_TOOL: ToolCallType
+TOOL_CALL_TYPE_WEB_SEARCH_TOOL: ToolCallType
+TOOL_CALL_TYPE_X_SEARCH_TOOL: ToolCallType
+TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
 INVALID_SEARCH_MODE: SearchMode
 OFF_SEARCH_MODE: SearchMode
 ON_SEARCH_MODE: SearchMode
@@ -333,12 +346,14 @@ class Function(_message.Message):
     def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., strict: bool = ..., parameters: _Optional[str] = ...) -> None: ...
 
 class ToolCall(_message.Message):
-    __slots__ = ("id", "function")
+    __slots__ = ("id", "type", "function")
     ID_FIELD_NUMBER: _ClassVar[int]
+    TYPE_FIELD_NUMBER: _ClassVar[int]
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     id: str
+    type: ToolCallType
     function: FunctionCall
-    def __init__(self, id: _Optional[str] = ..., function: _Optional[_Union[FunctionCall, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., type: _Optional[_Union[ToolCallType, str]] = ..., function: _Optional[_Union[FunctionCall, _Mapping]] = ...) -> None: ...
 
 class FunctionCall(_message.Message):
     __slots__ = ("name", "arguments")
