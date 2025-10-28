@@ -138,3 +138,16 @@ def code_execution() -> chat_pb2.Tool:
         ```
     """
     return chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
+
+
+def get_tool_call_type(tool_call: chat_pb2.ToolCall) -> str:
+    """Gets the type of a tool call.
+
+    Args:
+        tool_call: The tool call to get the type of.
+
+    Returns:
+        The type of the tool call as a string, valid values are: "client_side_tool", "web_search_tool",
+        "x_search_tool", "code_execution_tool", "collections_search_tool", "mcp_tool".
+    """
+    return chat_pb2.ToolCallType.Name(tool_call.type).removeprefix("TOOL_CALL_TYPE_").lower()

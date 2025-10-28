@@ -1,5 +1,6 @@
 from xai_sdk.chat import Response
 from xai_sdk.proto import chat_pb2, sample_pb2
+from xai_sdk.tools import get_tool_call_type
 
 
 def test_lazy_buffering_accumulates_chunks():
@@ -257,3 +258,11 @@ def test_lazy_buffering_with_streaming():
 
     # After first sync, buffer should contain consolidated string
     assert response._content_buffers[0] == ["The quick brown fox jumps"]
+
+
+def test_get_tool_call_type():
+    """Test the get_tool_call_type function."""
+    server_side_tool_call = chat_pb2.ToolCall(type=chat_pb2.ToolCallType.TOOL_CALL_TYPE_WEB_SEARCH_TOOL)
+    assert get_tool_call_type(server_side_tool_call) == "web_search_tool"
+    client_side_tool_call = chat_pb2.ToolCall(type=chat_pb2.ToolCallType.TOOL_CALL_TYPE_CLIENT_SIDE_TOOL)
+    assert get_tool_call_type(client_side_tool_call) == "client_side_tool"
