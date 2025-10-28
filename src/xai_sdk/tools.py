@@ -140,6 +140,40 @@ def code_execution() -> chat_pb2.Tool:
     return chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
 
+def mcp(
+    server_url: str,
+    server_label: str | None = None,
+    server_description: str | None = None,
+    allowed_tool_names: list[str] | None = None,
+    authorization: str | None = None,
+    extra_headers: dict[str, str] | None = None,
+) -> chat_pb2.Tool:
+    """Creates a server-side tool for connecting to a remote MCP server, typically used in agentic requests.
+
+    This tool enables the model to call tools on a remote MCP server
+
+    Args:
+        server_url: The URL of the MCP server.
+        server_label: Optional label of the MCP server. This will be used to prefix tool names if provided.
+        server_description: Optional description of the MCP server.
+        server_label: The label of the MCP server. This will be used to prefix tool names if provided.
+        server_description: The description of the MCP server.
+        allowed_tool_names: The names of the tools that the model is allowed to call. If empty, all tools are allowed.
+        authorization: The authorization token for the MCP server.
+        extra_headers: The extra headers for the MCP server.
+    """
+    return chat_pb2.Tool(
+        mcp=chat_pb2.MCP(
+            server_label=server_label,
+            server_description=server_description,
+            server_url=server_url,
+            allowed_tool_names=allowed_tool_names,
+            authorization=authorization,
+            extra_headers=extra_headers,
+        )
+    )
+
+
 def get_tool_call_type(tool_call: chat_pb2.ToolCall) -> str:
     """Gets the type of a tool call.
 
