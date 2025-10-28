@@ -49,6 +49,7 @@ class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_TYPE_WEB_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_X_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_MCP_TOOL: _ClassVar[ToolCallType]
 
 class SearchMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -79,6 +80,7 @@ TOOL_CALL_TYPE_CLIENT_SIDE_TOOL: ToolCallType
 TOOL_CALL_TYPE_WEB_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_X_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
+TOOL_CALL_TYPE_MCP_TOOL: ToolCallType
 INVALID_SEARCH_MODE: SearchMode
 OFF_SEARCH_MODE: SearchMode
 ON_SEARCH_MODE: SearchMode
@@ -293,16 +295,41 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "web_search", "x_search", "code_execution")
+    __slots__ = ("function", "web_search", "x_search", "code_execution", "mcp")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
     CODE_EXECUTION_FIELD_NUMBER: _ClassVar[int]
+    MCP_FIELD_NUMBER: _ClassVar[int]
     function: Function
     web_search: WebSearch
     x_search: XSearch
     code_execution: CodeExecution
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ...) -> None: ...
+    mcp: MCP
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ...) -> None: ...
+
+class MCP(_message.Message):
+    __slots__ = ("server_label", "server_description", "server_url", "allowed_tool_names", "authorization", "extra_headers")
+    class ExtraHeadersEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    SERVER_LABEL_FIELD_NUMBER: _ClassVar[int]
+    SERVER_DESCRIPTION_FIELD_NUMBER: _ClassVar[int]
+    SERVER_URL_FIELD_NUMBER: _ClassVar[int]
+    ALLOWED_TOOL_NAMES_FIELD_NUMBER: _ClassVar[int]
+    AUTHORIZATION_FIELD_NUMBER: _ClassVar[int]
+    EXTRA_HEADERS_FIELD_NUMBER: _ClassVar[int]
+    server_label: str
+    server_description: str
+    server_url: str
+    allowed_tool_names: _containers.RepeatedScalarFieldContainer[str]
+    authorization: str
+    extra_headers: _containers.ScalarMap[str, str]
+    def __init__(self, server_label: _Optional[str] = ..., server_description: _Optional[str] = ..., server_url: _Optional[str] = ..., allowed_tool_names: _Optional[_Iterable[str]] = ..., authorization: _Optional[str] = ..., extra_headers: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class WebSearch(_message.Message):
     __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding")

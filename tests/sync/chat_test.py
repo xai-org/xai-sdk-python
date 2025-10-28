@@ -27,7 +27,7 @@ from xai_sdk.chat import (
 )
 from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
-from xai_sdk.tools import code_execution, web_search, x_search
+from xai_sdk.tools import code_execution, mcp, web_search, x_search
 
 from .. import server
 
@@ -1355,11 +1355,18 @@ def test_chat_create_with_server_side_tools(client: Client):
                 enable_video_understanding=True,
             ),
             code_execution(),
+            mcp(
+                server_label="linear",
+                server_description="mcp server for linear.app",
+                server_url="https://mcp.linear.app/mcp",
+                allowed_tool_names=["chat", "completions"],
+                authorization="lin-1234567890",
+            ),
         ],
     )
 
     chat_completion_request = chat.proto
-    assert len(chat_completion_request.tools) == 3
+    assert len(chat_completion_request.tools) == 4
 
     expected_from_date_pb = timestamp_pb2.Timestamp()
     expected_from_date_pb.FromDatetime(from_date)
@@ -1386,9 +1393,20 @@ def test_chat_create_with_server_side_tools(client: Client):
 
     expected_code_execution_tool = chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
+    expected_mcp_tool = chat_pb2.Tool(
+        mcp=chat_pb2.MCP(
+            server_label="linear",
+            server_description="mcp server for linear.app",
+            server_url="https://mcp.linear.app/mcp",
+            allowed_tool_names=["chat", "completions"],
+            authorization="lin-1234567890",
+        )
+    )
+
     assert chat_completion_request.tools[0] == expected_web_search_tool
     assert chat_completion_request.tools[1] == expected_x_search_tool
     assert chat_completion_request.tools[2] == expected_code_execution_tool
+    assert chat_completion_request.tools[3] == expected_mcp_tool
 
 
 @pytest.mark.parametrize(
