@@ -15,12 +15,16 @@ class ServerSideTool(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SERVER_SIDE_TOOL_CODE_EXECUTION: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_VIEW_IMAGE: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_VIEW_X_VIDEO: _ClassVar[ServerSideTool]
+    SERVER_SIDE_TOOL_COLLECTIONS_SEARCH: _ClassVar[ServerSideTool]
+    SERVER_SIDE_TOOL_MCP: _ClassVar[ServerSideTool]
 SERVER_SIDE_TOOL_INVALID: ServerSideTool
 SERVER_SIDE_TOOL_WEB_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_X_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_CODE_EXECUTION: ServerSideTool
 SERVER_SIDE_TOOL_VIEW_IMAGE: ServerSideTool
 SERVER_SIDE_TOOL_VIEW_X_VIDEO: ServerSideTool
+SERVER_SIDE_TOOL_COLLECTIONS_SEARCH: ServerSideTool
+SERVER_SIDE_TOOL_MCP: ServerSideTool
 
 class SamplingUsage(_message.Message):
     __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used")
