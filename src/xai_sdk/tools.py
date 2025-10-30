@@ -140,6 +140,35 @@ def code_execution() -> chat_pb2.Tool:
     return chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
 
+def collections_search(collection_ids: list[str], limit: Optional[int] = None) -> chat_pb2.Tool:
+    """Creates a server-side tool for collections search, typically used in agentic requests.
+
+    This tool enables the model to search collections and access document content from
+    the collections during conversation.
+
+    Args:
+        collection_ids: The IDs of the collections to search in. A maximum of 10 collections can be searched.
+        limit: The maximum number of results to return. Defaults to 10 if not provided.
+
+    Returns:
+        A `chat_pb2.Tool` object configured for collections search.
+
+    Example:
+        ```
+        from xai_sdk.tools import collections_search
+
+        # Create a collections search tool for the collections with the IDs "collection-1" and "collection-2"
+        tool = collections_search(collection_ids=["collection-1", "collection-2"], limit=10)
+        ```
+    """
+    return chat_pb2.Tool(
+        collections_search=chat_pb2.CollectionsSearch(
+            collection_ids=collection_ids,
+            limit=limit,
+        )
+    )
+
+
 def mcp(
     server_url: str,
     server_label: str | None = None,
