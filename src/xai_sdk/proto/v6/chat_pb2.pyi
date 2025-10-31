@@ -49,6 +49,7 @@ class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_TYPE_WEB_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_X_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_MCP_TOOL: _ClassVar[ToolCallType]
 
 class SearchMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
@@ -80,6 +81,7 @@ TOOL_CALL_TYPE_CLIENT_SIDE_TOOL: ToolCallType
 TOOL_CALL_TYPE_WEB_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_X_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
+TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_MCP_TOOL: ToolCallType
 INVALID_SEARCH_MODE: SearchMode
 OFF_SEARCH_MODE: SearchMode
@@ -295,18 +297,20 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "web_search", "x_search", "code_execution", "mcp")
+    __slots__ = ("function", "web_search", "x_search", "code_execution", "collections_search", "mcp")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
     CODE_EXECUTION_FIELD_NUMBER: _ClassVar[int]
+    COLLECTIONS_SEARCH_FIELD_NUMBER: _ClassVar[int]
     MCP_FIELD_NUMBER: _ClassVar[int]
     function: Function
     web_search: WebSearch
     x_search: XSearch
     code_execution: CodeExecution
+    collections_search: CollectionsSearch
     mcp: MCP
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ...) -> None: ...
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., collections_search: _Optional[_Union[CollectionsSearch, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ...) -> None: ...
 
 class MCP(_message.Message):
     __slots__ = ("server_label", "server_description", "server_url", "allowed_tool_names", "authorization", "extra_headers")
@@ -360,6 +364,14 @@ class XSearch(_message.Message):
 class CodeExecution(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class CollectionsSearch(_message.Message):
+    __slots__ = ("collection_ids", "limit")
+    COLLECTION_IDS_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    collection_ids: _containers.RepeatedScalarFieldContainer[str]
+    limit: int
+    def __init__(self, collection_ids: _Optional[_Iterable[str]] = ..., limit: _Optional[int] = ...) -> None: ...
 
 class Function(_message.Message):
     __slots__ = ("name", "description", "strict", "parameters")
