@@ -51,6 +51,52 @@ def structured_output(client: Client) -> None:
     print(f"Total: {receipt.total_in_cents / 100} {receipt.currency}")
 
 
+def alternate_structured_output(client: Client) -> None:
+    """Extract structured information from an image using a Pydantic model."""
+
+    class Item(BaseModel):
+        name: str
+        quantity: int
+        price_in_cents: int
+
+    class Receipt(BaseModel):
+        date: datetime
+        items: list[Item]
+        currency: str
+        total_in_cents: int
+
+    # Alternatively, you can pass the Pydantic model directly to the
+    # response_format parameter of the chat.create method.
+    chat = client.chat.create(
+        model="grok-4-fast",
+        response_format=Receipt,
+        messages=[
+            system("You are an expert at extracting information from receipts. You pay great attention to detail."),
+        ],
+    )
+
+    chat.append(
+        user(
+            "Extract the information contained in this receipt.",
+            image(
+                "https://images.pexels.com/photos/13431759/pexels-photo-13431759.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
+                detail="high",
+            ),
+        )
+    )
+
+    response = chat.sample()
+    print(response.content, end="\n\n")
+
+    receipt = Receipt.model_validate_json(response.content)
+    assert isinstance(receipt, Receipt)
+    for item in receipt.items:
+        print(f"{item.quantity}x {item.name} - {item.price_in_cents / 100} {receipt.currency}")
+
+    print(f"Total: {receipt.total_in_cents / 100} {receipt.currency}")
+
+
 if __name__ == "__main__":
     client = Client()
     structured_output(client)
+    # alternate_structured_output(client)

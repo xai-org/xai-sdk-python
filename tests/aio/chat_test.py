@@ -414,7 +414,7 @@ async def test_agentic_tool_calling_non_streaming(client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_structured_output(client):
+async def test_structured_output_parse(client):
     class Weather(BaseModel):
         city: str
         units: str
@@ -429,6 +429,26 @@ async def test_structured_output(client):
     assert receipt.city == "London"
     assert receipt.units == "C"
     assert receipt.temperature == 20
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_structured_output_chat_create(client):
+    class Weather(BaseModel):
+        city: str
+        units: str
+        temperature: int
+
+    chat = client.chat.create("grok-3-latest", response_format=Weather)
+    chat.append(user("What is the weather in London?"))
+    response = await chat.sample()
+
+    assert response.content == '{"city":"London","units":"C", "temperature": 20}'
+    # Parse the JSON response into the expected model
+    weather = Weather.model_validate_json(response.content)
+    assert isinstance(weather, Weather)
+    assert weather.city == "London"
+    assert weather.units == "C"
+    assert weather.temperature == 20
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -1477,6 +1497,11 @@ def test_chat_create_with_required_tool(client: AsyncClient):
     assert chat_completion_request.tool_choice == chat_pb2.ToolChoice(function_name="get_weather")
 
 
+class Person(BaseModel):
+    name: str
+    age: int
+
+
 @pytest.mark.parametrize(
     "response_format",
     [
@@ -1488,6 +1513,7 @@ def test_chat_create_with_required_tool(client: AsyncClient):
             format_type=chat_pb2.FORMAT_TYPE_JSON_SCHEMA,
             schema='{"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}}',
         ),
+        Person,
     ],
 )
 def test_chat_create_with_response_format(
@@ -1505,6 +1531,11 @@ def test_chat_create_with_response_format(
         )
     elif response_format == "text":
         assert chat_completion_request.response_format == chat_pb2.ResponseFormat(format_type=chat_pb2.FORMAT_TYPE_TEXT)
+    elif isinstance(response_format, type) and issubclass(response_format, BaseModel):
+        assert chat_completion_request.response_format == chat_pb2.ResponseFormat(
+            format_type=chat_pb2.FORMAT_TYPE_JSON_SCHEMA,
+            schema=json.dumps(response_format.model_json_schema()),
+        )
     else:
         assert chat_completion_request.response_format == response_format
 

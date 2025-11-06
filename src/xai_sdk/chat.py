@@ -6,6 +6,7 @@ from collections import Counter, defaultdict
 from typing import Any, Generic, Literal, Optional, Sequence, TypeVar, Union
 
 import grpc
+from pydantic import BaseModel
 from typing_extensions import Self
 
 from .meta import ProtoDecorator
@@ -51,7 +52,7 @@ class BaseClient(abc.ABC, Generic[T]):
         tools: Optional[Sequence[chat_pb2.Tool]] = None,
         tool_choice: Optional[Union[ToolMode, chat_pb2.ToolChoice]] = None,
         parallel_tool_calls: Optional[bool] = None,
-        response_format: Optional[Union[ResponseFormat, chat_pb2.ResponseFormat]] = None,
+        response_format: Optional[Union[ResponseFormat, chat_pb2.ResponseFormat, type[BaseModel]]] = None,
         frequency_penalty: Optional[float] = None,
         presence_penalty: Optional[float] = None,
         reasoning_effort: Optional[Union[ReasoningEffort, "chat_pb2.ReasoningEffort"]] = None,
@@ -165,6 +166,11 @@ class BaseClient(abc.ABC, Generic[T]):
         response_format_pb: Optional[chat_pb2.ResponseFormat] = None
         if isinstance(response_format, str):
             response_format_pb = chat_pb2.ResponseFormat(format_type=_format_type_to_proto(response_format))
+        elif isinstance(response_format, type) and issubclass(response_format, BaseModel):
+            response_format_pb = chat_pb2.ResponseFormat(
+                format_type=chat_pb2.FORMAT_TYPE_JSON_SCHEMA,
+                schema=json.dumps(response_format.model_json_schema()),
+            )
         else:
             response_format_pb = response_format
 
