@@ -290,7 +290,8 @@ class Chat(BaseChat):
             attributes=self._make_span_request_attributes(),
         ) as span:
             response = self._stub.GetCompletion(self._make_request(1))
-            r = Response(response, 0)
+            index = None if self._uses_server_side_tools() else 0
+            r = Response(response, index)
             parsed = shape.model_validate_json(r.content)
             span.set_attributes(self._make_span_response_attributes([r]))
             return r, parsed
