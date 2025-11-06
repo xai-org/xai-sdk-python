@@ -295,15 +295,28 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         if isinstance(message, chat_pb2.Message):
             self._proto.messages.append(message)
         elif isinstance(message, Response):
-            self._proto.messages.append(
-                chat_pb2.Message(
-                    role=message._get_output().message.role,
-                    content=[text(message.content)],
-                    reasoning_content=message.reasoning_content,
-                    encrypted_content=message.encrypted_content,
-                    tool_calls=message.tool_calls,
+            if message._index is None:
+                # Every single output should be appended for agentic tool call responses.
+                for output in message.proto.outputs:
+                    self._proto.messages.append(
+                        chat_pb2.Message(
+                            role=output.message.role,
+                            content=[text(output.message.content)],
+                            reasoning_content=output.message.reasoning_content,
+                            encrypted_content=output.message.encrypted_content,
+                            tool_calls=output.message.tool_calls,
+                        )
+                    )
+            else:
+                self._proto.messages.append(
+                    chat_pb2.Message(
+                        role=message._get_output().message.role,
+                        content=[text(message.content)],
+                        reasoning_content=message.reasoning_content,
+                        encrypted_content=message.encrypted_content,
+                        tool_calls=message.tool_calls,
+                    )
                 )
-            )
         else:
             raise ValueError("Unrecognized message type.")
         return self
