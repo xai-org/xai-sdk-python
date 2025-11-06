@@ -1705,3 +1705,134 @@ def test_chat_append_tool_result(client: Client):
 
     assert len(chat.messages) == 2
     assert chat.messages == expected_messages
+
+
+def test_chat_append_response_multiple_outputs_for_agentic_tool_calling(client: Client):
+    chat = client.chat.create("grok-4-fast")
+    chat.append(user("what is xai?"))
+
+    chat_completion_response = chat_pb2.GetChatCompletionResponse(
+        outputs=[
+            chat_pb2.CompletionOutput(
+                index=0,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            type=chat_pb2.TOOL_CALL_TYPE_WEB_SEARCH_TOOL,
+                            function=chat_pb2.FunctionCall(name="web_search", arguments='{"query":"xai news"}'),
+                        )
+                    ],
+                ),
+            ),
+            chat_pb2.CompletionOutput(
+                index=1,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_TOOL,
+                    encrypted_content="encrypted_content: xai is a great company",
+                ),
+            ),
+            chat_pb2.CompletionOutput(
+                index=2,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    content="xai is great!",
+                ),
+            ),
+        ],
+    )
+    response = Response(chat_completion_response, None)
+    chat.append(response)
+
+    expected_messages = [
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_USER,
+            content=[chat_pb2.Content(text="what is xai?")],
+        ),
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_ASSISTANT,
+            content=[chat_pb2.Content(text="")],
+            reasoning_content="",
+            tool_calls=[
+                chat_pb2.ToolCall(
+                    type=chat_pb2.TOOL_CALL_TYPE_WEB_SEARCH_TOOL,
+                    function=chat_pb2.FunctionCall(name="web_search", arguments='{"query":"xai news"}'),
+                )
+            ],
+        ),
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_TOOL,
+            content=[chat_pb2.Content(text="")],
+            reasoning_content="",
+            encrypted_content="encrypted_content: xai is a great company",
+        ),
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_ASSISTANT,
+            content=[chat_pb2.Content(text="xai is great!")],
+            reasoning_content="",
+        ),
+    ]
+
+    assert len(chat.messages) == 4
+    assert chat.messages == expected_messages
+
+
+def test_chat_append_response_multiple_outputs_for_non_agentic_tool_calling(client: Client):
+    chat = client.chat.create("grok-4-fast")
+    chat.append(user("what is xai?"))
+
+    chat_completion_response = chat_pb2.GetChatCompletionResponse(
+        outputs=[
+            chat_pb2.CompletionOutput(
+                index=0,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            type=chat_pb2.TOOL_CALL_TYPE_WEB_SEARCH_TOOL,
+                            function=chat_pb2.FunctionCall(name="web_search", arguments='{"query":"xai news"}'),
+                        )
+                    ],
+                ),
+            ),
+            chat_pb2.CompletionOutput(
+                index=1,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_TOOL,
+                    encrypted_content="encrypted_content: xai is a great company",
+                ),
+            ),
+            chat_pb2.CompletionOutput(
+                index=2,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    content="xai is great!",
+                ),
+            ),
+        ],
+    )
+    # Only interested in the output with `index==2` for non-agentic tool calling responses.
+    response = Response(chat_completion_response, 2)
+    chat.append(response)
+
+    expected_messages = [
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_USER,
+            content=[chat_pb2.Content(text="what is xai?")],
+        ),
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_ASSISTANT,
+            content=[chat_pb2.Content(text="xai is great!")],
+            reasoning_content="",
+            # Tool calls are still collected from all output entries.
+            tool_calls=[
+                chat_pb2.ToolCall(
+                    type=chat_pb2.TOOL_CALL_TYPE_WEB_SEARCH_TOOL,
+                    function=chat_pb2.FunctionCall(name="web_search", arguments='{"query":"xai news"}'),
+                )
+            ],
+        ),
+    ]
+
+    assert len(chat.messages) == 2
+    assert chat.messages == expected_messages
