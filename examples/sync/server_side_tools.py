@@ -1,6 +1,8 @@
+import json
+
 from xai_sdk import Client
-from xai_sdk.chat import user
-from xai_sdk.tools import code_execution, web_search, x_search
+from xai_sdk.chat import tool, tool_result, user
+from xai_sdk.tools import code_execution, get_tool_call_type, web_search, x_search
 
 
 def agentic_search(client: Client, model: str, query: str) -> None:
@@ -36,6 +38,118 @@ def agentic_search(client: Client, model: str, query: str) -> None:
     print(response.tool_calls)
 
 
+def agentic_tools_with_client_side_tools_encrypted_content(client: Client, model: str) -> None:
+    def get_weather(city: str) -> str:
+        """Get the weather for a given city."""
+        return f"The weather in {city} is sunny."
+
+    weather_tool = tool(
+        name="get_weather",
+        description="Get the weather for a given city.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "The name of the city",
+                }
+            },
+            "required": ["city"],
+        },
+    )
+
+    chat = client.chat.create(
+        model=model,
+        tools=[web_search(), weather_tool],
+        use_encrypted_content=True,
+    )
+    chat.append(user("What is the weather in the city of the team that won the 2025 NBA championship?"))
+
+    while True:
+        client_side_tool_calls = []
+        # ruff: noqa: B007
+        for response, chunk in chat.stream():
+            for tool_call in chunk.tool_calls:
+                if get_tool_call_type(tool_call) == "client_side_tool":
+                    client_side_tool_calls.append(tool_call)
+                else:
+                    print(
+                        f"Server-side tool call: {tool_call.function.name} "
+                        f"with arguments: {tool_call.function.arguments}"
+                    )
+
+        chat.append(response)
+
+        if not client_side_tool_calls:
+            break
+
+        for tool_call in client_side_tool_calls:
+            print(f"Client-side tool call: {tool_call.function.name} with arguments: {tool_call.function.arguments}")
+            args = json.loads(tool_call.function.arguments)
+            result = get_weather(args["city"])
+            chat.append(tool_result(result))
+
+    print(f"Final response: {response.content}")
+
+
+def agentic_tools_with_client_side_tools_previous_response_id(client: Client, model: str) -> None:
+    def get_weather(city: str) -> str:
+        """Get the weather for a given city."""
+        return f"The weather in {city} is sunny."
+
+    weather_tool = tool(
+        name="get_weather",
+        description="Get the weather for a given city.",
+        parameters={
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "description": "The name of the city",
+                }
+            },
+            "required": ["city"],
+        },
+    )
+
+    chat = client.chat.create(
+        model=model,
+        tools=[web_search(), weather_tool],
+        store_messages=True,
+    )
+    chat.append(user("What is the weather in the city of the team that won the 2025 NBA championship?"))
+
+    while True:
+        client_side_tool_calls = []
+        for response, chunk in chat.stream():
+            for tool_call in chunk.tool_calls:
+                if get_tool_call_type(tool_call) == "client_side_tool":
+                    client_side_tool_calls.append(tool_call)
+                else:
+                    print(
+                        f"Server-side tool call: {tool_call.function.name} "
+                        f"with arguments: {tool_call.function.arguments}"
+                    )
+
+        if not client_side_tool_calls:
+            break
+
+        chat = client.chat.create(
+            model=model,
+            tools=[web_search(), weather_tool],
+            previous_response_id=response.id,
+            store_messages=True,
+        )
+
+        for tool_call in client_side_tool_calls:
+            print(f"Client-side tool call: {tool_call.function.name} with arguments: {tool_call.function.arguments}")
+            args = json.loads(tool_call.function.arguments)
+            result = get_weather(args["city"])
+            chat.append(tool_result(result))
+
+    print(f"Final response: {response.content}")
+
+
 def main() -> None:
     client = Client()
 
@@ -60,6 +174,18 @@ def main() -> None:
     #     client,
     #     model="grok-4-fast",
     #     query="What can you tell me about the X user 0xPromar and his recent activity?",
+    # )
+
+    # Trigger agentic tools with client-side tools using encrypted content
+    # agentic_tools_with_client_side_tools_encrypted_content(
+    #     client,
+    #     model="grok-4-fast",
+    # )
+
+    # Trigger agentic tools with client-side tools using previous response id
+    # agentic_tools_with_client_side_tools_previous_response_id(
+    #     client,
+    #     model="grok-4-fast",
     # )
 
 
