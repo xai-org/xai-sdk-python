@@ -687,6 +687,22 @@ def image(image_url: str, *, detail: Optional[ImageDetail] = "auto") -> chat_pb2
     return chat_pb2.Content(image_url=image_pb2.ImageUrlContent(image_url=image_url, detail=pb_detail))
 
 
+def file(file_id: str) -> chat_pb2.Content:
+    """Creates a new content object of type file for use in chat messages.
+
+    This allows you to reference previously uploaded files in chat conversations.
+    The model can read and analyze the file content.
+
+    Args:
+        file_id: The ID of a previously uploaded file. You can obtain this ID by
+            uploading a file using the Files API (`client.files.upload(...)`).
+
+    Returns:
+        A `chat_pb2.Content` object representing the file reference.
+    """
+    return chat_pb2.Content(file=chat_pb2.FileContent(file_id=file_id))
+
+
 def _process_content(content: Content) -> chat_pb2.Content:
     """Converts a `Content` type to a proto."""
     if isinstance(content, str):

@@ -191,4 +191,5 @@ dev = [
   "pytest-repeat>=0.9.4",
   "pytest-xdist>=3.6.1",
   "ruff>=0.11.7",
+  "tqdm>=4.67.1",
 ]

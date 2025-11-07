@@ -13,7 +13,7 @@ from ..interceptors import (
     UnaryUnaryAuthAioInterceptor,
     UnaryUnaryTimeoutAioInterceptor,
 )
-from . import auth, chat, collections, image, models, tokenizer
+from . import auth, chat, collections, files, image, models, tokenizer
 
 
 class Client(BaseClient):
@@ -22,6 +22,7 @@ class Client(BaseClient):
     auth: "auth.Client"
     chat: "chat.Client"
     collections: "collections.Client"
+    files: "files.Client"
     image: "image.Client"
     models: "models.Client"
     tokenize: "tokenizer.Client"
@@ -66,7 +67,7 @@ class Client(BaseClient):
         self.auth = auth.Client(self._api_channel)
         self.chat = chat.Client(self._api_channel)
         self.collections = collections.Client(self._api_channel, self._management_channel)
-
+        self.files = files.Client(self._api_channel)
         self.image = image.Client(self._api_channel)
         self.models = models.Client(self._api_channel)
         self.tokenize = tokenizer.Client(self._api_channel)
