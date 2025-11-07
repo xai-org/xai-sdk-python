@@ -1,5 +1,6 @@
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from . import deferred_pb2 as _deferred_pb2
+from . import documents_pb2 as _documents_pb2
 from . import image_pb2 as _image_pb2
 from . import sample_pb2 as _sample_pb2
 from . import usage_pb2 as _usage_pb2
@@ -51,6 +52,7 @@ class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_MCP_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: _ClassVar[ToolCallType]
 
 class SearchMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -83,6 +85,7 @@ TOOL_CALL_TYPE_X_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
 TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_MCP_TOOL: ToolCallType
+TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: ToolCallType
 INVALID_SEARCH_MODE: SearchMode
 OFF_SEARCH_MODE: SearchMode
 ON_SEARCH_MODE: SearchMode
@@ -265,12 +268,20 @@ class TopLogProb(_message.Message):
     def __init__(self, token: _Optional[str] = ..., logprob: _Optional[float] = ..., bytes: _Optional[bytes] = ...) -> None: ...
 
 class Content(_message.Message):
-    __slots__ = ("text", "image_url")
+    __slots__ = ("text", "image_url", "file")
     TEXT_FIELD_NUMBER: _ClassVar[int]
     IMAGE_URL_FIELD_NUMBER: _ClassVar[int]
+    FILE_FIELD_NUMBER: _ClassVar[int]
     text: str
     image_url: _image_pb2.ImageUrlContent
-    def __init__(self, text: _Optional[str] = ..., image_url: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ...) -> None: ...
+    file: FileContent
+    def __init__(self, text: _Optional[str] = ..., image_url: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ..., file: _Optional[_Union[FileContent, _Mapping]] = ...) -> None: ...
+
+class FileContent(_message.Message):
+    __slots__ = ("file_id",)
+    FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    file_id: str
+    def __init__(self, file_id: _Optional[str] = ...) -> None: ...
 
 class Message(_message.Message):
     __slots__ = ("content", "reasoning_content", "role", "name", "tool_calls", "encrypted_content")
@@ -297,20 +308,22 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "web_search", "x_search", "code_execution", "collections_search", "mcp")
+    __slots__ = ("function", "web_search", "x_search", "code_execution", "collections_search", "mcp", "document_search")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
     CODE_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     COLLECTIONS_SEARCH_FIELD_NUMBER: _ClassVar[int]
     MCP_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENT_SEARCH_FIELD_NUMBER: _ClassVar[int]
     function: Function
     web_search: WebSearch
     x_search: XSearch
     code_execution: CodeExecution
     collections_search: CollectionsSearch
     mcp: MCP
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., collections_search: _Optional[_Union[CollectionsSearch, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ...) -> None: ...
+    document_search: DocumentSearch
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., collections_search: _Optional[_Union[CollectionsSearch, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ..., document_search: _Optional[_Union[DocumentSearch, _Mapping]] = ...) -> None: ...
 
 class MCP(_message.Message):
     __slots__ = ("server_label", "server_description", "server_url", "allowed_tool_names", "authorization", "extra_headers")
@@ -372,6 +385,12 @@ class CollectionsSearch(_message.Message):
     collection_ids: _containers.RepeatedScalarFieldContainer[str]
     limit: int
     def __init__(self, collection_ids: _Optional[_Iterable[str]] = ..., limit: _Optional[int] = ...) -> None: ...
+
+class DocumentSearch(_message.Message):
+    __slots__ = ("limit",)
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    limit: int
+    def __init__(self, limit: _Optional[int] = ...) -> None: ...
 
 class Function(_message.Message):
     __slots__ = ("name", "description", "strict", "parameters")
