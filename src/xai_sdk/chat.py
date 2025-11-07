@@ -525,6 +525,29 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         """Returns True if any server-side tools are specified in the completions request."""
         return any(tool.WhichOneof("tool") != "function" for tool in self._proto.tools)
 
+    def _auto_detect_multi_output_mode(
+        self, index: Optional[int], outputs: Sequence[Union[chat_pb2.CompletionOutput, chat_pb2.CompletionOutputChunk]]
+    ) -> Optional[int]:
+        """Auto-detects if the server is using multi-output mode and updates the index accordingly.
+
+        When we expect single-output mode (index=0) but the server returns multiple outputs
+        (likely because it added tools implicitly), this method switches to multi-output mode
+        (index=None) to properly handle all outputs.
+
+        Args:
+            index: The current index value (0 for single-output, None for multi-output).
+            outputs: The outputs from the response or chunk to check.
+
+        Returns:
+            The potentially updated index value (None if multi-output mode is detected, otherwise unchanged).
+        """
+        if index == 0 and outputs:
+            max_output_index = max(output.index for output in outputs)
+            if max_output_index > 0:
+                # Server is using multi-output mode (likely added tools implicitly)
+                return None
+        return index
+
     @property
     def messages(self) -> Sequence[chat_pb2.Message]:
         """Returns the messages in the conversation."""

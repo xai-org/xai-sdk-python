@@ -106,6 +106,7 @@ class Chat(BaseChat):
         ) as span:
             index = None if self._uses_server_side_tools() else 0
             response_pb = self._stub.GetCompletion(self._make_request(1))
+            index = self._auto_detect_multi_output_mode(index, response_pb.outputs)
             response = Response(response_pb, index)
             span.set_attributes(self._make_span_response_attributes([response]))
             return response
@@ -187,6 +188,10 @@ class Chat(BaseChat):
                         "gen_ai.completion.start_time", datetime.datetime.now(datetime.timezone.utc).isoformat()
                     )
                     first_chunk_received = True
+
+                # Auto-detect if server added tools implicitly
+                index = self._auto_detect_multi_output_mode(index, chunk.outputs)
+                response._index = index
 
                 response.process_chunk(chunk)
                 chunk_obj = Chunk(chunk, index)
@@ -291,6 +296,7 @@ class Chat(BaseChat):
         ) as span:
             response = self._stub.GetCompletion(self._make_request(1))
             index = None if self._uses_server_side_tools() else 0
+            index = self._auto_detect_multi_output_mode(index, response.outputs)
             r = Response(response, index)
             parsed = shape.model_validate_json(r.content)
             span.set_attributes(self._make_span_response_attributes([r]))
