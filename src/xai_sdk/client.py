@@ -2,6 +2,7 @@
 
 import abc
 import json
+import sys
 from typing import Any, Optional, Sequence
 
 import grpc
@@ -92,8 +93,11 @@ class BaseClient(abc.ABC):
         default_options = [option for option in _DEFAULT_CHANNEL_OPTIONS if option[0] not in user_defined_options]
         timeout = timeout or _DEFAULT_RPC_TIMEOUT_SECONDS
 
-        # Add the xAI SDK version to the metadata
-        metadata = (metadata or ()) + (("xai-sdk-version", __version__),)
+        # Add the xAI SDK version and language to the metadata
+        metadata = (metadata or ()) + (
+            ("xai-sdk-version", f"python/{__version__}"),
+            ("xai-sdk-language", f"python/{sys.version_info.major}.{sys.version_info.minor}"),
+        )
 
         self._init(
             api_key,
