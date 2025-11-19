@@ -50,6 +50,7 @@ class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_MCP_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: _ClassVar[ToolCallType]
 
 class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -89,6 +90,7 @@ TOOL_CALL_TYPE_X_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
 TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_MCP_TOOL: ToolCallType
+TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: ToolCallType
 TOOL_CALL_STATUS_IN_PROGRESS: ToolCallStatus
 TOOL_CALL_STATUS_COMPLETED: ToolCallStatus
 TOOL_CALL_STATUS_INCOMPLETE: ToolCallStatus
