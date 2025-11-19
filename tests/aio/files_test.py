@@ -461,3 +461,271 @@ async def test_upload_large_file_uses_chunking(client_with_mock_stub: AsyncClien
         assert result.id == "file-large"
     finally:
         os.unlink(temp_file_path)
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_success(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test batch uploading multiple files successfully."""
+    # Create temporary files
+    temp_files = []
+    for i in range(3):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock successful responses for each file
+        call_count = 0
+
+        async def mock_upload(chunks):
+            nonlocal call_count
+            file_id = f"file-{call_count}"
+            call_count += 1
+            async for _ in chunks:
+                pass  # Consume chunks
+            return files_pb2.File(
+                id=file_id,
+                filename=f"batch_{call_count - 1}.txt",
+                size=100,
+                team_id="team-456",
+            )
+
+        mock_stub.UploadFile.side_effect = mock_upload
+
+        # Call batch_upload
+        results = await client_with_mock_stub.files.batch_upload(temp_files)
+
+        # Verify all files were uploaded
+        assert len(results) == 3
+        assert all(idx in results for idx in range(3))
+
+        # Verify all uploads succeeded
+        for idx, result in results.items():
+            assert not isinstance(result, BaseException)
+            assert result.id == f"file-{idx}"
+            assert result.team_id == "team-456"
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_with_partial_failures(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test batch upload with some files failing."""
+    # Create temporary files
+    temp_files = []
+    for i in range(5):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock responses - make files at indices 1 and 3 fail
+        call_count = 0
+
+        async def mock_upload(chunks):
+            nonlocal call_count
+            idx = call_count
+            call_count += 1
+            async for _ in chunks:
+                pass  # Consume chunks
+
+            if idx in [1, 3]:
+                raise RuntimeError(f"Upload failed for file {idx}")
+
+            return files_pb2.File(
+                id=f"file-{idx}",
+                filename=f"batch_{idx}.txt",
+                size=100,
+                team_id="team-456",
+            )
+
+        mock_stub.UploadFile.side_effect = mock_upload
+
+        # Call batch_upload
+        results = await client_with_mock_stub.files.batch_upload(temp_files)
+
+        # Verify all files are in results
+        assert len(results) == 5
+
+        # Verify successful uploads (0, 2, 4)
+        for idx in [0, 2, 4]:
+            result = results[idx]
+            assert not isinstance(result, BaseException)
+            assert result.id == f"file-{idx}"
+
+        # Verify failed uploads (1, 3)
+        for idx in [1, 3]:
+            assert isinstance(results[idx], RuntimeError)
+            assert f"Upload failed for file {idx}" in str(results[idx])
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_with_callback(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test batch upload with progress callback."""
+    # Create temporary files
+    temp_files = []
+    for i in range(3):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock successful responses
+        call_count = 0
+
+        async def mock_upload(chunks):
+            nonlocal call_count
+            file_id = f"file-{call_count}"
+            call_count += 1
+            async for _ in chunks:
+                pass
+            return files_pb2.File(
+                id=file_id,
+                filename=f"batch_{call_count - 1}.txt",
+                size=100,
+                team_id="team-456",
+            )
+
+        mock_stub.UploadFile.side_effect = mock_upload
+
+        # Track callback invocations
+        callback_calls = []
+
+        def on_complete(idx, file, result):
+            callback_calls.append((idx, file, result))
+
+        # Call batch_upload with callback
+        results = await client_with_mock_stub.files.batch_upload(temp_files, on_file_complete=on_complete)
+
+        # Verify all files were uploaded
+        assert len(results) == 3
+
+        # Verify callback was called for each file
+        assert len(callback_calls) == 3
+
+        # Verify callback arguments
+        for idx, file, result in callback_calls:
+            assert 0 <= idx < 3
+            assert file == temp_files[idx]
+            assert not isinstance(result, BaseException)
+            assert result.id.startswith("file-")
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_with_callback_and_failures(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test batch upload callback receives both successes and failures."""
+    # Create temporary files
+    temp_files = []
+    for i in range(4):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock responses - make file at index 2 fail
+        call_count = 0
+
+        async def mock_upload(chunks):
+            nonlocal call_count
+            idx = call_count
+            call_count += 1
+            async for _ in chunks:
+                pass
+
+            if idx == 2:
+                raise ValueError(f"Failed file {idx}")
+
+            return files_pb2.File(
+                id=f"file-{idx}",
+                filename=f"batch_{idx}.txt",
+                size=100,
+                team_id="team-456",
+            )
+
+        mock_stub.UploadFile.side_effect = mock_upload
+
+        # Track callback invocations
+        success_calls = []
+        failure_calls = []
+
+        def on_complete(idx, file, result):
+            if isinstance(result, BaseException):
+                failure_calls.append((idx, file, result))
+            else:
+                success_calls.append((idx, file, result))
+
+        # Call batch_upload with callback
+        results = await client_with_mock_stub.files.batch_upload(temp_files, on_file_complete=on_complete)
+
+        # Verify results
+        assert len(results) == 4
+        assert len(success_calls) == 3  # Indices 0, 1, 3
+        assert len(failure_calls) == 1  # Index 2
+
+        # Verify failure callback
+        idx, _file, error = failure_calls[0]
+        assert idx == 2
+        assert isinstance(error, ValueError)
+        assert "Failed file 2" in str(error)
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_custom_batch_size(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test batch upload with custom batch size."""
+    # Create temporary files
+    temp_files = []
+    for i in range(10):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock successful responses
+        call_count = 0
+
+        async def mock_upload(chunks):
+            nonlocal call_count
+            file_id = f"file-{call_count}"
+            call_count += 1
+            async for _ in chunks:
+                pass
+            return files_pb2.File(
+                id=file_id,
+                filename=f"batch_{call_count - 1}.txt",
+                size=100,
+                team_id="team-456",
+            )
+
+        mock_stub.UploadFile.side_effect = mock_upload
+
+        # Call batch_upload with small batch size
+        results = await client_with_mock_stub.files.batch_upload(temp_files, batch_size=3)
+
+        # Verify all files were uploaded
+        assert len(results) == 10
+        assert all(not isinstance(result, BaseException) for result in results.values())
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+@pytest.mark.asyncio
+async def test_batch_upload_empty_list(client_with_mock_stub: AsyncClient):
+    """Test batch upload with empty file list."""
+    with pytest.raises(ValueError):
+        await client_with_mock_stub.files.batch_upload([])

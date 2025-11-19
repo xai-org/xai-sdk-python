@@ -124,7 +124,8 @@ ignore = [
   "FBT003",  # Allow boolean positional values in function calls, like `dict.get(... True)`
   "TID252",  # Allow relative imports
   "UP007",   # Allow `from typing import Optional` instead of `X | None`
-  "UP035",   # Allow `from typing import Sequence` instead of `Sequence[X]`
+  "UP035",   # Allow `from typing import Optional` instead of `X | None`
+  "UP045",   # Allow `from typing import Sequence` instead of `Sequence[X]`
   "PLR0913",
 ]
 unfixable = ["F401"]
@@ -138,6 +139,7 @@ ban-relative-imports = "all"
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*" = [
   "D",
+  "DTZ005",
   "PLR0911",
   "PLR0912",
   "PLR0915",

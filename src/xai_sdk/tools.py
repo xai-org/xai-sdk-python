@@ -171,11 +171,11 @@ def collections_search(collection_ids: list[str], limit: Optional[int] = None) -
 
 def mcp(
     server_url: str,
-    server_label: str | None = None,
-    server_description: str | None = None,
-    allowed_tool_names: list[str] | None = None,
-    authorization: str | None = None,
-    extra_headers: dict[str, str] | None = None,
+    server_label: Optional[str] = None,
+    server_description: Optional[str] = None,
+    allowed_tool_names: Optional[list[str]] = None,
+    authorization: Optional[str] = None,
+    extra_headers: Optional[dict[str, str]] = None,
 ) -> chat_pb2.Tool:
     """Creates a server-side tool for connecting to a remote MCP server, typically used in agentic requests.
 

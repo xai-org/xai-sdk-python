@@ -64,7 +64,8 @@ async def test_unified_client_always_requires_api_key(test_server_port, test_man
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_client_requires_management_api_key_for_management_endpoints(test_management_server_port):
+async def test_client_requires_management_api_key_for_management_endpoints(test_management_server_port, monkeypatch):
+    monkeypatch.delenv("XAI_MANAGEMENT_KEY", raising=False)
     client = AsyncClient(api_key=server.API_KEY, api_host=f"localhost:{test_management_server_port}")
     with pytest.raises(ValueError) as e:
         await client.collections.list()

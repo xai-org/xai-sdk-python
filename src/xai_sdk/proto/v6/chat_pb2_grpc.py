@@ -78,7 +78,8 @@ class ChatServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def GetDeferredCompletion(self, request, context):
-        """Gets the result of a deferred completion started by calling `StartDeferredCompletion`.
+        """Gets the result of a deferred completion started by calling
+        `StartDeferredCompletion`.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
