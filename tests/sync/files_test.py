@@ -3,6 +3,7 @@
 import io
 import os
 import tempfile
+from typing import Callable, Iterable, Optional
 from unittest import mock
 
 import pytest
@@ -11,6 +12,51 @@ from google.protobuf import timestamp_pb2
 from xai_sdk import Client
 from xai_sdk.files import _chunk_file_data, _chunk_file_from_path, _order_to_pb, _sort_by_to_pb
 from xai_sdk.proto import files_pb2
+
+
+def _extract_file_index_from_chunks(chunks: Iterable[files_pb2.UploadFileChunk]) -> int:
+    """Extract file index from chunk content.
+
+    Helper function to identify which file is being uploaded based on its content.
+    This is thread-safe and doesn't rely on execution order.
+    """
+    chunk_list = list(chunks)
+    # Get the content to identify which file this is
+    content = b"".join(c.data for c in chunk_list if c.HasField("data"))
+    content_str = content.decode("utf-8")
+    # Extract index from "content {i}"
+    idx = int(content_str.split()[1])
+    return idx
+
+
+def create_mock_upload_handler(
+    fail_on_indices: Optional[Iterable[int]] = None,
+) -> Callable[[Iterable[files_pb2.UploadFileChunk]], files_pb2.File]:
+    """Create a mock upload handler function.
+
+    Args:
+        fail_on_indices: Optional set/list of file indices that should fail.
+                        If None, all uploads succeed.
+
+    Returns:
+        A mock upload function suitable for use as UploadFile.side_effect
+    """
+    fail_on_indices_set = set(fail_on_indices or [])
+
+    def mock_upload(chunks: Iterable[files_pb2.UploadFileChunk]) -> files_pb2.File:
+        idx = _extract_file_index_from_chunks(chunks)
+
+        if idx in fail_on_indices_set:
+            raise RuntimeError(f"Upload failed for file {idx}")
+
+        return files_pb2.File(
+            id=f"file-{idx}",
+            filename=f"batch_{idx}.txt",
+            size=100,
+            team_id="team-456",
+        )
+
+    return mock_upload
 
 
 @pytest.fixture
@@ -25,6 +71,8 @@ def client_with_mock_stub(mock_stub):
     with mock.patch("xai_sdk.files.files_pb2_grpc.FilesStub", return_value=mock_stub):
         client = Client(api_key="test-api-key")
         yield client
+        # Explicitly reset mock to ensure no state leakage across test repetitions
+        mock_stub.reset_mock()
 
 
 def test_upload_file(client_with_mock_stub: Client, mock_stub):
@@ -441,3 +489,182 @@ def test_upload_large_file_uses_chunking(client_with_mock_stub: Client, mock_stu
         assert result.id == "file-large"
     finally:
         os.unlink(temp_file_path)
+
+
+def test_batch_upload_success(client_with_mock_stub: Client, mock_stub):
+    """Test batch uploading multiple files successfully."""
+    # Create temporary files
+    temp_files = []
+    for i in range(3):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock successful responses for each file
+        mock_stub.UploadFile.side_effect = create_mock_upload_handler()
+
+        # Call batch_upload
+        results = client_with_mock_stub.files.batch_upload(temp_files)
+
+        # Verify all files were uploaded
+        assert len(results) == 3
+        assert all(idx in results for idx in range(3))
+
+        # Verify all uploads succeeded
+        for idx, result in results.items():
+            assert not isinstance(result, BaseException)
+            assert result.id == f"file-{idx}"
+            assert result.team_id == "team-456"
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+def test_batch_upload_with_partial_failures(client_with_mock_stub: Client, mock_stub):
+    """Test batch upload with some files failing."""
+    # Create temporary files
+    temp_files = []
+    for i in range(5):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock responses - make files at indices 1 and 3 fail
+        mock_stub.UploadFile.side_effect = create_mock_upload_handler(fail_on_indices=[1, 3])
+
+        # Call batch_upload
+        results = client_with_mock_stub.files.batch_upload(temp_files)
+
+        # Verify all files are in results
+        assert len(results) == 5
+
+        # Verify successful uploads (0, 2, 4)
+        for idx in [0, 2, 4]:
+            result = results[idx]
+            assert not isinstance(result, BaseException)
+            assert result.id == f"file-{idx}"
+
+        # Verify failed uploads (1, 3)
+        for idx in [1, 3]:
+            assert isinstance(results[idx], RuntimeError)
+            assert f"Upload failed for file {idx}" in str(results[idx])
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+def test_batch_upload_with_callback(client_with_mock_stub: Client, mock_stub):
+    """Test batch upload with progress callback."""
+    # Create temporary files
+    temp_files = []
+    for i in range(3):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock successful responses
+        mock_stub.UploadFile.side_effect = create_mock_upload_handler()
+
+        # Track callback invocations
+        callback_calls = []
+
+        def on_complete(idx, file, result):
+            callback_calls.append((idx, file, result))
+
+        # Call batch_upload with callback
+        results = client_with_mock_stub.files.batch_upload(temp_files, on_file_complete=on_complete)
+
+        # Verify all files were uploaded
+        assert len(results) == 3
+
+        # Verify callback was called for each file
+        assert len(callback_calls) == 3
+
+        # Verify callback arguments
+        for idx, file, result in callback_calls:
+            assert 0 <= idx < 3
+            assert file == temp_files[idx]
+            assert not isinstance(result, BaseException)
+            assert result.id.startswith("file-")
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+def test_batch_upload_with_callback_and_failures(client_with_mock_stub: Client, mock_stub):
+    """Test batch upload callback receives both successes and failures."""
+    # Create temporary files
+    temp_files = []
+    for i in range(4):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock responses - make file at index 2 fail
+        mock_stub.UploadFile.side_effect = create_mock_upload_handler(fail_on_indices=[2])
+
+        # Track callback invocations
+        success_calls = []
+        failure_calls = []
+
+        def on_complete(idx, file, result):
+            if isinstance(result, BaseException):
+                failure_calls.append((idx, file, result))
+            else:
+                success_calls.append((idx, file, result))
+
+        # Call batch_upload with callback
+        results = client_with_mock_stub.files.batch_upload(temp_files, on_file_complete=on_complete)
+
+        # Verify results
+        assert len(results) == 4
+        assert len(success_calls) == 3  # Indices 0, 1, 3
+        assert len(failure_calls) == 1  # Index 2
+
+        # Verify failure callback
+        idx, _file, error = failure_calls[0]
+        assert idx == 2
+        assert isinstance(error, RuntimeError)
+        assert "Upload failed for file 2" in str(error)
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+def test_batch_upload_custom_batch_size(client_with_mock_stub: Client, mock_stub):
+    """Test batch upload with custom batch size."""
+    # Create temporary files
+    temp_files = []
+    for i in range(10):
+        with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+            f.write(f"content {i}")
+            temp_files.append(f.name)
+
+    try:
+        # Mock successful responses
+        mock_stub.UploadFile.side_effect = create_mock_upload_handler()
+
+        # Call batch_upload with small batch size
+        results = client_with_mock_stub.files.batch_upload(temp_files, batch_size=3)
+
+        # Verify all files were uploaded
+        assert len(results) == 10
+        assert all(not isinstance(result, BaseException) for result in results.values())
+
+    finally:
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
+def test_batch_upload_empty_list(client_with_mock_stub: Client):
+    """Test batch upload with empty file list."""
+    with pytest.raises(ValueError):
+        client_with_mock_stub.files.batch_upload([])

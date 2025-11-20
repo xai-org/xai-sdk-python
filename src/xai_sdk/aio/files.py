@@ -1,8 +1,11 @@
+import asyncio
 import os
-from typing import BinaryIO, Optional, Union
+from asyncio import Semaphore
+from typing import BinaryIO, Optional, Sequence, Union
 
 from ..files import (
     BaseClient,
+    BatchUploadCallback,
     Order,
     ProgressCallback,
     SortBy,
@@ -106,6 +109,87 @@ class Client(BaseClient):
             return await self._stub.UploadFile(chunks)
 
         raise ValueError(f"Unsupported file type: {type(file)}")
+
+    async def batch_upload(
+        self,
+        files: Sequence[Union[str, BinaryIO]],
+        *,
+        batch_size: int = 50,
+        on_file_complete: Optional[BatchUploadCallback] = None,
+    ) -> dict[int, Union[files_pb2.File, BaseException]]:
+        """Batch upload multiple files asynchronously with controlled concurrency.
+
+        This method always handles partial failures gracefully - if some uploads fail, the successful
+        uploads will still be returned in the result dictionary alongside the exceptions.
+
+        Args:
+            files: List of files to upload. Each can be:
+                   - str: Path to a file on disk
+                   - BinaryIO: File-like object with a .name attribute (e.g., open(..., "rb"))
+                Note: Raw bytes are not supported in batch mode. Use the upload() method
+                directly for bytes, or wrap bytes in io.BytesIO with a name attribute.
+            batch_size: Maximum number of concurrent uploads. Defaults to 50.
+            on_file_complete: Optional callback invoked after each file upload completes (success or failure).
+                The callback receives three arguments: (index: int, file: str | BinaryIO, result: File | BaseException).
+                Use this to track progress or log individual file results in real-time.
+
+        Returns:
+            Dictionary mapping file indices (0-based position in input list) to results.
+            Successful uploads map to File protos, failed uploads map to BaseException objects.
+
+        Examples:
+            >>> # Upload multiple files from paths
+            >>> files = ["doc1.pdf", "doc2.pdf", "doc3.pdf"]
+            >>> results = await client.files.batch_upload(files)
+            >>> for idx, result in results.items():
+            >>>     if isinstance(result, BaseException):
+            >>>         print(f"Failed to upload {files[idx]}: {result}")
+            >>>     else:
+            >>>         print(f"Uploaded {files[idx]}: {result.file_id}")
+            >>>
+            >>> # Upload with progress tracking
+            >>> completed = 0
+            >>> def on_complete(idx, file, result):
+            >>>     nonlocal completed
+            >>>     completed += 1
+            >>>     status = "success" if not isinstance(result, BaseException) else "failure"
+            >>>     print(f"[{completed}/{len(files)}] {status}: {file}")
+            >>>
+            >>> results = await client.files.batch_upload(files, on_file_complete=on_complete)
+            >>>
+            >>> # Upload file objects
+            >>> with open("file1.txt", "rb") as f1, open("file2.txt", "rb") as f2:
+            >>>     results = await client.files.batch_upload([f1, f2])
+            >>>
+            >>> # Get only successful uploads
+            >>> results = await client.files.batch_upload(files)
+            >>> successful = {idx: f for idx, f in results.items() if not isinstance(f, BaseException)}
+            >>> print(f"Uploaded {len(successful)}/{len(files)} files successfully")
+            >>>
+            >>> # Control concurrency
+            >>> results = await client.files.batch_upload(files, batch_size=10)
+        """
+        if len(files) == 0:
+            raise ValueError("files cannot be empty - please provide at least one file to upload")
+
+        semaphore = Semaphore(batch_size)
+        results: dict[int, Union[files_pb2.File, BaseException]] = {}
+
+        async def upload_file(file: Union[str, BinaryIO], index: int) -> None:
+            try:
+                async with semaphore:
+                    result = await self.upload(file)
+                    results[index] = result
+                    if on_file_complete:
+                        on_file_complete(index, file, result)
+            except BaseException as e:
+                results[index] = e
+                if on_file_complete:
+                    on_file_complete(index, file, e)
+
+        tasks = [upload_file(file, i) for i, file in enumerate(files)]
+        await asyncio.gather(*tasks, return_exceptions=True)
+        return results
 
     async def list(
         self,

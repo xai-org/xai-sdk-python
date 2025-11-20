@@ -2,7 +2,11 @@
 
 ## [Unreleased]
 ### Added
-- New features that are in development.
+- **Tool Call Status Tracking**: Added status field to tool call entries in chat response outputs for tracking tool execution progress
+    - Tool call messages now include a status field indicating the current state of the tool call
+    - Multiple entries for the same tool call can now represent different stages (in progress, success, failure)
+    - Enables real-time tracking of server-side tool execution lifecycle
+- **Batch File Upload**: Added `batch_upload` method to both sync and async file clients for concurrent uploads of multiple files with progress tracking
 
 ### Changed
 - Updates or modifications to existing features.

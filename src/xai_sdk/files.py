@@ -24,6 +24,9 @@ class ProgressBarLike(Protocol):
 # Type for progress tracking - either a callable or an object with update() method
 ProgressCallback = Union[Callable[[int, int], None], Callable[[int], None], ProgressBarLike, None]
 
+# Type for batch upload completion callbacks
+BatchUploadCallback = Callable[[int, Union[str, BinaryIO], Union["files_pb2.File", BaseException]], None]
+
 
 class BaseClient:
     """Base Client for interacting with the `Files` API."""

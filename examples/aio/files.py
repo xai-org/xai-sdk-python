@@ -176,6 +176,55 @@ async def upload_with_progress_callback_example(client: xai_sdk.AsyncClient):
         os.unlink(temp_file_path)
 
 
+async def batch_upload_example(client: xai_sdk.AsyncClient):
+    """Demonstrate batch uploading multiple files asynchronously."""
+    print("\n=== Batch Upload Example ===")
+
+    # Create multiple temporary files to upload
+    temp_files = []
+    num_files = 20
+
+    try:
+        for i in range(num_files):
+            with tempfile.NamedTemporaryFile(mode="w", suffix=f"_batch_{i}.txt", delete=False) as f:
+                f.write(f"This is test file #{i + 1} for batch upload.\n")
+                f.write("Demonstrating concurrent file uploads.\n")
+                temp_files.append(f.name)
+
+        print(f"Created {num_files} temporary files")
+        print("Uploading files in batch with progress tracking...\n")
+
+        # Track progress with callback
+        completed_count = 0
+        success_count = 0
+        failed_count = 0
+
+        def on_file_complete(_idx, file, result):
+            nonlocal completed_count, success_count, failed_count
+            completed_count += 1
+            if isinstance(result, BaseException):
+                failed_count += 1
+                print(f"[{completed_count}/{num_files}] Failed: {os.path.basename(file)} - {result}")
+            else:
+                success_count += 1
+                print(f"[{completed_count}/{num_files}] Success: {result.filename} ({result.size} bytes)")
+
+        # Batch upload all files with controlled concurrency and progress callback
+        results = await client.files.batch_upload(temp_files, batch_size=3, on_file_complete=on_file_complete)
+
+        print("\nBatch upload complete!")
+        print(f"  Total: {len(results)} files")
+        print(f"  Success: {success_count}")
+        print(f"  Failed: {failed_count}")
+
+        return [result.id for result in results.values() if not isinstance(result, BaseException)]
+
+    finally:
+        # Clean up temporary files
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+
 async def list_example(client: xai_sdk.AsyncClient):
     """Demonstrate listing files asynchronously."""
     print("\n=== List Example ===")
@@ -268,6 +317,9 @@ async def run_examples():
         # Upload with custom progress callback
         file_id_5 = await upload_with_progress_callback_example(client)
 
+        # Batch upload examples
+        batch_file_ids = await batch_upload_example(client)
+
         # Upload a large file (48MB) - uncomment to test
         # Note: This will upload a 48MB file, which may take time depending on your connection
         # file_id_large = await upload_large_file_example(client)
@@ -287,6 +339,11 @@ async def run_examples():
         await delete_example(client, file_id_3)
         await delete_example(client, file_id_4)
         await delete_example(client, file_id_5)
+
+        # Delete batch uploaded files
+        for file_id in batch_file_ids:
+            await delete_example(client, file_id)
+
         # Uncomment if you ran the large file upload
         # await delete_example(client, file_id_large)
 

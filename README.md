@@ -186,7 +186,7 @@ The xAI SDK excels in advanced use cases, such as:
 - **Deferred Chat**: Sample a long-running response from a model via polling (see sync [deferred_chat.py](/examples/sync/deferred_chat.py) and async [deferred_chat.py](/examples/aio/deferred_chat.py)).
 - **Tokenization**: Tokenize text with the tokenizer API (see sync [tokenizer.py](/examples/sync/tokenizer.py) and async [tokenizer.py](/examples/aio/tokenizer.py)).
 - **Models**: Retrieve information on different models available to you, including, name, aliases, token price, max prompt length etc (see sync [models.py](/examples/sync/models.py) and async [models.py](/examples/aio/models.py))
-- **Live Search**: Augment Grok's knowledge with up-to-date information from the web and 𝕏 (see sync [search.py](/examples/sync/search.py) and async [search.py](/examples/aio/search.py))
+- **Agentic Tool Calling**: Let Grok autonomously decide when to search the web, 𝕏, or execute code to answer your questions with real-time information (e.g., "What was Arsenal's most recent game result?" triggers a web search automatically). See sync [server_side_tools.py](/examples/sync/server_side_tools.py) and async [server_side_tools.py](/examples/aio/server_side_tools.py)
 - **Telemetry & Observability**: Export OpenTelemetry traces with rich metadata attributes to console or OTLP backends (see sync [telemetry.py](/examples/sync/telemetry.py) and async [telemetry.py](/examples/aio/telemetry.py))
 
 ## Telemetry & Observability

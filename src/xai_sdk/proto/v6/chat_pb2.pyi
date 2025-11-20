@@ -1,6 +1,5 @@
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from . import deferred_pb2 as _deferred_pb2
-from . import documents_pb2 as _documents_pb2
 from . import image_pb2 as _image_pb2
 from . import sample_pb2 as _sample_pb2
 from . import usage_pb2 as _usage_pb2
@@ -54,6 +53,13 @@ class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_TYPE_MCP_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: _ClassVar[ToolCallType]
 
+class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    TOOL_CALL_STATUS_IN_PROGRESS: _ClassVar[ToolCallStatus]
+    TOOL_CALL_STATUS_COMPLETED: _ClassVar[ToolCallStatus]
+    TOOL_CALL_STATUS_INCOMPLETE: _ClassVar[ToolCallStatus]
+    TOOL_CALL_STATUS_FAILED: _ClassVar[ToolCallStatus]
+
 class SearchMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     INVALID_SEARCH_MODE: _ClassVar[SearchMode]
@@ -86,6 +92,10 @@ TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
 TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_MCP_TOOL: ToolCallType
 TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: ToolCallType
+TOOL_CALL_STATUS_IN_PROGRESS: ToolCallStatus
+TOOL_CALL_STATUS_COMPLETED: ToolCallStatus
+TOOL_CALL_STATUS_INCOMPLETE: ToolCallStatus
+TOOL_CALL_STATUS_FAILED: ToolCallStatus
 INVALID_SEARCH_MODE: SearchMode
 OFF_SEARCH_MODE: SearchMode
 ON_SEARCH_MODE: SearchMode
@@ -162,7 +172,7 @@ class GetChatCompletionResponse(_message.Message):
     def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutput, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., settings: _Optional[_Union[RequestSettings, _Mapping]] = ..., debug_output: _Optional[_Union[DebugOutput, _Mapping]] = ...) -> None: ...
 
 class GetChatCompletionChunk(_message.Message):
-    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations")
+    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "debug_output")
     ID_FIELD_NUMBER: _ClassVar[int]
     OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     CREATED_FIELD_NUMBER: _ClassVar[int]
@@ -170,6 +180,7 @@ class GetChatCompletionChunk(_message.Message):
     SYSTEM_FINGERPRINT_FIELD_NUMBER: _ClassVar[int]
     USAGE_FIELD_NUMBER: _ClassVar[int]
     CITATIONS_FIELD_NUMBER: _ClassVar[int]
+    DEBUG_OUTPUT_FIELD_NUMBER: _ClassVar[int]
     id: str
     outputs: _containers.RepeatedCompositeFieldContainer[CompletionOutputChunk]
     created: _timestamp_pb2.Timestamp
@@ -177,7 +188,8 @@ class GetChatCompletionChunk(_message.Message):
     system_fingerprint: str
     usage: _usage_pb2.SamplingUsage
     citations: _containers.RepeatedScalarFieldContainer[str]
-    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutputChunk, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ...) -> None: ...
+    debug_output: DebugOutput
+    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutputChunk, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., debug_output: _Optional[_Union[DebugOutput, _Mapping]] = ...) -> None: ...
 
 class GetDeferredCompletionResponse(_message.Message):
     __slots__ = ("status", "response")
@@ -405,14 +417,18 @@ class Function(_message.Message):
     def __init__(self, name: _Optional[str] = ..., description: _Optional[str] = ..., strict: bool = ..., parameters: _Optional[str] = ...) -> None: ...
 
 class ToolCall(_message.Message):
-    __slots__ = ("id", "type", "function")
+    __slots__ = ("id", "type", "status", "error_message", "function")
     ID_FIELD_NUMBER: _ClassVar[int]
     TYPE_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     id: str
     type: ToolCallType
+    status: ToolCallStatus
+    error_message: str
     function: FunctionCall
-    def __init__(self, id: _Optional[str] = ..., type: _Optional[_Union[ToolCallType, str]] = ..., function: _Optional[_Union[FunctionCall, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., type: _Optional[_Union[ToolCallType, str]] = ..., status: _Optional[_Union[ToolCallStatus, str]] = ..., error_message: _Optional[str] = ..., function: _Optional[_Union[FunctionCall, _Mapping]] = ...) -> None: ...
 
 class FunctionCall(_message.Message):
     __slots__ = ("name", "arguments")
