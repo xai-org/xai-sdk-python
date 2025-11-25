@@ -744,6 +744,7 @@ async def test_sample_creates_span_with_correct_optional_attributes(mock_tracer:
         store_messages=True,
         previous_response_id="test-previous-response-id",
         use_encrypted_content=True,
+        max_turns=5,
     )
 
     await chat.sample()
@@ -1749,3 +1750,13 @@ def test_chat_append_tool_result(client: AsyncClient):
 
     assert len(chat.messages) == 2
     assert chat.messages == expected_messages
+
+
+def test_chat_create_with_max_turns(client: AsyncClient):
+    chat = client.chat.create(
+        "grok-4-fast",
+        max_turns=5,
+    )
+
+    chat_completion_request = chat.proto
+    assert chat_completion_request.max_turns == 5

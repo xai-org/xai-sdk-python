@@ -60,6 +60,7 @@ class BaseClient(abc.ABC, Generic[T]):
         store_messages: Optional[bool] = None,
         previous_response_id: Optional[str] = None,
         use_encrypted_content: Optional[bool] = None,
+        max_turns: Optional[int] = None,
     ) -> T:
         """Creates a new chat conversation.
 
@@ -153,6 +154,12 @@ class BaseClient(abc.ABC, Generic[T]):
                 this encrypted content back for subsequent requests. This is particularly useful for users with
                 zero data retention (ZDR) enabled who cannot use `store_messages` and `previous_response_id`
                 for conversation continuity. Defaults to False.
+            max_turns: The maximum number of agentic turns the model can take. When set, the model will automatically
+                iterate up to this many turns, calling tools and processing their results until it reaches a final
+                answer or hits the turn limit. Defaults to server-side maximum. Note: This parameter has no effect
+                on non-agentic requests (i.e. requests that do not use server-side tools). With parallel tool calls
+                enabled, multiple tool calls can occur within a single turn, so max_turns does not necessarily equal
+                the total number of tool calls.
 
         Returns:
             A new chat request bound to a client.
@@ -209,6 +216,7 @@ class BaseClient(abc.ABC, Generic[T]):
             store_messages=store_messages,
             previous_response_id=previous_response_id,
             use_encrypted_content=use_encrypted_content,
+            max_turns=max_turns,
         )
 
     @abc.abstractmethod

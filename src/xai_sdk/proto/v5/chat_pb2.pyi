@@ -101,7 +101,7 @@ ON_SEARCH_MODE: SearchMode
 AUTO_SEARCH_MODE: SearchMode
 
 class GetCompletionsRequest(_message.Message):
-    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages", "use_encrypted_content")
+    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages", "use_encrypted_content", "max_turns")
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     USER_FIELD_NUMBER: _ClassVar[int]
@@ -124,6 +124,7 @@ class GetCompletionsRequest(_message.Message):
     PREVIOUS_RESPONSE_ID_FIELD_NUMBER: _ClassVar[int]
     STORE_MESSAGES_FIELD_NUMBER: _ClassVar[int]
     USE_ENCRYPTED_CONTENT_FIELD_NUMBER: _ClassVar[int]
+    MAX_TURNS_FIELD_NUMBER: _ClassVar[int]
     messages: _containers.RepeatedCompositeFieldContainer[Message]
     model: str
     user: str
@@ -146,7 +147,8 @@ class GetCompletionsRequest(_message.Message):
     previous_response_id: str
     store_messages: bool
     use_encrypted_content: bool
-    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ...) -> None: ...
+    max_turns: int
+    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ..., max_turns: _Optional[int] = ...) -> None: ...
 
 class GetChatCompletionResponse(_message.Message):
     __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "settings", "debug_output")
