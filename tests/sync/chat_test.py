@@ -713,6 +713,7 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
         store_messages=True,
         previous_response_id="test-previous-response-id",
         use_encrypted_content=True,
+        max_turns=5,
     )
 
     chat.sample()
@@ -1866,3 +1867,13 @@ def test_chat_append_response_multiple_outputs_for_non_agentic_tool_calling(clie
 
     assert len(chat.messages) == 2
     assert chat.messages == expected_messages
+
+
+def test_chat_create_with_max_turns(client: Client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        max_turns=5,
+    )
+
+    chat_completion_request = chat.proto
+    assert chat_completion_request.max_turns == 5
