@@ -1877,3 +1877,63 @@ def test_chat_create_with_max_turns(client: Client):
 
     chat_completion_request = chat.proto
     assert chat_completion_request.max_turns == 5
+
+
+def test_response_created_timestamp(client: Client):
+    """Test that the Response.created property returns a Python datetime object."""
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("test message"))
+    response = chat.sample()
+
+    # Verify that created is a datetime object
+    assert isinstance(response.created, datetime)
+    # Verify that the timestamp is reasonable (within last few seconds)
+    # Note: ToDatetime() returns a timezone-naive datetime in UTC
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    assert (now_utc - response.created).total_seconds() < 10
+
+
+def test_chunk_created_timestamp(client: Client):
+    """Test that the Chunk.created property returns a Python datetime object."""
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("test message"))
+    stream = chat.stream()
+
+    chunks = []
+    for _, chunk in stream:
+        # Verify that created is a datetime object
+        assert isinstance(chunk.created, datetime)
+        # Verify that the timestamp is reasonable (within last few seconds)
+        # Note: ToDatetime() returns a timezone-naive datetime in UTC
+        now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+        assert (now_utc - chunk.created).total_seconds() < 10
+        chunks.append(chunk)
+
+    # Ensure we received some chunks
+    assert len(chunks) > 0
+
+
+def test_chat_create_with_include_output(client: Client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        include=[
+            "web_search_call_output",
+            "x_search_call_output",
+            chat_pb2.IncludeOption.INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT,
+            "collections_search_call_output",
+            "mcp_call_output",
+            "document_search_call_output",
+            "inline_citations",
+        ],
+    )
+
+    chat_completion_request = chat.proto
+    assert chat_completion_request.include == [
+        chat_pb2.IncludeOption.INCLUDE_OPTION_WEB_SEARCH_CALL_OUTPUT,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_MCP_CALL_OUTPUT,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_DOCUMENT_SEARCH_CALL_OUTPUT,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_INLINE_CITATIONS,
+    ]

@@ -25,6 +25,27 @@ ToolMode = Literal["auto", "none", "required"]
 # json_schema purposefully omitted, since the `parse` method should be used when needing json_schema responses.
 ResponseFormat = Literal["text", "json_object"]
 
+IncludeOption = Literal[
+    "web_search_call_output",
+    "x_search_call_output",
+    "code_execution_call_output",
+    "collections_search_call_output",
+    "document_search_call_output",
+    "mcp_call_output",
+    "inline_citations",
+]
+
+
+IncludeOptionMap = {
+    "web_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_WEB_SEARCH_CALL_OUTPUT,
+    "x_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT,
+    "code_execution_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT,
+    "collections_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT,
+    "document_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_DOCUMENT_SEARCH_CALL_OUTPUT,
+    "mcp_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_MCP_CALL_OUTPUT,
+    "inline_citations": chat_pb2.IncludeOption.INCLUDE_OPTION_INLINE_CITATIONS,
+}
+
 
 class BaseClient(abc.ABC, Generic[T]):
     """Base Client for interacting with the `Chat` API."""
@@ -61,6 +82,7 @@ class BaseClient(abc.ABC, Generic[T]):
         previous_response_id: Optional[str] = None,
         use_encrypted_content: Optional[bool] = None,
         max_turns: Optional[int] = None,
+        include: Optional[Sequence[Union[IncludeOption, "chat_pb2.IncludeOption"]]] = None,
     ) -> T:
         """Creates a new chat conversation.
 
@@ -160,6 +182,9 @@ class BaseClient(abc.ABC, Generic[T]):
                 on non-agentic requests (i.e. requests that do not use server-side tools). With parallel tool calls
                 enabled, multiple tool calls can occur within a single turn, so max_turns does not necessarily equal
                 the total number of tool calls.
+            include: A list of output options to include in the response.
+                Check the `IncludeOption` enum for all possible values.
+                Defaults to None.
 
         Returns:
             A new chat request bound to a client.
@@ -193,6 +218,13 @@ class BaseClient(abc.ABC, Generic[T]):
         else:
             search_parameters_pb = search_parameters
 
+        include_pb: Optional[Sequence[chat_pb2.IncludeOption]] = None
+        if include is not None:
+            include_pb = [
+                _include_option_to_proto(include_option) if isinstance(include_option, str) else include_option
+                for include_option in include
+            ]
+
         return self._make_chat(
             conversation_id=conversation_id,
             model=model,
@@ -217,6 +249,7 @@ class BaseClient(abc.ABC, Generic[T]):
             previous_response_id=previous_response_id,
             use_encrypted_content=use_encrypted_content,
             max_turns=max_turns,
+            include=include_pb,
         )
 
     @abc.abstractmethod
@@ -753,6 +786,13 @@ def _reasoning_effort_to_proto(effort: ReasoningEffort) -> chat_pb2.ReasoningEff
             raise ValueError(f"Invalid reasoning effort: {effort}. Must be one of: {ReasoningEffort.__args__}")
 
 
+def _include_option_to_proto(include_option: IncludeOption) -> chat_pb2.IncludeOption:
+    """Converts a `IncludeOption` literal to a proto."""
+    if include_option in IncludeOptionMap:
+        return IncludeOptionMap[include_option]
+    raise ValueError(f"Invalid include option: {include_option}. Must be one of: {IncludeOptionMap.keys()}")
+
+
 def _tool_mode_to_proto(mode: ToolMode) -> chat_pb2.ToolMode:
     """Converts a `ToolMode` literal to a proto."""
     match mode:
@@ -805,6 +845,11 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         ]
 
     @property
+    def created(self) -> datetime.datetime:
+        """Returns the creation timestamp of this chunk."""
+        return self.proto.created.ToDatetime()
+
+    @property
     def output(self) -> str:
         """Concatenates all chunks into a single string."""
         return "".join(c.content + c.reasoning_content for c in self.choices)
@@ -837,6 +882,11 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
     def citations(self) -> Sequence[str]:
         """Returns the citations of this chunk."""
         return self.proto.citations
+
+    @property
+    def debug_output(self) -> chat_pb2.DebugOutput:
+        """Returns the debug output of this chunk."""
+        return self.proto.debug_output
 
     def __str__(self):
         """Concatenates all chunks into a single string."""
@@ -987,6 +1037,11 @@ class Response(_ResponseProtoDecorator):
     def id(self) -> str:
         """Returns the id of this response."""
         return self._proto.id
+
+    @property
+    def created(self) -> datetime.datetime:
+        """Returns the creation timestamp of this response."""
+        return self._proto.created.ToDatetime()
 
     @property
     def content(self) -> str:
