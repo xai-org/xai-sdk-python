@@ -3,7 +3,7 @@ import datetime
 import json
 import time
 from collections import Counter, defaultdict
-from typing import Any, Generic, Literal, Optional, Sequence, TypeVar, Union
+from typing import Any, Generic, Optional, Sequence, TypeVar, Union
 
 import grpc
 from pydantic import BaseModel
@@ -13,38 +13,18 @@ from .meta import ProtoDecorator
 from .proto import chat_pb2, chat_pb2_grpc, image_pb2, sample_pb2, usage_pb2
 from .search import SearchParameters
 from .telemetry import should_disable_sensitive_attributes
-
-Content = Union[str, chat_pb2.Content]
+from .types import (
+    ChatModel,
+    Content,
+    ImageDetail,
+    IncludeOption,
+    IncludeOptionMap,
+    ReasoningEffort,
+    ResponseFormat,
+    ToolMode,
+)
 
 T = TypeVar("T")
-
-
-ImageDetail = Literal["auto", "low", "high"]
-ReasoningEffort = Literal["low", "high"]
-ToolMode = Literal["auto", "none", "required"]
-# json_schema purposefully omitted, since the `parse` method should be used when needing json_schema responses.
-ResponseFormat = Literal["text", "json_object"]
-
-IncludeOption = Literal[
-    "web_search_call_output",
-    "x_search_call_output",
-    "code_execution_call_output",
-    "collections_search_call_output",
-    "document_search_call_output",
-    "mcp_call_output",
-    "inline_citations",
-]
-
-
-IncludeOptionMap = {
-    "web_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_WEB_SEARCH_CALL_OUTPUT,
-    "x_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT,
-    "code_execution_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT,
-    "collections_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT,
-    "document_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_DOCUMENT_SEARCH_CALL_OUTPUT,
-    "mcp_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_MCP_CALL_OUTPUT,
-    "inline_citations": chat_pb2.IncludeOption.INCLUDE_OPTION_INLINE_CITATIONS,
-}
 
 
 class BaseClient(abc.ABC, Generic[T]):
@@ -58,7 +38,7 @@ class BaseClient(abc.ABC, Generic[T]):
 
     def create(
         self,
-        model: str,
+        model: Union[ChatModel, str],
         *,
         conversation_id: Optional[str] = None,
         messages: Optional[Sequence[chat_pb2.Message]] = None,
