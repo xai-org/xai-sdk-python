@@ -1922,8 +1922,9 @@ def test_chat_create_with_include_output(client: Client):
             chat_pb2.IncludeOption.INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT,
             "collections_search_call_output",
             "mcp_call_output",
-            "document_search_call_output",
+            "attachment_search_call_output",
             "inline_citations",
+            "verbose_streaming",
         ],
     )
 
@@ -1934,6 +1935,7 @@ def test_chat_create_with_include_output(client: Client):
         chat_pb2.IncludeOption.INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT,
         chat_pb2.IncludeOption.INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT,
         chat_pb2.IncludeOption.INCLUDE_OPTION_MCP_CALL_OUTPUT,
-        chat_pb2.IncludeOption.INCLUDE_OPTION_DOCUMENT_SEARCH_CALL_OUTPUT,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_ATTACHMENT_SEARCH_CALL_OUTPUT,
         chat_pb2.IncludeOption.INCLUDE_OPTION_INLINE_CITATIONS,
+        chat_pb2.IncludeOption.INCLUDE_OPTION_VERBOSE_STREAMING,
     ]

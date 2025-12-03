@@ -26,9 +26,10 @@ IncludeOption: TypeAlias = Literal[
     "x_search_call_output",
     "code_execution_call_output",
     "collections_search_call_output",
-    "document_search_call_output",
+    "attachment_search_call_output",
     "mcp_call_output",
     "inline_citations",
+    "verbose_streaming",
 ]
 
 IncludeOptionMap: dict[IncludeOption, "chat_pb2.IncludeOption"] = {
@@ -36,7 +37,8 @@ IncludeOptionMap: dict[IncludeOption, "chat_pb2.IncludeOption"] = {
     "x_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT,
     "code_execution_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT,
     "collections_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT,
-    "document_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_DOCUMENT_SEARCH_CALL_OUTPUT,
+    "attachment_search_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_ATTACHMENT_SEARCH_CALL_OUTPUT,
     "mcp_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_MCP_CALL_OUTPUT,
     "inline_citations": chat_pb2.IncludeOption.INCLUDE_OPTION_INLINE_CITATIONS,
+    "verbose_streaming": chat_pb2.IncludeOption.INCLUDE_OPTION_VERBOSE_STREAMING,
 }
