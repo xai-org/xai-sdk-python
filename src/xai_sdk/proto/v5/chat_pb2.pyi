@@ -18,7 +18,7 @@ class IncludeOption(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT: _ClassVar[IncludeOption]
     INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT: _ClassVar[IncludeOption]
     INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT: _ClassVar[IncludeOption]
-    INCLUDE_OPTION_DOCUMENT_SEARCH_CALL_OUTPUT: _ClassVar[IncludeOption]
+    INCLUDE_OPTION_ATTACHMENT_SEARCH_CALL_OUTPUT: _ClassVar[IncludeOption]
     INCLUDE_OPTION_MCP_CALL_OUTPUT: _ClassVar[IncludeOption]
     INCLUDE_OPTION_INLINE_CITATIONS: _ClassVar[IncludeOption]
 
@@ -61,7 +61,7 @@ class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_MCP_TOOL: _ClassVar[ToolCallType]
-    TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_ATTACHMENT_SEARCH_TOOL: _ClassVar[ToolCallType]
 
 class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -81,7 +81,7 @@ INCLUDE_OPTION_WEB_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_CODE_EXECUTION_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT: IncludeOption
-INCLUDE_OPTION_DOCUMENT_SEARCH_CALL_OUTPUT: IncludeOption
+INCLUDE_OPTION_ATTACHMENT_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_MCP_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_INLINE_CITATIONS: IncludeOption
 INVALID_ROLE: MessageRole
@@ -109,7 +109,7 @@ TOOL_CALL_TYPE_X_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
 TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_MCP_TOOL: ToolCallType
-TOOL_CALL_TYPE_DOCUMENT_SEARCH_TOOL: ToolCallType
+TOOL_CALL_TYPE_ATTACHMENT_SEARCH_TOOL: ToolCallType
 TOOL_CALL_STATUS_IN_PROGRESS: ToolCallStatus
 TOOL_CALL_STATUS_COMPLETED: ToolCallStatus
 TOOL_CALL_STATUS_INCOMPLETE: ToolCallStatus
@@ -388,22 +388,22 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "web_search", "x_search", "code_execution", "collections_search", "mcp", "document_search")
+    __slots__ = ("function", "web_search", "x_search", "code_execution", "collections_search", "mcp", "attachment_search")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
     CODE_EXECUTION_FIELD_NUMBER: _ClassVar[int]
     COLLECTIONS_SEARCH_FIELD_NUMBER: _ClassVar[int]
     MCP_FIELD_NUMBER: _ClassVar[int]
-    DOCUMENT_SEARCH_FIELD_NUMBER: _ClassVar[int]
+    ATTACHMENT_SEARCH_FIELD_NUMBER: _ClassVar[int]
     function: Function
     web_search: WebSearch
     x_search: XSearch
     code_execution: CodeExecution
     collections_search: CollectionsSearch
     mcp: MCP
-    document_search: DocumentSearch
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., collections_search: _Optional[_Union[CollectionsSearch, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ..., document_search: _Optional[_Union[DocumentSearch, _Mapping]] = ...) -> None: ...
+    attachment_search: AttachmentSearch
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., collections_search: _Optional[_Union[CollectionsSearch, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ..., attachment_search: _Optional[_Union[AttachmentSearch, _Mapping]] = ...) -> None: ...
 
 class MCP(_message.Message):
     __slots__ = ("server_label", "server_description", "server_url", "allowed_tool_names", "authorization", "extra_headers")
@@ -466,7 +466,7 @@ class CollectionsSearch(_message.Message):
     limit: int
     def __init__(self, collection_ids: _Optional[_Iterable[str]] = ..., limit: _Optional[int] = ...) -> None: ...
 
-class DocumentSearch(_message.Message):
+class AttachmentSearch(_message.Message):
     __slots__ = ("limit",)
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     limit: int

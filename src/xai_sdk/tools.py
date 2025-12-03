@@ -211,6 +211,6 @@ def get_tool_call_type(tool_call: chat_pb2.ToolCall) -> str:
 
     Returns:
         The type of the tool call as a string, valid values are: "client_side_tool", "web_search_tool",
-        "x_search_tool", "code_execution_tool", "collections_search_tool", "mcp_tool".
+        "x_search_tool", "code_execution_tool", "collections_search_tool", "mcp_tool", "attachment_search_tool".
     """
     return chat_pb2.ToolCallType.Name(tool_call.type).removeprefix("TOOL_CALL_TYPE_").lower()
