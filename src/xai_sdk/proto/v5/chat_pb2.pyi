@@ -21,6 +21,7 @@ class IncludeOption(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     INCLUDE_OPTION_ATTACHMENT_SEARCH_CALL_OUTPUT: _ClassVar[IncludeOption]
     INCLUDE_OPTION_MCP_CALL_OUTPUT: _ClassVar[IncludeOption]
     INCLUDE_OPTION_INLINE_CITATIONS: _ClassVar[IncludeOption]
+    INCLUDE_OPTION_VERBOSE_STREAMING: _ClassVar[IncludeOption]
 
 class MessageRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -84,6 +85,7 @@ INCLUDE_OPTION_COLLECTIONS_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_ATTACHMENT_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_MCP_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_INLINE_CITATIONS: IncludeOption
+INCLUDE_OPTION_VERBOSE_STREAMING: IncludeOption
 INVALID_ROLE: MessageRole
 ROLE_USER: MessageRole
 ROLE_ASSISTANT: MessageRole
