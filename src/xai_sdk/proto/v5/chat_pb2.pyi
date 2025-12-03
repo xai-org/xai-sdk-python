@@ -278,18 +278,20 @@ class Delta(_message.Message):
     def __init__(self, content: _Optional[str] = ..., reasoning_content: _Optional[str] = ..., role: _Optional[_Union[MessageRole, str]] = ..., tool_calls: _Optional[_Iterable[_Union[ToolCall, _Mapping]]] = ..., encrypted_content: _Optional[str] = ..., citations: _Optional[_Iterable[_Union[InlineCitation, _Mapping]]] = ...) -> None: ...
 
 class InlineCitation(_message.Message):
-    __slots__ = ("id", "start_index", "web_citation", "x_citation", "collections_citation")
+    __slots__ = ("id", "start_index", "end_index", "web_citation", "x_citation", "collections_citation")
     ID_FIELD_NUMBER: _ClassVar[int]
     START_INDEX_FIELD_NUMBER: _ClassVar[int]
+    END_INDEX_FIELD_NUMBER: _ClassVar[int]
     WEB_CITATION_FIELD_NUMBER: _ClassVar[int]
     X_CITATION_FIELD_NUMBER: _ClassVar[int]
     COLLECTIONS_CITATION_FIELD_NUMBER: _ClassVar[int]
     id: str
     start_index: int
+    end_index: int
     web_citation: WebCitation
     x_citation: XCitation
     collections_citation: CollectionsCitation
-    def __init__(self, id: _Optional[str] = ..., start_index: _Optional[int] = ..., web_citation: _Optional[_Union[WebCitation, _Mapping]] = ..., x_citation: _Optional[_Union[XCitation, _Mapping]] = ..., collections_citation: _Optional[_Union[CollectionsCitation, _Mapping]] = ...) -> None: ...
+    def __init__(self, id: _Optional[str] = ..., start_index: _Optional[int] = ..., end_index: _Optional[int] = ..., web_citation: _Optional[_Union[WebCitation, _Mapping]] = ..., x_citation: _Optional[_Union[XCitation, _Mapping]] = ..., collections_citation: _Optional[_Union[CollectionsCitation, _Mapping]] = ...) -> None: ...
 
 class WebCitation(_message.Message):
     __slots__ = ("url",)
