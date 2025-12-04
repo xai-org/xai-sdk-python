@@ -1,4 +1,5 @@
 from google.protobuf.internal import containers as _containers
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from collections.abc import Iterable as _Iterable, Mapping as _Mapping
@@ -6,17 +7,30 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class HNSWMetric(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    HNSW_METRIC_UNKNOWN: _ClassVar[HNSWMetric]
+    HNSW_METRIC_COSINE: _ClassVar[HNSWMetric]
+    HNSW_METRIC_EUCLIDEAN: _ClassVar[HNSWMetric]
+    HNSW_METRIC_INNER_PRODUCT: _ClassVar[HNSWMetric]
+HNSW_METRIC_UNKNOWN: HNSWMetric
+HNSW_METRIC_COSINE: HNSWMetric
+HNSW_METRIC_EUCLIDEAN: HNSWMetric
+HNSW_METRIC_INNER_PRODUCT: HNSWMetric
+
 class IndexedChunk(_message.Message):
-    __slots__ = ("chunk_number", "vector", "data", "data_hash")
+    __slots__ = ("chunk_id", "chunk_number", "vector", "data", "data_hash")
+    CHUNK_ID_FIELD_NUMBER: _ClassVar[int]
     CHUNK_NUMBER_FIELD_NUMBER: _ClassVar[int]
     VECTOR_FIELD_NUMBER: _ClassVar[int]
     DATA_FIELD_NUMBER: _ClassVar[int]
     DATA_HASH_FIELD_NUMBER: _ClassVar[int]
+    chunk_id: str
     chunk_number: int
     vector: _containers.RepeatedScalarFieldContainer[float]
     data: str
     data_hash: bytes
-    def __init__(self, chunk_number: _Optional[int] = ..., vector: _Optional[_Iterable[float]] = ..., data: _Optional[str] = ..., data_hash: _Optional[bytes] = ...) -> None: ...
+    def __init__(self, chunk_id: _Optional[str] = ..., chunk_number: _Optional[int] = ..., vector: _Optional[_Iterable[float]] = ..., data: _Optional[str] = ..., data_hash: _Optional[bytes] = ...) -> None: ...
 
 class IndexConfiguration(_message.Message):
     __slots__ = ("model_name",)

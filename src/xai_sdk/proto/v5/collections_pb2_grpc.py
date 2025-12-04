@@ -51,6 +51,11 @@ class CollectionsStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.UploadDocumentRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.FromString,
                 _registered_method=True)
+        self.UpdateDocument = channel.unary_unary(
+                '/collections.Collections/UpdateDocument',
+                request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.UpdateDocumentRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.FromString,
+                _registered_method=True)
         self.ListDocuments = channel.unary_unary(
                 '/collections.Collections/ListDocuments',
                 request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.ListDocumentsRequest.SerializeToString,
@@ -70,11 +75,6 @@ class CollectionsStub(object):
                 '/collections.Collections/RemoveDocumentFromCollection',
                 request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.RemoveDocumentFromCollectionRequest.SerializeToString,
                 response_deserializer=google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-                _registered_method=True)
-        self.UpdateDocument = channel.unary_unary(
-                '/collections.Collections/UpdateDocument',
-                request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.UpdateDocumentRequest.SerializeToString,
-                response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.FromString,
                 _registered_method=True)
         self.ReIndexDocument = channel.unary_unary(
                 '/collections.Collections/ReIndexDocument',
@@ -126,56 +126,60 @@ class CollectionsServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def ListAvailableEmbeddingModels(self, request, context):
-        """List available embeddings models to a given team.
+        """List available embeddings models for a given team.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListAvailableTokenEncodings(self, request, context):
-        """List available token encodings.
+        """List available token encodings for a given team.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UploadDocument(self, request, context):
-        """Upload a document.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def ListDocuments(self, request, context):
-        """List documents.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def GetDocumentMetadata(self, request, context):
-        """Retrieve document metadata.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def AddDocumentToCollection(self, request, context):
-        """Add document to collection.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def RemoveDocumentFromCollection(self, request, context):
-        """Remove document from collection.
+        """Upload a document to a collection.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def UpdateDocument(self, request, context):
-        """Update document's data and metadata.
+        """Update a document's data and metadata.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListDocuments(self, request, context):
+        """List documents in a collection.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetDocumentMetadata(self, request, context):
+        """Retrieve document metadata in a collection.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AddDocumentToCollection(self, request, context):
+        """Add a document to collection.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RemoveDocumentFromCollection(self, request, context):
+        """Add document batch to collection.
+        rpc BatchAddDocumentToCollection(BatchAddDocumentToCollectionRequest)
+        returns (google.protobuf.Empty) {}
+
+        Remove document from collection.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -240,6 +244,11 @@ def add_CollectionsServicer_to_server(servicer, server):
                     request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.UploadDocumentRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.SerializeToString,
             ),
+            'UpdateDocument': grpc.unary_unary_rpc_method_handler(
+                    servicer.UpdateDocument,
+                    request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.UpdateDocumentRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.SerializeToString,
+            ),
             'ListDocuments': grpc.unary_unary_rpc_method_handler(
                     servicer.ListDocuments,
                     request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.ListDocumentsRequest.FromString,
@@ -259,11 +268,6 @@ def add_CollectionsServicer_to_server(servicer, server):
                     servicer.RemoveDocumentFromCollection,
                     request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.RemoveDocumentFromCollectionRequest.FromString,
                     response_serializer=google_dot_protobuf_dot_empty__pb2.Empty.SerializeToString,
-            ),
-            'UpdateDocument': grpc.unary_unary_rpc_method_handler(
-                    servicer.UpdateDocument,
-                    request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.UpdateDocumentRequest.FromString,
-                    response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.SerializeToString,
             ),
             'ReIndexDocument': grpc.unary_unary_rpc_method_handler(
                     servicer.ReIndexDocument,
@@ -482,6 +486,33 @@ class Collections(object):
             _registered_method=True)
 
     @staticmethod
+    def UpdateDocument(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/collections.Collections/UpdateDocument',
+            xai_dot_api_dot_v1_dot_collections__pb2.UpdateDocumentRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def ListDocuments(request,
             target,
             options=(),
@@ -579,33 +610,6 @@ class Collections(object):
             '/collections.Collections/RemoveDocumentFromCollection',
             xai_dot_api_dot_v1_dot_collections__pb2.RemoveDocumentFromCollectionRequest.SerializeToString,
             google_dot_protobuf_dot_empty__pb2.Empty.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def UpdateDocument(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/collections.Collections/UpdateDocument',
-            xai_dot_api_dot_v1_dot_collections__pb2.UpdateDocumentRequest.SerializeToString,
-            xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.FromString,
             options,
             channel_credentials,
             insecure,

@@ -1,14 +1,27 @@
+import datetime
+import time
 from typing import Optional, Sequence, Union
 
 from ..collections import (
+    DEFAULT_INDEXING_POLL_INTERVAL,
+    DEFAULT_INDEXING_TIMEOUT,
     BaseClient,
+    ChunkConfiguration,
     CollectionSortBy,
+    DocumentRetrievalMode,
     DocumentSortBy,
+    FieldDefinition,
+    HNSWMetric,
     Order,
+    _chunk_configuration_to_pb,
     _collection_sort_by_to_pb,
     _document_sort_by_to_pb,
+    _field_definition_to_pb,
+    _hnsw_metric_to_pb,
     _order_to_pb,
 )
+from ..files import _chunk_file_data
+from ..poll_timer import PollTimer
 from ..proto import collections_pb2, documents_pb2, shared_pb2, types_pb2
 
 
@@ -19,7 +32,9 @@ class Client(BaseClient):
         self,
         name: str,
         model_name: Optional[str] = None,
-        chunk_configuration: Optional[types_pb2.ChunkConfiguration] = None,
+        chunk_configuration: Optional[Union[ChunkConfiguration, types_pb2.ChunkConfiguration]] = None,
+        metric_space: Optional[Union[HNSWMetric, "types_pb2.HNSWMetric"]] = None,
+        field_definitions: Optional[Union[Sequence[FieldDefinition], Sequence[collections_pb2.FieldDefinition]]] = None,
     ) -> collections_pb2.CollectionMetadata:
         """Creates a new collection for storing document embeddings.
 
@@ -28,15 +43,47 @@ class Client(BaseClient):
             model_name: The name of the model to use for embedding. If not provided, the default model will be used.
             chunk_configuration: The configuration for chunking documents.
                 If not provided, the default chunk configuration will be used.
+            metric_space: The distance metric to use for the HNSW (Hierarchical Navigable Small Worlds) index
+                and similarity search. Options: COSINE, EUCLIDEAN, or INNER_PRODUCT.
+            field_definitions: Schema definitions for custom metadata fields that can be attached to documents.
+                Each field definition specifies: `key` (field name), `required` (must be present on all
+                documents), `inject_into_chunk` (prepend field value to each chunk for contextual retrieval), `unique`
+                (value must be unique across all documents), and `description` (optional explanation). Example:
+                [{"key": "title", "required": True, "inject_into_chunk": True, "unique": False}]
 
         Returns:
             The metadata for the created collection.
         """
+        # Convert metric_space if it's a string
+        metric_space_pb: Optional[types_pb2.HNSWMetric] = None
+        if isinstance(metric_space, str):
+            metric_space_pb = _hnsw_metric_to_pb(metric_space)
+        else:
+            metric_space_pb = metric_space
+
+        # Convert chunk_configuration if it's a dict
+        chunk_configuration_pb: Optional[types_pb2.ChunkConfiguration] = None
+        if isinstance(chunk_configuration, dict):
+            chunk_configuration_pb = _chunk_configuration_to_pb(chunk_configuration)
+        else:
+            chunk_configuration_pb = chunk_configuration
+
+        # Convert field_definitions if they're dicts
+        field_definitions_pb: Sequence[collections_pb2.FieldDefinition] = []
+        if field_definitions is not None:
+            for field_definition in field_definitions:
+                if isinstance(field_definition, dict):
+                    field_definitions_pb.append(_field_definition_to_pb(field_definition))
+                else:
+                    field_definitions_pb.append(field_definition)
+
         return self._collections_stub.CreateCollection(
             collections_pb2.CreateCollectionRequest(
                 collection_name=name,
                 index_configuration=types_pb2.IndexConfiguration(model_name=model_name) if model_name else None,
-                chunk_configuration=chunk_configuration,
+                chunk_configuration=chunk_configuration_pb,
+                metric_space=metric_space_pb,
+                field_definitions=field_definitions_pb,
             )
         )
 
@@ -45,18 +92,28 @@ class Client(BaseClient):
         limit: Optional[int] = None,
         order: Optional[Union[Order, "shared_pb2.Ordering"]] = None,
         sort_by: Optional[Union[CollectionSortBy, "collections_pb2.CollectionsSortBy"]] = None,
+        filter: Optional[str] = None,  # noqa: A002
         pagination_token: Optional[str] = None,
     ) -> collections_pb2.ListCollectionsResponse:
         """Lists all collections.
 
         Args:
-            limit: The maximum number of collections to return per page.
-            order: The order in which to return the collections.
-            sort_by: The field to sort the collections by.
-            pagination_token: The token to use for pagination.
+            limit: The maximum number of collections to return per page. Maximum 100 items per request.
+                If not provided, defaults to 100.
+            order: The ordering direction for results. Options: "asc" (ascending) or "desc" (descending).
+                If not provided, defaults to "desc".
+            sort_by: The field to sort collections by. Options: "name" or "age".
+                If not provided, defaults to "name".
+            filter: Filter expression to narrow down results. Supports filtering on: collection_name,
+                created_at, documents_count. Examples:
+                - 'collection_name:"SEC" AND documents_count:>10'
+                - 'created_at:>2025-01-01T00:00:00Z'
+            pagination_token: Token to retrieve the next page. Provided by `pagination_token` in the
+                previous `ListCollectionsResponse`.
 
         Returns:
-            A list of collections.
+            A response containing a list of collection metadata and an optional pagination token for
+            retrieving the next page of results.
         """
         order_pb: Optional[shared_pb2.Ordering] = None
         if isinstance(order, str):
@@ -72,7 +129,7 @@ class Client(BaseClient):
 
         return self._collections_stub.ListCollections(
             collections_pb2.ListCollectionsRequest(
-                limit=limit, order=order_pb, sort_by=sort_by_pb, pagination_token=pagination_token
+                limit=limit, order=order_pb, sort_by=sort_by_pb, pagination_token=pagination_token, filter=filter
             )
         )
 
@@ -93,7 +150,7 @@ class Client(BaseClient):
         self,
         collection_id: str,
         name: Optional[str] = None,
-        chunk_configuration: Optional[types_pb2.ChunkConfiguration] = None,
+        chunk_configuration: Optional[Union[ChunkConfiguration, types_pb2.ChunkConfiguration]] = None,
     ) -> collections_pb2.CollectionMetadata:
         """Updates a collection's configuration.
 
@@ -108,11 +165,17 @@ class Client(BaseClient):
         if name is None and chunk_configuration is None:
             raise ValueError("At least one of name or chunk_configuration must be provided to update a collection")
 
+        chunk_configuration_pb: Optional[types_pb2.ChunkConfiguration] = None
+        if isinstance(chunk_configuration, dict):
+            chunk_configuration_pb = _chunk_configuration_to_pb(chunk_configuration)
+        else:
+            chunk_configuration_pb = chunk_configuration
+
         return self._collections_stub.UpdateCollection(
             collections_pb2.UpdateCollectionRequest(
                 collection_id=collection_id,
                 collection_name=name,
-                chunk_configuration=chunk_configuration,
+                chunk_configuration=chunk_configuration_pb,
             )
         )
 
@@ -131,30 +194,84 @@ class Client(BaseClient):
         query: str,
         collection_ids: Sequence[str],
         limit: Optional[int] = None,
+        *,
+        instructions: Optional[str] = None,
+        retrieval_mode: Optional[
+            Union[
+                DocumentRetrievalMode,
+                documents_pb2.HybridRetrieval,
+                documents_pb2.SemanticRetrieval,
+                documents_pb2.KeywordRetrieval,
+            ]
+        ] = None,
     ) -> documents_pb2.SearchResponse:
-        """Performs a semantic, embedding-based search across all documents in the provided set of collections.
+        """Performs a search across all documents in the provided set of collections.
 
         Args:
-            query: The search query to use for the semantic search.
+            query: The search query to use for the semantic or keyword search.
             collection_ids: The IDs of the collections to search in.
             limit: The maximum number of results to return.
+            instructions: Optional, user-defined instructions that guide how the search
+                should be interpreted and ranked. If not provided, the server will use
+                its default generic search instructions.
+            retrieval_mode: Optional retrieval strategy to use for the search. When
+                omitted, the server defaults to hybrid retrieval. Valid values are:
+                - "hybrid" or documents_pb2.HybridRetrieval(): Use hybrid retrieval.
+                - "semantic" or documents_pb2.SemanticRetrieval(): Use semantic retrieval.
+                - "keyword" or documents_pb2.KeywordRetrieval(): Use keyword-based retrieval.
 
         Returns:
             A SearchResponse object containing the search results.
         """
-        return self._documents_stub.Search(
-            documents_pb2.SearchRequest(
-                query=query, source=documents_pb2.DocumentsSource(collection_ids=collection_ids), limit=limit
-            )
-        )
+        search_request_kwargs: dict = {
+            "query": query,
+            "source": documents_pb2.DocumentsSource(collection_ids=collection_ids),
+        }
+
+        if limit is not None:
+            search_request_kwargs["limit"] = limit
+
+        if instructions is not None:
+            search_request_kwargs["instructions"] = instructions
+
+        if retrieval_mode is not None:
+            match retrieval_mode:
+                case "hybrid" | documents_pb2.HybridRetrieval():
+                    search_request_kwargs["hybrid_retrieval"] = (
+                        retrieval_mode
+                        if isinstance(retrieval_mode, documents_pb2.HybridRetrieval)
+                        else documents_pb2.HybridRetrieval()
+                    )
+                case "semantic" | documents_pb2.SemanticRetrieval():
+                    search_request_kwargs["semantic_retrieval"] = (
+                        retrieval_mode
+                        if isinstance(retrieval_mode, documents_pb2.SemanticRetrieval)
+                        else documents_pb2.SemanticRetrieval()
+                    )
+                case "keyword" | documents_pb2.KeywordRetrieval():
+                    search_request_kwargs["keyword_retrieval"] = (
+                        retrieval_mode
+                        if isinstance(retrieval_mode, documents_pb2.KeywordRetrieval)
+                        else documents_pb2.KeywordRetrieval()
+                    )
+                case _:
+                    raise ValueError(
+                        f"Unsupported retrieval_mode {retrieval_mode!r}. Expected 'hybrid', 'semantic', 'keyword', "
+                        "or a proto retrieval type."
+                    )
+
+        return self._documents_stub.Search(documents_pb2.SearchRequest(**search_request_kwargs))
 
     def upload_document(
         self,
         collection_id: str,
         name: str,
         data: bytes,
-        content_type: str,
         fields: Optional[dict[str, str]] = None,
+        *,
+        wait_for_indexing: bool = False,
+        poll_interval: Optional[datetime.timedelta] = None,
+        timeout: Optional[datetime.timedelta] = None,
     ) -> collections_pb2.DocumentMetadata:
         """Uploads a document to a collection.
 
@@ -162,21 +279,80 @@ class Client(BaseClient):
             collection_id: The ID of the collection to upload the document to.
             name: The name of the document.
             data: The data of the document.
-            content_type: The content type of the document.
             fields: Additional metadata fields to store with the document.
+            wait_for_indexing: Whether to wait for the document to be indexed.
+            poll_interval: The interval to poll for when checking whether the document has been indexed.
+            timeout: The total time to wait for the document to be indexed before returning.
 
         Returns:
             The metadata for the uploaded document.
         """
-        return self._collections_stub.UploadDocument(
-            collections_pb2.UploadDocumentRequest(
+        # Upload the raw bytes via the streaming Files API, then attach to the collection.
+        upload_chunks = _chunk_file_data(filename=name, data=data)
+
+        uploaded_file = self._files_stub.UploadFile(upload_chunks)
+
+        # Attach the uploaded file to the target collection as a document.
+        self._collections_stub.AddDocumentToCollection(
+            collections_pb2.AddDocumentToCollectionRequest(
                 collection_id=collection_id,
-                name=name,
-                data=data,
-                content_type=content_type,
+                file_id=uploaded_file.id,
                 fields=fields,
             )
         )
+
+        # Either wait for indexing to complete or return the current metadata.
+        if wait_for_indexing:
+            return self._wait_for_indexing_to_complete(
+                collection_id,
+                uploaded_file.id,
+                poll_interval or DEFAULT_INDEXING_POLL_INTERVAL,
+                timeout or DEFAULT_INDEXING_TIMEOUT,
+            )
+
+        return self.get_document(
+            uploaded_file.id,
+            collection_id,
+        )
+
+    def _wait_for_indexing_to_complete(
+        self,
+        collection_id: str,
+        file_id: str,
+        poll_interval: datetime.timedelta,
+        timeout: datetime.timedelta,
+    ) -> collections_pb2.DocumentMetadata:
+        """Waits for a document to be indexed.
+
+        Args:
+            collection_id: The ID of the collection containing the document.
+            file_id: The ID of the document to wait for.
+            poll_interval: The interval to poll for when checking whether the document has been indexed.
+            timeout: The total time to wait for the document to be indexed before returning.
+
+        Returns:
+            The metadata for the document.
+
+        Raises:
+            ValueError: If the document indexing fails.
+            ValueError: If the document status is unknown.
+            TimeoutError: If polling times out before document is processed.
+        """
+        timer = PollTimer(timeout, poll_interval)
+        while True:
+            document_metadata = self.get_document(
+                file_id,
+                collection_id,
+            )
+            match document_metadata.status:
+                case collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED:
+                    return document_metadata
+                case collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSING:
+                    time.sleep(timer.sleep_interval_or_raise())
+                case collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED:
+                    raise ValueError(f"Document indexing failed: {document_metadata.error_message}")
+                case unknown_status:
+                    raise ValueError(f"Unknown document status: {unknown_status}")
 
     def add_existing_document(
         self,

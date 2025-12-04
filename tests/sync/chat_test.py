@@ -26,6 +26,7 @@ from xai_sdk.chat import (
     user,
 )
 from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2
+from xai_sdk.proto import documents_pb2 as _documents_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
 from xai_sdk.tools import code_execution, collections_search, mcp, web_search, x_search
 
@@ -1375,7 +1376,12 @@ def test_chat_create_with_server_side_tools(client: Client):
                 enable_video_understanding=True,
             ),
             code_execution(),
-            collections_search(collection_ids=["collection-1", "collection-2"], limit=10),
+            collections_search(
+                collection_ids=["collection-1", "collection-2"],
+                limit=10,
+                instructions="Focus on the most relevant documents.",
+                retrieval_mode="hybrid",
+            ),
             mcp(
                 server_label="linear",
                 server_description="mcp server for linear.app",
@@ -1418,6 +1424,8 @@ def test_chat_create_with_server_side_tools(client: Client):
         collections_search=chat_pb2.CollectionsSearch(
             collection_ids=["collection-1", "collection-2"],
             limit=10,
+            instructions="Focus on the most relevant documents.",
+            hybrid_retrieval=_documents_pb2.HybridRetrieval(),
         )
     )
 

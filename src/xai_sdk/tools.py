@@ -1,9 +1,10 @@
 import datetime
-from typing import Optional
+from typing import Optional, Union
 
 from google.protobuf.timestamp_pb2 import Timestamp
 
-from xai_sdk.proto import chat_pb2
+from xai_sdk.collections import DocumentRetrievalMode
+from xai_sdk.proto import chat_pb2, documents_pb2
 
 
 def web_search(
@@ -140,7 +141,20 @@ def code_execution() -> chat_pb2.Tool:
     return chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
 
-def collections_search(collection_ids: list[str], limit: Optional[int] = None) -> chat_pb2.Tool:
+def collections_search(
+    collection_ids: list[str],
+    limit: Optional[int] = None,
+    *,
+    instructions: Optional[str] = None,
+    retrieval_mode: Optional[
+        Union[
+            DocumentRetrievalMode,
+            documents_pb2.HybridRetrieval,
+            documents_pb2.SemanticRetrieval,
+            documents_pb2.KeywordRetrieval,
+        ]
+    ] = None,
+) -> chat_pb2.Tool:
     """Creates a server-side tool for collections search, typically used in agentic requests.
 
     This tool enables the model to search collections and access document content from
@@ -149,24 +163,68 @@ def collections_search(collection_ids: list[str], limit: Optional[int] = None) -
     Args:
         collection_ids: The IDs of the collections to search in. A maximum of 10 collections can be searched.
         limit: The maximum number of results to return. Defaults to 10 if not provided.
+        instructions: Optional, user-defined instructions that guide how the collections
+            search should be interpreted and ranked. If not provided, the server will use
+            its default generic search instructions.
+        retrieval_mode: Optional retrieval strategy to use for the search. When omitted,
+            the server defaults to hybrid retrieval. Valid values are:
+            - "hybrid" or documents_pb2.HybridRetrieval(): Use hybrid retrieval.
+            - "semantic" or documents_pb2.SemanticRetrieval(): Use semantic retrieval.
+            - "keyword" or documents_pb2.KeywordRetrieval(): Use keyword-based retrieval.
 
     Returns:
         A `chat_pb2.Tool` object configured for collections search.
 
     Example:
+        Basic usage:
         ```
         from xai_sdk.tools import collections_search
 
         # Create a collections search tool for the collections with the IDs "collection-1" and "collection-2"
         tool = collections_search(collection_ids=["collection-1", "collection-2"], limit=10)
         ```
-    """
-    return chat_pb2.Tool(
-        collections_search=chat_pb2.CollectionsSearch(
-            collection_ids=collection_ids,
-            limit=limit,
+
+        With custom instructions and retrieval mode:
+        ```
+        tool = collections_search(
+            collection_ids=["collection-1"],
+            limit=5,
+            instructions="Focus on up-to-date, highly relevant documents.",
+            retrieval_mode="semantic",
         )
-    )
+        ```
+    """
+    collections_search_kwargs: dict = {
+        "collection_ids": collection_ids,
+    }
+
+    if limit is not None:
+        collections_search_kwargs["limit"] = limit
+
+    if instructions is not None:
+        collections_search_kwargs["instructions"] = instructions
+
+    if retrieval_mode is not None:
+        match retrieval_mode:
+            case "hybrid" | documents_pb2.HybridRetrieval():
+                collections_search_kwargs["hybrid_retrieval"] = (
+                    documents_pb2.HybridRetrieval() if retrieval_mode == "hybrid" else retrieval_mode
+                )
+            case "semantic" | documents_pb2.SemanticRetrieval():
+                collections_search_kwargs["semantic_retrieval"] = (
+                    documents_pb2.SemanticRetrieval() if retrieval_mode == "semantic" else retrieval_mode
+                )
+            case "keyword" | documents_pb2.KeywordRetrieval():
+                collections_search_kwargs["keyword_retrieval"] = (
+                    documents_pb2.KeywordRetrieval() if retrieval_mode == "keyword" else retrieval_mode
+                )
+            case _:
+                raise ValueError(
+                    f"Unsupported retrieval_mode {retrieval_mode!r}. Expected 'hybrid', 'semantic', 'keyword', "
+                    "or a proto retrieval type."
+                )
+
+    return chat_pb2.Tool(collections_search=chat_pb2.CollectionsSearch(**collections_search_kwargs))
 
 
 def mcp(

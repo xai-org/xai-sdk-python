@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16xai/api/v1/types.proto\x12\x03rag\"z\n\x0cIndexedChunk\x12!\n\x0c\x63hunk_number\x18\x01 \x01(\rR\x0b\x63hunkNumber\x12\x16\n\x06vector\x18\x02 \x03(\x02R\x06vector\x12\x12\n\x04\x64\x61ta\x18\x03 \x01(\tR\x04\x64\x61ta\x12\x1b\n\tdata_hash\x18\x04 \x01(\x0cR\x08\x64\x61taHash\"3\n\x12IndexConfiguration\x12\x1d\n\nmodel_name\x18\x01 \x01(\tR\tmodelName\"\x9b\x02\n\x12\x43hunkConfiguration\x12J\n\x13\x63hars_configuration\x18\x01 \x01(\x0b\x32\x17.rag.CharsConfigurationH\x00R\x12\x63harsConfiguration\x12M\n\x14tokens_configuration\x18\x02 \x01(\x0b\x32\x18.rag.TokensConfigurationH\x00R\x13tokensConfiguration\x12)\n\x10strip_whitespace\x18\x03 \x01(\x08R\x0fstripWhitespace\x12\x35\n\x17inject_name_into_chunks\x18\x04 \x01(\x08R\x14injectNameIntoChunksB\x08\n\x06\x63onfig\"u\n\x12\x43harsConfiguration\x12/\n\x14max_chunk_size_chars\x18\x01 \x01(\x05R\x11maxChunkSizeChars\x12.\n\x13\x63hunk_overlap_chars\x18\x02 \x01(\x05R\x11\x63hunkOverlapChars\"\x9f\x01\n\x13TokensConfiguration\x12\x31\n\x15max_chunk_size_tokens\x18\x01 \x01(\x05R\x12maxChunkSizeTokens\x12\x30\n\x14\x63hunk_overlap_tokens\x18\x02 \x01(\x05R\x12\x63hunkOverlapTokens\x12#\n\rencoding_name\x18\x03 \x01(\tR\x0c\x65ncodingNameBA\n\x07\x63om.ragB\nTypesProtoP\x01\xa2\x02\x03RXX\xaa\x02\x03Rag\xca\x02\x03Rag\xe2\x02\x0fRag\\GPBMetadata\xea\x02\x03Ragb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16xai/api/v1/types.proto\x12\x03rag\"\x95\x01\n\x0cIndexedChunk\x12\x19\n\x08\x63hunk_id\x18\x05 \x01(\tR\x07\x63hunkId\x12!\n\x0c\x63hunk_number\x18\x01 \x01(\rR\x0b\x63hunkNumber\x12\x16\n\x06vector\x18\x02 \x03(\x02R\x06vector\x12\x12\n\x04\x64\x61ta\x18\x03 \x01(\tR\x04\x64\x61ta\x12\x1b\n\tdata_hash\x18\x04 \x01(\x0cR\x08\x64\x61taHash\"3\n\x12IndexConfiguration\x12\x1d\n\nmodel_name\x18\x01 \x01(\tR\tmodelName\"\x9b\x02\n\x12\x43hunkConfiguration\x12J\n\x13\x63hars_configuration\x18\x01 \x01(\x0b\x32\x17.rag.CharsConfigurationH\x00R\x12\x63harsConfiguration\x12M\n\x14tokens_configuration\x18\x02 \x01(\x0b\x32\x18.rag.TokensConfigurationH\x00R\x13tokensConfiguration\x12)\n\x10strip_whitespace\x18\x03 \x01(\x08R\x0fstripWhitespace\x12\x35\n\x17inject_name_into_chunks\x18\x04 \x01(\x08R\x14injectNameIntoChunksB\x08\n\x06\x63onfig\"u\n\x12\x43harsConfiguration\x12/\n\x14max_chunk_size_chars\x18\x01 \x01(\x05R\x11maxChunkSizeChars\x12.\n\x13\x63hunk_overlap_chars\x18\x02 \x01(\x05R\x11\x63hunkOverlapChars\"\x9f\x01\n\x13TokensConfiguration\x12\x31\n\x15max_chunk_size_tokens\x18\x01 \x01(\x05R\x12maxChunkSizeTokens\x12\x30\n\x14\x63hunk_overlap_tokens\x18\x02 \x01(\x05R\x12\x63hunkOverlapTokens\x12#\n\rencoding_name\x18\x03 \x01(\tR\x0c\x65ncodingName*w\n\nHNSWMetric\x12\x17\n\x13HNSW_METRIC_UNKNOWN\x10\x00\x12\x16\n\x12HNSW_METRIC_COSINE\x10\x01\x12\x19\n\x15HNSW_METRIC_EUCLIDEAN\x10\x02\x12\x1d\n\x19HNSW_METRIC_INNER_PRODUCT\x10\x03\x42\x41\n\x07\x63om.ragB\nTypesProtoP\x01\xa2\x02\x03RXX\xaa\x02\x03Rag\xca\x02\x03Rag\xe2\x02\x0fRag\\GPBMetadata\xea\x02\x03Ragb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,14 +32,16 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'xai.api.v1.types_pb2', _glo
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\007com.ragB\nTypesProtoP\001\242\002\003RXX\252\002\003Rag\312\002\003Rag\342\002\017Rag\\GPBMetadata\352\002\003Rag'
-  _globals['_INDEXEDCHUNK']._serialized_start=31
-  _globals['_INDEXEDCHUNK']._serialized_end=153
-  _globals['_INDEXCONFIGURATION']._serialized_start=155
-  _globals['_INDEXCONFIGURATION']._serialized_end=206
-  _globals['_CHUNKCONFIGURATION']._serialized_start=209
-  _globals['_CHUNKCONFIGURATION']._serialized_end=492
-  _globals['_CHARSCONFIGURATION']._serialized_start=494
-  _globals['_CHARSCONFIGURATION']._serialized_end=611
-  _globals['_TOKENSCONFIGURATION']._serialized_start=614
-  _globals['_TOKENSCONFIGURATION']._serialized_end=773
+  _globals['_HNSWMETRIC']._serialized_start=803
+  _globals['_HNSWMETRIC']._serialized_end=922
+  _globals['_INDEXEDCHUNK']._serialized_start=32
+  _globals['_INDEXEDCHUNK']._serialized_end=181
+  _globals['_INDEXCONFIGURATION']._serialized_start=183
+  _globals['_INDEXCONFIGURATION']._serialized_end=234
+  _globals['_CHUNKCONFIGURATION']._serialized_start=237
+  _globals['_CHUNKCONFIGURATION']._serialized_end=520
+  _globals['_CHARSCONFIGURATION']._serialized_start=522
+  _globals['_CHARSCONFIGURATION']._serialized_end=639
+  _globals['_TOKENSCONFIGURATION']._serialized_start=642
+  _globals['_TOKENSCONFIGURATION']._serialized_end=801
 # @@protoc_insertion_point(module_scope)

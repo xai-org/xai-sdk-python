@@ -44,7 +44,15 @@ async def test_unified_client(test_server_port, test_management_server_port):
         management_api_host=f"localhost:{test_management_server_port}",
     )
     assert await client.collections.list() is not None
-    assert await client.collections.search(query="test-query-1", collection_ids=["test-collection-1"]) is not None
+    assert (
+        await client.collections.search(
+            query="test-query-1",
+            collection_ids=["test-collection-1"],
+            instructions="Short test search.",
+            retrieval_mode="keyword",
+        )
+        is not None
+    )
 
 
 @pytest.mark.asyncio(loop_scope="session")

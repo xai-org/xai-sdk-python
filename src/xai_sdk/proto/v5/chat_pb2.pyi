@@ -461,12 +461,20 @@ class CodeExecution(_message.Message):
     def __init__(self) -> None: ...
 
 class CollectionsSearch(_message.Message):
-    __slots__ = ("collection_ids", "limit")
+    __slots__ = ("collection_ids", "limit", "instructions", "hybrid_retrieval", "semantic_retrieval", "keyword_retrieval")
     COLLECTION_IDS_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
+    INSTRUCTIONS_FIELD_NUMBER: _ClassVar[int]
+    HYBRID_RETRIEVAL_FIELD_NUMBER: _ClassVar[int]
+    SEMANTIC_RETRIEVAL_FIELD_NUMBER: _ClassVar[int]
+    KEYWORD_RETRIEVAL_FIELD_NUMBER: _ClassVar[int]
     collection_ids: _containers.RepeatedScalarFieldContainer[str]
     limit: int
-    def __init__(self, collection_ids: _Optional[_Iterable[str]] = ..., limit: _Optional[int] = ...) -> None: ...
+    instructions: str
+    hybrid_retrieval: _documents_pb2.HybridRetrieval
+    semantic_retrieval: _documents_pb2.SemanticRetrieval
+    keyword_retrieval: _documents_pb2.KeywordRetrieval
+    def __init__(self, collection_ids: _Optional[_Iterable[str]] = ..., limit: _Optional[int] = ..., instructions: _Optional[str] = ..., hybrid_retrieval: _Optional[_Union[_documents_pb2.HybridRetrieval, _Mapping]] = ..., semantic_retrieval: _Optional[_Union[_documents_pb2.SemanticRetrieval, _Mapping]] = ..., keyword_retrieval: _Optional[_Union[_documents_pb2.KeywordRetrieval, _Mapping]] = ...) -> None: ...
 
 class AttachmentSearch(_message.Message):
     __slots__ = ("limit",)

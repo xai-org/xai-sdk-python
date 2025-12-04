@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1axai/api/v1/documents.proto\x12\x07xai_api\"|\n\rSearchRequest\x12\x14\n\x05query\x18\x01 \x01(\tR\x05query\x12\x30\n\x06source\x18\x02 \x01(\x0b\x32\x18.xai_api.DocumentsSourceR\x06source\x12\x19\n\x05limit\x18\x03 \x01(\x05H\x00R\x05limit\x88\x01\x01\x42\x08\n\x06_limit\"@\n\x0eSearchResponse\x12.\n\x07matches\x18\x01 \x03(\x0b\x32\x14.xai_api.SearchMatchR\x07matches\"\xa3\x01\n\x0bSearchMatch\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12\x19\n\x08\x63hunk_id\x18\x02 \x01(\tR\x07\x63hunkId\x12#\n\rchunk_content\x18\x03 \x01(\tR\x0c\x63hunkContent\x12\x14\n\x05score\x18\x04 \x01(\x02R\x05score\x12%\n\x0e\x63ollection_ids\x18\x05 \x03(\tR\rcollectionIds\"8\n\x0f\x44ocumentsSource\x12%\n\x0e\x63ollection_ids\x18\x01 \x03(\tR\rcollectionIds2H\n\tDocuments\x12;\n\x06Search\x12\x16.xai_api.SearchRequest\x1a\x17.xai_api.SearchResponse\"\x00\x42U\n\x0b\x63om.xai_apiB\x0e\x44ocumentsProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1axai/api/v1/documents.proto\x12\x07xai_api\"\xfd\x01\n\x0fHybridRetrieval\x12\x30\n\x11search_multiplier\x18\x01 \x01(\x05H\x01R\x10searchMultiplier\x88\x01\x01\x12?\n\x0ereranker_model\x18\x02 \x01(\x0b\x32\x16.xai_api.RerankerModelH\x00R\rrerankerModel\x12U\n\x16reciprocal_rank_fusion\x18\x03 \x01(\x0b\x32\x1d.xai_api.ReciprocalRankFusionH\x00R\x14reciprocalRankFusionB\n\n\x08rerankerB\x14\n\x12_search_multiplier\"X\n\x10KeywordRetrieval\x12\x37\n\x08reranker\x18\x01 \x01(\x0b\x32\x16.xai_api.RerankerModelH\x00R\x08reranker\x88\x01\x01\x42\x0b\n\t_reranker\"Y\n\x11SemanticRetrieval\x12\x37\n\x08reranker\x18\x01 \x01(\x0b\x32\x16.xai_api.RerankerModelH\x00R\x08reranker\x88\x01\x01\x42\x0b\n\t_reranker\"\x81\x01\n\x14ReciprocalRankFusion\x12\x11\n\x01k\x18\x01 \x01(\x05H\x00R\x01k\x88\x01\x01\x12)\n\x10\x65mbedding_weight\x18\x03 \x01(\x02R\x0f\x65mbeddingWeight\x12\x1f\n\x0btext_weight\x18\x04 \x01(\x02R\ntextWeightB\x04\n\x02_kJ\x04\x08\x02\x10\x03\"n\n\rRerankerModel\x12\x19\n\x05model\x18\x01 \x01(\tH\x00R\x05model\x88\x01\x01\x12\'\n\x0cinstructions\x18\x02 \x01(\tH\x01R\x0cinstructions\x88\x01\x01\x42\x08\n\x06_modelB\x0f\n\r_instructions\"\x9f\x04\n\rSearchRequest\x12\x14\n\x05query\x18\x01 \x01(\tR\x05query\x12\x30\n\x06source\x18\x02 \x01(\x0b\x32\x18.xai_api.DocumentsSourceR\x06source\x12\x19\n\x05limit\x18\x03 \x01(\x05H\x01R\x05limit\x88\x01\x01\x12\'\n\x0cinstructions\x18\x05 \x01(\tH\x02R\x0cinstructions\x88\x01\x01\x12\x45\n\x10hybrid_retrieval\x18\x0b \x01(\x0b\x32\x18.xai_api.HybridRetrievalH\x00R\x0fhybridRetrieval\x12K\n\x12semantic_retrieval\x18\x0c \x01(\x0b\x32\x1a.xai_api.SemanticRetrievalH\x00R\x11semanticRetrieval\x12H\n\x11keyword_retrieval\x18\r \x01(\x0b\x32\x19.xai_api.KeywordRetrievalH\x00R\x10keywordRetrieval\x12\x46\n\x0eranking_metric\x18\x04 \x01(\x0e\x32\x16.xai_api.RankingMetricB\x02\x18\x01H\x03R\rrankingMetric\x88\x01\x01\x42\x10\n\x0eretrieval_modeB\x08\n\x06_limitB\x0f\n\r_instructionsB\x11\n\x0f_ranking_metricJ\x04\x08\x06\x10\x07J\x04\x08\x07\x10\x08J\x04\x08\x08\x10\tJ\x04\x08\t\x10\nJ\x04\x08\n\x10\x0b\"@\n\x0eSearchResponse\x12.\n\x07matches\x18\x01 \x03(\x0b\x32\x14.xai_api.SearchMatchR\x07matches\"\xa3\x01\n\x0bSearchMatch\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12\x19\n\x08\x63hunk_id\x18\x02 \x01(\tR\x07\x63hunkId\x12#\n\rchunk_content\x18\x03 \x01(\tR\x0c\x63hunkContent\x12\x14\n\x05score\x18\x04 \x01(\x02R\x05score\x12%\n\x0e\x63ollection_ids\x18\x05 \x03(\tR\rcollectionIds\"8\n\x0f\x44ocumentsSource\x12%\n\x0e\x63ollection_ids\x18\x01 \x03(\tR\rcollectionIds*q\n\rRankingMetric\x12\x1a\n\x16RANKING_METRIC_UNKNOWN\x10\x00\x12\x1e\n\x1aRANKING_METRIC_L2_DISTANCE\x10\x01\x12$\n RANKING_METRIC_COSINE_SIMILARITY\x10\x02\x32H\n\tDocuments\x12;\n\x06Search\x12\x16.xai_api.SearchRequest\x1a\x17.xai_api.SearchResponse\"\x00\x42U\n\x0b\x63om.xai_apiB\x0e\x44ocumentsProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,14 +32,28 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'xai.api.v1.documents_pb2', 
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\013com.xai_apiB\016DocumentsProtoP\001\242\002\003XXX\252\002\006XaiApi\312\002\006XaiApi\342\002\022XaiApi\\GPBMetadata\352\002\006XaiApi'
-  _globals['_SEARCHREQUEST']._serialized_start=39
-  _globals['_SEARCHREQUEST']._serialized_end=163
-  _globals['_SEARCHRESPONSE']._serialized_start=165
-  _globals['_SEARCHRESPONSE']._serialized_end=229
-  _globals['_SEARCHMATCH']._serialized_start=232
-  _globals['_SEARCHMATCH']._serialized_end=395
-  _globals['_DOCUMENTSSOURCE']._serialized_start=397
-  _globals['_DOCUMENTSSOURCE']._serialized_end=453
-  _globals['_DOCUMENTS']._serialized_start=455
-  _globals['_DOCUMENTS']._serialized_end=527
+  _globals['_SEARCHREQUEST'].fields_by_name['ranking_metric']._loaded_options = None
+  _globals['_SEARCHREQUEST'].fields_by_name['ranking_metric']._serialized_options = b'\030\001'
+  _globals['_RANKINGMETRIC']._serialized_start=1556
+  _globals['_RANKINGMETRIC']._serialized_end=1669
+  _globals['_HYBRIDRETRIEVAL']._serialized_start=40
+  _globals['_HYBRIDRETRIEVAL']._serialized_end=293
+  _globals['_KEYWORDRETRIEVAL']._serialized_start=295
+  _globals['_KEYWORDRETRIEVAL']._serialized_end=383
+  _globals['_SEMANTICRETRIEVAL']._serialized_start=385
+  _globals['_SEMANTICRETRIEVAL']._serialized_end=474
+  _globals['_RECIPROCALRANKFUSION']._serialized_start=477
+  _globals['_RECIPROCALRANKFUSION']._serialized_end=606
+  _globals['_RERANKERMODEL']._serialized_start=608
+  _globals['_RERANKERMODEL']._serialized_end=718
+  _globals['_SEARCHREQUEST']._serialized_start=721
+  _globals['_SEARCHREQUEST']._serialized_end=1264
+  _globals['_SEARCHRESPONSE']._serialized_start=1266
+  _globals['_SEARCHRESPONSE']._serialized_end=1330
+  _globals['_SEARCHMATCH']._serialized_start=1333
+  _globals['_SEARCHMATCH']._serialized_end=1496
+  _globals['_DOCUMENTSSOURCE']._serialized_start=1498
+  _globals['_DOCUMENTSSOURCE']._serialized_end=1554
+  _globals['_DOCUMENTS']._serialized_start=1671
+  _globals['_DOCUMENTS']._serialized_end=1743
 # @@protoc_insertion_point(module_scope)

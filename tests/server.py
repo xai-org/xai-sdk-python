@@ -26,6 +26,8 @@ from xai_sdk.proto import (
     deferred_pb2,
     documents_pb2,
     documents_pb2_grpc,
+    files_pb2,
+    files_pb2_grpc,
     image_pb2,
     image_pb2_grpc,
     models_pb2,
@@ -598,17 +600,93 @@ class InMemoryStore:
     def __init__(self):
         # collection_id -> collection_metadata
         self.collections: dict[str, collections_pb2.CollectionMetadata] = {}
-        # file_id -> document_metadata
+        # file_id -> document_metadata (per collection)
         self.documents: dict[str, collections_pb2.DocumentMetadata] = {}
+        # file_id -> file metadata from Files API
+        self.files: dict[str, files_pb2.File] = {}
 
         # collection_id -> list of file_ids
         self.collection_documents: defaultdict[str, list[str]] = defaultdict(list)
+
+        # Track document processing state for testing polling behavior
+        # file_id -> (start_time, processing_duration_seconds)
+        self.processing_documents: dict[str, tuple[float, float]] = {}
 
     def clear(self):
         # Clear the collections and documents dictionaries.
         self.collections.clear()
         self.documents.clear()
+        self.files.clear()
         self.collection_documents.clear()
+        self.processing_documents.clear()
+
+    def get_document_status(self, file_id: str) -> collections_pb2.DocumentStatus:
+        """Check if a processing document should transition to PROCESSED."""
+        if file_id not in self.processing_documents:
+            return self.documents[file_id].status
+
+        start_time, duration = self.processing_documents[file_id]
+        if time.time() - start_time >= duration:
+            # Processing complete, update status and remove from tracking
+            self.documents[file_id].status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED
+            del self.processing_documents[file_id]
+            return collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED
+
+        return collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSING
+
+
+class FilesServicer(files_pb2_grpc.FilesServicer):
+    """Minimal Files service used by tests.
+
+    This servicer backs the streaming upload path used by the Collections client.
+    Uploaded files are also registered in the shared InMemoryStore so that they
+    can be attached to collections via the management API.
+    """
+
+    def __init__(self, store: Optional[InMemoryStore] = None):
+        if store is None:
+            store = InMemoryStore()
+        self._store = store
+
+    def UploadFile(
+        self,
+        request_iterator: Generator[files_pb2.UploadFileChunk, None, None],
+        context: grpc.ServicerContext,
+    ) -> files_pb2.File:
+        _check_auth(context)
+
+        init: Optional[files_pb2.UploadFileInit] = None
+        data_parts: list[bytes] = []
+
+        for chunk in request_iterator:
+            if chunk.HasField("init"):
+                init = chunk.init
+            if chunk.data:
+                data_parts.append(chunk.data)
+
+        if init is None:
+            context.abort(grpc.StatusCode.INVALID_ARGUMENT, "Missing init chunk")
+
+        # At this point, init is guaranteed to be set (context.abort raises).
+        assert init is not None
+
+        data = b"".join(data_parts)
+        file_id = str(uuid.uuid4())
+        now = timestamp_pb2.Timestamp(seconds=int(time.time()))
+
+        # File metadata returned by the Files API.
+        file_proto = files_pb2.File(
+            id=file_id,
+            filename=init.name,
+            size=len(data),
+            team_id="test-team",
+            created_at=now,
+            expires_at=timestamp_pb2.Timestamp(seconds=int(time.time()) + 1000),
+        )
+
+        self._store.files[file_id] = file_proto
+
+        return file_proto
 
 
 class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
@@ -708,6 +786,7 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
             created_at=timestamp_pb2.Timestamp(seconds=int(time.time())),
             index_configuration=request.index_configuration,
             chunk_configuration=request.chunk_configuration,
+            field_definitions=request.field_definitions,
         )
 
         self._store.collections[collection_to_create.collection_id] = collection_to_create
@@ -781,6 +860,24 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
         _check_management_auth(context)
 
         document_id = str(uuid.uuid4())
+
+        # Support simulating processing delay for testing
+        # Use a special name pattern: "test-processing-{seconds}"
+        status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED
+        if request.name.startswith("test-processing-"):
+            try:
+                duration = float(request.name.split("-")[-1])
+                status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSING
+                self._store.processing_documents[document_id] = (time.time(), duration)
+            except (ValueError, IndexError):
+                pass  # Use default PROCESSED status if parsing fails
+
+        # Support simulating failed processing
+        if request.name == "test-failed":
+            status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED
+
+        error_message = "Processing failed" if status == collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED else ""
+
         self._store.documents[document_id] = collections_pb2.DocumentMetadata(
             file_metadata=collections_pb2.FileMetadata(
                 file_id=document_id,
@@ -789,7 +886,8 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
                 content_type=request.content_type,
             ),
             fields=request.fields,
-            status=collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED,
+            status=status,
+            error_message=error_message,
         )
 
         self._store.collection_documents[request.collection_id].append(document_id)
@@ -832,7 +930,17 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
         if request.file_id not in self._store.collection_documents[request.collection_id]:
             context.abort(grpc.StatusCode.NOT_FOUND, "Document not found")
 
-        return self._store.documents[request.file_id]
+        # Update status if document is being processed
+        updated_status = self._store.get_document_status(request.file_id)
+        document = self._store.documents[request.file_id]
+
+        # Return a copy with the updated status
+        return collections_pb2.DocumentMetadata(
+            file_metadata=document.file_metadata,
+            fields=document.fields,
+            status=updated_status,
+            error_message=document.error_message,
+        )
 
     def BatchGetDocuments(self, request: collections_pb2.BatchGetDocumentsRequest, context: grpc.ServicerContext):
         _check_management_auth(context)
@@ -848,9 +956,63 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
     ):
         _check_management_auth(context)
 
-        if request.file_id not in self._store.documents:
-            context.abort(grpc.StatusCode.NOT_FOUND, "Document not found")
+        # Ensure a document entry exists for this file_id; if not, create one
+        # based on the Files metadata.
+        document = self._store.documents.get(request.file_id)
+        if document is None:
+            file_info = self._store.files.get(request.file_id)
+            if file_info is None:
+                context.abort(grpc.StatusCode.NOT_FOUND, "Document not found")
 
+            # At this point, file_info is guaranteed to be set (context.abort raises).
+            assert file_info is not None
+
+            # Derive status semantics from the filename to keep behaviour
+            # consistent with UploadDocument for test names like
+            # "test-processing-*" and "test-failed".
+            status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED
+            error_message = ""
+
+            if file_info.filename.startswith("test-processing-"):
+                try:
+                    duration = float(file_info.filename.split("-")[-1])
+                    status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSING
+                    self._store.processing_documents[request.file_id] = (time.time(), duration)
+                except (ValueError, IndexError):
+                    # Use default PROCESSED status if parsing fails.
+                    pass
+
+            if file_info.filename == "test-failed":
+                status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED
+                error_message = "Processing failed"
+
+            now = timestamp_pb2.Timestamp(seconds=int(time.time()))
+            document = collections_pb2.DocumentMetadata(
+                file_metadata=collections_pb2.FileMetadata(
+                    file_id=request.file_id,
+                    name=file_info.filename,
+                    size_bytes=file_info.size,
+                    # Tests only use "text/plain" for uploads; this keeps assertions simple.
+                    content_type="text/plain",
+                    created_at=now,
+                    expires_at=timestamp_pb2.Timestamp(seconds=int(time.time()) + 1000),
+                    hash=f"test-hash-{request.file_id}",
+                ),
+                fields=request.fields or {},
+                status=status,
+                error_message=error_message,
+            )
+        else:
+            # Update the document's fields with any metadata provided on this request.
+            document = collections_pb2.DocumentMetadata(
+                file_metadata=document.file_metadata,
+                fields=request.fields or document.fields,
+                status=document.status,
+                error_message=document.error_message,
+            )
+
+        # Persist the document and attach it to the collection.
+        self._store.documents[request.file_id] = document
         self._store.collection_documents[request.collection_id].append(request.file_id)
 
         return empty_pb2.Empty()
@@ -944,11 +1106,13 @@ class TestServer(threading.Thread):
         initial_failures: int,
         response_delay_seconds: int = 0,
         model_library: Optional[ModelLibrary] = None,
+        in_memory_store: Optional[InMemoryStore] = None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self._port = port
+        self._store = in_memory_store
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
         self._server.add_insecure_port(f"127.0.0.1:{self._port}")
 
@@ -963,6 +1127,7 @@ class TestServer(threading.Thread):
             ImageServicer(f"http://localhost:{self._image_port}/foo.jpg"), self._server
         )
         documents_pb2_grpc.add_DocumentsServicer_to_server(DocumentServicer(), self._server)
+        files_pb2_grpc.add_FilesServicer_to_server(FilesServicer(self._store), self._server)
 
     def stop(self):
         self._image_server.shutdown()
