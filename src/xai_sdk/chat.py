@@ -864,6 +864,29 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         return self.proto.citations
 
     @property
+    def inline_citations(self) -> Sequence[chat_pb2.InlineCitation]:
+        """Returns the inline citations of this chunk.
+
+        Inline citations provide structured citation metadata with position information,
+        enabling you to know exactly where in the response text each citation appears.
+
+        Each InlineCitation contains:
+        - id: Display number as a string (e.g., "1", "2")
+        - start_index: Character position where the citation starts in the response text
+        - end_index: Character position where the citation ends (exclusive)
+        - web_citation: Present if the citation is from a web source
+        - x_citation: Present if the citation is from an X/Twitter source
+        - collections_citation: Present if the citation is from a collections search
+
+        Note: Inline citations are only populated when `include=["inline_citations"]`
+        is passed when creating the chat.
+        """
+        inline_citations = []
+        for c in self.choices:
+            inline_citations.extend(c.proto.delta.citations)
+        return inline_citations
+
+    @property
     def debug_output(self) -> chat_pb2.DebugOutput:
         """Returns the debug output of this chunk."""
         return self.proto.debug_output
@@ -963,6 +986,8 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
             choice.index = c.index
             choice.message.role = c.delta.role
             choice.message.tool_calls.extend(c.delta.tool_calls)
+            # c.delta.citations represents the inline citations on this chunk
+            choice.message.citations.extend(c.delta.citations)
             choice.finish_reason = c.finish_reason
 
             # Accumulate content in buffers instead of concatenating strings
@@ -1080,6 +1105,31 @@ class Response(_ResponseProtoDecorator):
     def citations(self) -> Sequence[str]:
         """Returns the citations of this response."""
         return self.proto.citations
+
+    @property
+    def inline_citations(self) -> Sequence[chat_pb2.InlineCitation]:
+        """Returns the inline citations of this response.
+
+        Inline citations provide structured citation metadata with position information,
+        enabling you to know exactly where in the response text each citation appears.
+
+        Each InlineCitation contains:
+        - id: Display number as a string (e.g., "1", "2")
+        - start_index: Character position where the citation starts in the response text
+        - end_index: Character position where the citation ends (exclusive)
+        - web_citation: Present if the citation is from a web source
+        - x_citation: Present if the citation is from an X/Twitter source
+        - collections_citation: Present if the citation is from a collections search
+
+        Note: Inline citations are only populated when `include=["inline_citations"]`
+        is passed when creating the chat.
+        """
+        return [
+            citation
+            for output in self.proto.outputs
+            if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
+            for citation in output.message.citations
+        ]
 
     @property
     def server_side_tool_usage(self) -> dict[str, int]:
