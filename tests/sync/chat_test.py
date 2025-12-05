@@ -343,6 +343,13 @@ def test_agentic_tool_calling_streaming(client):
             assert chunk.proto.outputs[0].delta.role == chat_pb2.ROLE_TOOL
             assert chunk.proto.outputs[0].delta.content == "I am tool response"
             assert chunk.content == ""
+
+            tool_outputs = chunk.tool_outputs
+            assert len(tool_outputs) == 1
+            assert tool_outputs[0].tool_calls[0].function.name == "web_search"
+            assert tool_outputs[0].tool_calls[0].function.arguments == '{"query":"What is the weather in London?"}'
+            assert tool_outputs[0].role == "ROLE_TOOL"
+            assert tool_outputs[0].content == "I am tool response"
         else:
             assert chunk.content == expected_chunks[i - 2]
 
@@ -366,6 +373,13 @@ def test_agentic_tool_calling_non_streaming(client):
     assert len(response.proto.outputs) == 3
     assert response.proto.outputs[1].message.role == chat_pb2.ROLE_TOOL
     assert response.proto.outputs[1].message.content == "I am tool response"
+
+    tool_outputs = response.tool_outputs
+    assert len(tool_outputs) == 1
+    assert tool_outputs[0].message.tool_calls[0].function.name == "web_search"
+    assert tool_outputs[0].message.tool_calls[0].function.arguments == '{"query":"What is the weather in London?"}'
+    assert tool_outputs[0].message.content == "I am tool response"
+
     assert response.content == "I am searching."
     assert len(response.tool_calls) == 1
     assert response.finish_reason == "REASON_STOP"

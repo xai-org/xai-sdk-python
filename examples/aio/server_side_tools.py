@@ -15,6 +15,12 @@ async def agentic_search(client: AsyncClient, model: str, query: str) -> None:
             x_search(),
             code_execution(),
         ],
+        include=[
+            "verbose_streaming",
+            # The output content of `web_search` and `x_search` will be encrypted by default,
+            # thus only enable the output for `code_execution`
+            "code_execution_call_output",
+        ],
     )
     chat.append(user(query))
 
@@ -22,6 +28,13 @@ async def agentic_search(client: AsyncClient, model: str, query: str) -> None:
     async for response, chunk in chat.stream():
         for tool_call in chunk.tool_calls:
             print(f"\nCalling tool: {tool_call.function.name} with arguments: {tool_call.function.arguments}")
+        for tool_output in chunk.tool_outputs:
+            if tool_output.content:
+                tool_call = tool_output.tool_calls[0]
+                print(
+                    f"\nTool call {tool_call.function.name}({tool_call.function.arguments}) "
+                    f"outputs: {tool_output.content}"
+                )
         if response.usage.reasoning_tokens and is_thinking:
             print(f"\rThinking... ({response.usage.reasoning_tokens} tokens)", end="", flush=True)
         if chunk.content and is_thinking:
