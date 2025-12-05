@@ -886,6 +886,16 @@ class Chunk(ProtoDecorator[chat_pb2.GetChatCompletionChunk]):
         return inline_citations
 
     @property
+    def tool_outputs(self) -> Sequence["CompletionOutputChunk"]:
+        """Returns the completion output chunks that contain the tool outputs."""
+        return [
+            CompletionOutputChunk(output)
+            for output in self.proto.outputs
+            if output.delta.role == chat_pb2.MessageRole.ROLE_TOOL
+            and (output.index == self._index or self._index is None)
+        ]
+
+    @property
     def debug_output(self) -> chat_pb2.DebugOutput:
         """Returns the debug output of this chunk."""
         return self.proto.debug_output
@@ -909,9 +919,9 @@ class CompletionOutputChunk(ProtoDecorator[chat_pb2.CompletionOutputChunk]):
         return self.proto.delta.reasoning_content
 
     @property
-    def role(self) -> chat_pb2.MessageRole:
+    def role(self) -> str:
         """Returns the role of this completion output chunk."""
-        return self.proto.delta.role
+        return chat_pb2.MessageRole.Name(self.proto.delta.role)
 
     @property
     def tool_calls(self) -> Sequence[chat_pb2.ToolCall]:
@@ -1129,6 +1139,11 @@ class Response(_ResponseProtoDecorator):
             if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
             for citation in output.message.citations
         ]
+
+    @property
+    def tool_outputs(self) -> Sequence[chat_pb2.CompletionOutput]:
+        """Returns the output entries that contain the tool outputs."""
+        return [output for output in self.proto.outputs if output.message.role == chat_pb2.MessageRole.ROLE_TOOL]
 
     @property
     def server_side_tool_usage(self) -> dict[str, int]:

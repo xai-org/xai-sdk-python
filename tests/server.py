@@ -139,6 +139,15 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                     index=1,
                     message=chat_pb2.CompletionMessage(
                         role=chat_pb2.ROLE_TOOL,
+                        tool_calls=[
+                            chat_pb2.ToolCall(
+                                id="test-tool-call",
+                                function=chat_pb2.FunctionCall(
+                                    name="web_search",
+                                    arguments='{"query":"What is the weather in London?"}',
+                                ),
+                            )
+                        ],
                         content="I am tool response",
                     ),
                 )
@@ -258,7 +267,19 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
                 index=0,
             ),
             chat_pb2.CompletionOutputChunk(
-                delta=chat_pb2.Delta(role=chat_pb2.ROLE_TOOL, content="I am tool response"),
+                delta=chat_pb2.Delta(
+                    role=chat_pb2.ROLE_TOOL,
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            id="test-tool-call",
+                            function=chat_pb2.FunctionCall(
+                                name="web_search",
+                                arguments='{"query":"What is the weather in London?"}',
+                            ),
+                        )
+                    ],
+                    content="I am tool response",
+                ),
                 index=1,
             ),
             "I",
