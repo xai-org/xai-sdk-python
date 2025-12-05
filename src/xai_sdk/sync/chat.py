@@ -7,7 +7,8 @@ from typing import Iterator, Optional, Sequence, TypeVar
 from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
 
-from ..chat import BaseChat, BaseClient, Chunk, PollTimer, Response
+from ..chat import BaseChat, BaseClient, Chunk, Response
+from ..poll_timer import PollTimer
 from ..proto import chat_pb2, deferred_pb2
 from ..telemetry import get_tracer
 
