@@ -227,6 +227,31 @@ def collections_search(
     return chat_pb2.Tool(collections_search=chat_pb2.CollectionsSearch(**collections_search_kwargs))
 
 
+def attachment_search(limit: Optional[int] = None) -> chat_pb2.Tool:
+    """Creates a server-side tool for attachment search, typically used in agentic requests.
+
+    This tool enables the model to search through uploaded file attachments during conversation.
+    It can be used to query and retrieve information from files that have been attached to the chat.
+
+    Args:
+        limit: The maximum number of search results to return. If not provided, uses server default.
+
+    Returns:
+        A `chat_pb2.Tool` object configured for attachment search.
+
+    Example:
+        ```
+        from xai_sdk.tools import attachment_search
+
+        # Create an attachment search tool
+        tool = attachment_search(limit=10)
+        ```
+    """
+    return chat_pb2.Tool(
+        attachment_search=chat_pb2.AttachmentSearch(limit=limit) if limit is not None else chat_pb2.AttachmentSearch()
+    )
+
+
 def mcp(
     server_url: str,
     server_label: Optional[str] = None,
