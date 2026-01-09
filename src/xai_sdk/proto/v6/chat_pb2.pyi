@@ -1,5 +1,6 @@
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from . import deferred_pb2 as _deferred_pb2
+from . import documents_pb2 as _documents_pb2
 from . import image_pb2 as _image_pb2
 from . import sample_pb2 as _sample_pb2
 from . import usage_pb2 as _usage_pb2
@@ -432,14 +433,28 @@ class MCP(_message.Message):
     def __init__(self, server_label: _Optional[str] = ..., server_description: _Optional[str] = ..., server_url: _Optional[str] = ..., allowed_tool_names: _Optional[_Iterable[str]] = ..., authorization: _Optional[str] = ..., extra_headers: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class WebSearch(_message.Message):
-    __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding")
+    __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding", "user_location")
     EXCLUDED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
     ALLOWED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
     ENABLE_IMAGE_UNDERSTANDING_FIELD_NUMBER: _ClassVar[int]
+    USER_LOCATION_FIELD_NUMBER: _ClassVar[int]
     excluded_domains: _containers.RepeatedScalarFieldContainer[str]
     allowed_domains: _containers.RepeatedScalarFieldContainer[str]
     enable_image_understanding: bool
-    def __init__(self, excluded_domains: _Optional[_Iterable[str]] = ..., allowed_domains: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ...) -> None: ...
+    user_location: WebSearchUserLocation
+    def __init__(self, excluded_domains: _Optional[_Iterable[str]] = ..., allowed_domains: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ..., user_location: _Optional[_Union[WebSearchUserLocation, _Mapping]] = ...) -> None: ...
+
+class WebSearchUserLocation(_message.Message):
+    __slots__ = ("country", "city", "region", "timezone")
+    COUNTRY_FIELD_NUMBER: _ClassVar[int]
+    CITY_FIELD_NUMBER: _ClassVar[int]
+    REGION_FIELD_NUMBER: _ClassVar[int]
+    TIMEZONE_FIELD_NUMBER: _ClassVar[int]
+    country: str
+    city: str
+    region: str
+    timezone: str
+    def __init__(self, country: _Optional[str] = ..., city: _Optional[str] = ..., region: _Optional[str] = ..., timezone: _Optional[str] = ...) -> None: ...
 
 class XSearch(_message.Message):
     __slots__ = ("from_date", "to_date", "allowed_x_handles", "excluded_x_handles", "enable_image_understanding", "enable_video_understanding")
