@@ -12,6 +12,10 @@ def web_search(
     allowed_domains: Optional[list[str]] = None,
     *,
     enable_image_understanding: bool = False,
+    user_location_country: Optional[str] = None,
+    user_location_city: Optional[str] = None,
+    user_location_region: Optional[str] = None,
+    user_location_timezone: Optional[str] = None,
 ) -> chat_pb2.Tool:
     """Creates a server-side tool for web search, typically used in agentic requests.
 
@@ -29,6 +33,10 @@ def web_search(
             allowed. Use this as a whitelist to limit results to only these specific sites; no
             other websites will be considered. This parameter cannot be set together with `excluded_domains`.
         enable_image_understanding: Enables understanding/interpreting images encountered during the web search process.
+        user_location_country: Optional country of the user. ISO 3166-1 alpha-2 code.
+        user_location_city: Optional freeform text to indicate the city of the user.
+        user_location_region: Optional freeform text to indicate the region of the user.
+        user_location_timezone: Optional timezone of the user. IANA Time Zone Database code.
 
     Returns:
         A `chat_pb2.Tool` object configured for web search.
@@ -44,11 +52,25 @@ def web_search(
         )
         ```
     """
+    user_location = None
+    if (
+        user_location_country is not None
+        or user_location_city is not None
+        or user_location_region is not None
+        or user_location_timezone is not None
+    ):
+        user_location = chat_pb2.WebSearchUserLocation(
+            country=user_location_country,
+            city=user_location_city,
+            region=user_location_region,
+            timezone=user_location_timezone,
+        )
     return chat_pb2.Tool(
         web_search=chat_pb2.WebSearch(
             excluded_domains=excluded_domains,
             allowed_domains=allowed_domains,
             enable_image_understanding=enable_image_understanding,
+            user_location=user_location,
         )
     )
 

@@ -620,3 +620,24 @@ def test_chunk_inline_citations_empty():
     chunk = Chunk(chunk_pb, 0)
 
     assert chunk.inline_citations == []
+
+
+def test_web_search_user_location():
+    """Test that web_search util function correctly sets user_location city and timezone fields."""
+    from xai_sdk.tools import web_search
+
+    # Create a web_search tool with city and timezone
+    tool = web_search(
+        user_location_city="San Francisco",
+        user_location_timezone="America/Los_Angeles",
+    )
+
+    # Verify the tool is a chat_pb2.Tool
+    assert isinstance(tool, chat_pb2.Tool)
+
+    # Verify the web_search field is set
+    assert tool.HasField("web_search")
+
+    # Verify user_location fields are set correctly
+    assert tool.web_search.user_location.city == "San Francisco"
+    assert tool.web_search.user_location.timezone == "America/Los_Angeles"
