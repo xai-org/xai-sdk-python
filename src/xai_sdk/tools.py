@@ -48,7 +48,10 @@ def web_search(
         # Create a web search tool that excludes certain domains
         tool = web_search(
             excluded_domains=["spam-site.com", "unwanted.com"],
-            enable_image_understanding=True
+            enable_image_understanding=True,
+            user_location_country="US",
+            user_location_city="San Francisco",
+            user_location_timezone="America/Los_Angeles",
         )
         ```
     """
