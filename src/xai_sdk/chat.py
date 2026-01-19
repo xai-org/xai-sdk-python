@@ -589,12 +589,45 @@ def system(*args: Content) -> chat_pb2.Message:
     return chat_pb2.Message(role=chat_pb2.MessageRole.ROLE_SYSTEM, content=[_process_content(c) for c in args])
 
 
-def tool_result(result: str) -> chat_pb2.Message:
+def tool_result(result: str, tool_call_id: Optional[str] = None) -> chat_pb2.Message:
     """Creates a new message of role "tool".
 
-    Use this to add the result of a tool call to conversation history via `append`.
+    Use this to provide the result of a client-side tool execution back to the model in the conversation history.
+    This enables multi-turn tool use and agentic workflows: the model calls a tool, you execute it, then append
+    the result.
+
+    Args:
+        result: The string output/result from your tool's execution. This will be sent to the model as content.
+        tool_call_id: Optional ID linking this result to a specific tool call (should match `tool_call.id` from
+            the assistant's tool_calls list). Essential for parallel_tool_calls or multiple tools to associate results
+            correctly.
+            If omitted (for single tool calls), the association may still work but is less explicit.
+
+    Examples:
+        Basic function calling loop:
+        ```python
+        from xai_sdk.chat import tool_result
+        import json
+
+        # ... after chat.sample() or in stream
+        if response.tool_calls:
+            for tool_call in response.tool_calls:
+                # Parse and execute
+                args = json.loads(tool_call.function.arguments)
+                tool_output = get_weather(args["city"])  # Your tool function
+                # Append with tool_call_id for proper linking
+                chat.append(tool_result(tool_output, tool_call_id=tool_call.id))
+            # Continue conversation
+            response = chat.sample()
+        ```
+
+        See `examples/sync/function_calling.py` and `examples/sync/server_side_tools.py` (for mixed client/server
+        tools) for complete patterns.
+
+    Returns:
+        A `chat_pb2.Message` object with ROLE_TOOL, ready to append to chat.
     """
-    return chat_pb2.Message(role=chat_pb2.MessageRole.ROLE_TOOL, content=[text(result)])
+    return chat_pb2.Message(role=chat_pb2.MessageRole.ROLE_TOOL, content=[text(result)], tool_call_id=tool_call_id)
 
 
 def tool(name: str, description: str, parameters: dict[str, Any]) -> chat_pb2.Tool:

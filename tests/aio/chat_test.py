@@ -1756,13 +1756,19 @@ def test_chat_append_tool_result(client: AsyncClient):
     chat = client.chat.create("grok-3")
     chat.append(user("test message"))
     chat.append(tool_result("test result"))
+    chat.append(tool_result("test result with id", tool_call_id="test-tool-call-id"))
 
     expected_messages = [
         chat_pb2.Message(role=chat_pb2.ROLE_USER, content=[chat_pb2.Content(text="test message")]),
         chat_pb2.Message(role=chat_pb2.ROLE_TOOL, content=[chat_pb2.Content(text="test result")]),
+        chat_pb2.Message(
+            role=chat_pb2.ROLE_TOOL,
+            content=[chat_pb2.Content(text="test result with id")],
+            tool_call_id="test-tool-call-id",
+        ),
     ]
 
-    assert len(chat.messages) == 2
+    assert len(chat.messages) == 3
     assert chat.messages == expected_messages
 
 
