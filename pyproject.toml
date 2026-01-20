@@ -11,6 +11,7 @@ authors = [{ name = "xAI", email = "support@x.ai" }]
 dependencies = [
   "grpcio>=1.72.1,<2",
   "protobuf>=5.29.4,<7",
+  "googleapis-common-protos>=1.65.0,<2",
   "pydantic>=2.5.3,<3",
   "requests>=2.31.0,<3",
   "aiohttp>=3.8.6,<4",

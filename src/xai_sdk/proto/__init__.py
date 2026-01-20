@@ -6,6 +6,8 @@ if version.parse(google.protobuf.__version__).major == 5:
     from .v5 import (
         auth_pb2,
         auth_pb2_grpc,
+        batch_pb2,
+        batch_pb2_grpc,
         chat_pb2,
         chat_pb2_grpc,
         collections_pb2,
@@ -34,6 +36,8 @@ elif version.parse(google.protobuf.__version__).major == 6:
     from .v6 import (
         auth_pb2,
         auth_pb2_grpc,
+        batch_pb2,
+        batch_pb2_grpc,
         chat_pb2,
         chat_pb2_grpc,
         collections_pb2,
