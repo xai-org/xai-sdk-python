@@ -624,7 +624,7 @@ def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -633,6 +633,7 @@ def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
@@ -679,10 +680,11 @@ def test_sample_creates_span_without_sensitive_attributes_when_disabled(mock_tra
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "server.port": 443,
+        "server.address": "api.x.ai",
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -735,7 +737,7 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "json_object",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": True,
@@ -744,6 +746,7 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
         "gen_ai.request.temperature": 0.5,
         "gen_ai.request.parallel_tool_calls": False,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.request.max_tokens": 100,
         "gen_ai.request.seed": 123,
@@ -784,7 +787,7 @@ def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -793,6 +796,7 @@ def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
@@ -851,7 +855,7 @@ def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -860,6 +864,7 @@ def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
@@ -916,7 +921,7 @@ def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -925,6 +930,7 @@ def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
@@ -985,7 +991,7 @@ def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "json_schema",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -994,6 +1000,7 @@ def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "What's the weather in London?",
@@ -1038,7 +1045,7 @@ def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -1047,6 +1054,7 @@ def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
@@ -1095,7 +1103,7 @@ def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: mock.Magi
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -1104,6 +1112,7 @@ def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: mock.Magi
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "Hello, how are you?",
@@ -1161,7 +1170,7 @@ def test_chat_with_function_calling_creates_span_with_correct_attributes(mock_tr
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -1170,6 +1179,7 @@ def test_chat_with_function_calling_creates_span_with_correct_attributes(mock_tr
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "What's the weather in London?",
@@ -1241,7 +1251,7 @@ def test_chat_with_function_call_result_creates_span_with_correct_attributes(
 
     expected_request_attributes = {
         "gen_ai.operation.name": "chat",
-        "gen_ai.system": "xai",
+        "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
         "gen_ai.request.model": "grok-3",
         "gen_ai.request.logprobs": False,
@@ -1250,6 +1260,7 @@ def test_chat_with_function_call_result_creates_span_with_correct_attributes(
         "gen_ai.request.temperature": 1.0,
         "gen_ai.request.parallel_tool_calls": True,
         "server.port": 443,
+        "server.address": "api.x.ai",
         "gen_ai.conversation.id": conversation_id,
         "gen_ai.prompt.0.role": "user",
         "gen_ai.prompt.0.content": "What's the weather in London?",
