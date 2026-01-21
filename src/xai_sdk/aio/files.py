@@ -3,6 +3,8 @@ import os
 from asyncio import Semaphore
 from typing import BinaryIO, Optional, Sequence, Union
 
+from opentelemetry.trace import SpanKind
+
 from ..files import (
     BaseClient,
     BatchUploadCallback,
@@ -16,6 +18,10 @@ from ..files import (
     _sort_by_to_pb,
 )
 from ..proto import files_pb2
+from ..telemetry import get_tracer
+from ..telemetry.config import should_disable_sensitive_attributes
+
+tracer = get_tracer(__name__)
 
 
 class Client(BaseClient):
@@ -88,17 +94,15 @@ class Client(BaseClient):
             if not os.path.exists(file):
                 raise FileNotFoundError(f"File not found: {file}")
             chunks = _async_chunk_file_from_path(file_path=file, progress=on_progress)
-            return await self._stub.UploadFile(chunks)
 
         # Handle bytes
-        if isinstance(file, bytes | bytearray):
+        elif isinstance(file, bytes | bytearray):
             if not filename:
                 raise ValueError("filename is required when uploading bytes")
             chunks = _async_chunk_file_data(filename=filename, data=bytes(file), progress=on_progress)
-            return await self._stub.UploadFile(chunks)
 
         # Handle file-like object (BinaryIO)
-        if hasattr(file, "read"):
+        elif hasattr(file, "read"):
             # Try to get filename from the file object if not provided
             if not filename:
                 if hasattr(file, "name") and isinstance(file.name, str):
@@ -106,9 +110,22 @@ class Client(BaseClient):
                 else:
                     raise ValueError("filename is required when uploading a file-like object without a .name attribute")
             chunks = _async_chunk_file_from_fileobj(file_obj=file, filename=filename, progress=on_progress)
-            return await self._stub.UploadFile(chunks)
 
-        raise ValueError(f"Unsupported file type: {type(file)}")
+        else:
+            raise ValueError(f"Unsupported file type: {type(file)}")
+        with tracer.start_as_current_span(
+            name="file.upload",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "upload_file",
+                "provider.name": "xai",
+            },
+        ) as span:
+            res = await self._stub.UploadFile(chunks)
+            if not should_disable_sensitive_attributes():
+                span.set_attribute("file.id", res.id)
+                span.set_attribute("file.filename", res.filename)
+            return res
 
     async def batch_upload(
         self,
@@ -245,7 +262,18 @@ class Client(BaseClient):
             A DeleteFileResponse indicating whether the deletion was successful.
         """
         request = files_pb2.DeleteFileRequest(file_id=file_id)
-        return await self._stub.DeleteFile(request)
+        with tracer.start_as_current_span(
+            name="file.delete",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "delete",
+                "provider.name": "xai",
+            },
+        ) as span:
+            res = await self._stub.DeleteFile(request)
+            if not should_disable_sensitive_attributes():
+                span.set_attribute("file.id", file_id)
+            return res
 
     async def content(self, file_id: str) -> bytes:
         """Get the complete content of a file asynchronously.
