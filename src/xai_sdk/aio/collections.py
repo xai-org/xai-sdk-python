@@ -96,7 +96,7 @@ class Client(BaseClient):
 
         Args:
             limit: The maximum number of collections to return per page. Maximum 100 items per request.
-                If not provided, defaults to 100.
+                Uses server default if not provided.
             order: The ordering direction for results. Options: "asc" (ascending) or "desc" (descending).
                 If not provided, defaults to "desc".
             sort_by: The field to sort collections by. Options: "name" or "age".
@@ -207,7 +207,7 @@ class Client(BaseClient):
         Args:
             query: The search query to use for the semantic or keyword search.
             collection_ids: The IDs of the collections to search in.
-            limit: The maximum number of results to return.
+            limit: The maximum number of results to return. Uses server default if not provided.
             instructions: Optional, user-defined instructions that guide how the search
                 should be interpreted and ranked. If not provided, the server will use
                 its default generic search instructions.
@@ -384,7 +384,7 @@ class Client(BaseClient):
 
         Args:
             collection_id: The ID of the collection to list the documents from.
-            limit: The maximum number of documents to return per page.
+            limit: The maximum number of documents to return per page. Uses server default if not provided.
             order: The order in which to return the documents.
             sort_by: The field to sort the documents by.
             pagination_token: The token to use for pagination.

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -1828,6 +1828,7 @@ name = "xai-sdk"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
+    { name = "googleapis-common-protos" },
     { name = "grpcio" },
     { name = "opentelemetry-sdk" },
     { name = "packaging" },
@@ -1865,6 +1866,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.8.6,<4" },
+    { name = "googleapis-common-protos", specifier = ">=1.65.0,<2" },
     { name = "grpcio", specifier = ">=1.72.1,<2" },
     { name = "opentelemetry-exporter-otlp-proto-grpc", marker = "extra == 'telemetry-grpc'", specifier = ">=1.36.0,<2" },
     { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'telemetry-http'", specifier = ">=1.36.0,<2" },

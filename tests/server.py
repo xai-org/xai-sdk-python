@@ -15,10 +15,13 @@ from typing import Generator, Optional
 import grpc
 import portpicker
 from google.protobuf import empty_pb2, timestamp_pb2
+from google.rpc import status_pb2
 
 from xai_sdk.proto import (
     auth_pb2,
     auth_pb2_grpc,
+    batch_pb2,
+    batch_pb2_grpc,
     chat_pb2,
     chat_pb2_grpc,
     collections_pb2,
@@ -1120,6 +1123,260 @@ class DocumentServicer(documents_pb2_grpc.DocumentsServicer):
         )
 
 
+class BatchMgmtServicer(batch_pb2_grpc.BatchMgmtServicer):
+    def __init__(self):
+        # All keyed by batch ID
+        self._batches: dict[str, batch_pb2.Batch] = {}
+        self._batch_requests: dict[str, list[batch_pb2.BatchRequest]] = defaultdict(list)
+        self._batch_results: dict[str, list[batch_pb2.BatchResult]] = defaultdict(list)
+        # Track individual request states: batch_id -> request_id -> state
+        self._batch_request_states: dict[str, dict[str, batch_pb2.BatchRequestMetadata.State]] = defaultdict(dict)
+
+    def CreateBatch(self, request: batch_pb2.CreateBatchRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        batch_id = f"batch_{uuid.uuid4()}"
+        batch = batch_pb2.Batch(
+            batch_id=batch_id,
+            name=request.name,
+            create_time=timestamp_pb2.Timestamp(seconds=int(time.time())),
+            expire_time=timestamp_pb2.Timestamp(seconds=int(time.time() + 120)),
+            create_api_key_id="test_api_key_id",
+            cancel_time=None,
+            cancel_by_xai_message=None,
+        )
+        self._batches[batch_id] = batch
+
+        return batch
+
+    def AddBatchRequests(self, request: batch_pb2.AddBatchRequestsRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        batch_id = request.batch_id
+        if batch_id not in self._batches:
+            return context.abort(grpc.StatusCode.NOT_FOUND, f"Cannot find batch with ID {batch_id}")
+
+        # Add requests and mark them as pending
+        num_new_requests = len(request.batch_requests)
+        for req in request.batch_requests:
+            self._batch_requests[batch_id].append(req)
+            batch_request_id = req.batch_request_id or f"req_{uuid.uuid4()}"
+            self._batch_request_states[batch_id][batch_request_id] = batch_pb2.BatchRequestMetadata.State.STATE_PENDING
+
+        # Update batch state incrementally, preserving existing error and cancelled counts
+        current_state = self._batches[batch_id].state
+        self._batches[batch_id].state.CopyFrom(
+            batch_pb2.BatchState(
+                num_requests=current_state.num_requests + num_new_requests,  # Add new requests to total
+                num_pending=current_state.num_pending + num_new_requests,  # New requests are pending
+                num_success=current_state.num_success,  # Success count unchanged
+                num_error=current_state.num_error,  # Preserve existing errors
+                num_cancelled=current_state.num_cancelled,  # Preserve existing cancellations
+            )
+        )
+
+        return empty_pb2.Empty()
+
+    def GetBatch(self, request: batch_pb2.GetBatchRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        batch_id = request.batch_id
+        if batch_id not in self._batches:
+            return context.abort(grpc.StatusCode.NOT_FOUND, f"Cannot find batch with ID {batch_id}")
+
+        return self._batches[batch_id]
+
+    def CancelBatch(self, request: batch_pb2.CancelBatchRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        batch_id = request.batch_id
+
+        # Return not found if batch_id is not found
+        if batch_id not in self._batches:
+            return context.abort(grpc.StatusCode.NOT_FOUND, f"Cannot find batch with ID {batch_id}")
+
+        # Mark all pending requests as cancelled
+        num_cancelled = 0
+        for req in self._batch_requests[batch_id]:
+            request_id = req.batch_request_id or f"req_{uuid.uuid4()}"
+            if (
+                self._batch_request_states[batch_id].get(request_id)
+                == batch_pb2.BatchRequestMetadata.State.STATE_PENDING
+            ):
+                self._batch_request_states[batch_id][request_id] = batch_pb2.BatchRequestMetadata.State.STATE_CANCELLED
+                num_cancelled += 1
+
+        # Update cancel time
+        self._batches[batch_id].cancel_time.CopyFrom(timestamp_pb2.Timestamp(seconds=int(time.time())))
+
+        # Update batch state
+        current_state = self._batches[batch_id].state
+        self._batches[batch_id].state.CopyFrom(
+            batch_pb2.BatchState(
+                num_requests=current_state.num_requests,
+                num_pending=current_state.num_pending - num_cancelled,  # Reduce pending count
+                num_success=current_state.num_success,
+                num_error=current_state.num_error,
+                num_cancelled=current_state.num_cancelled + num_cancelled,  # Add newly cancelled requests
+            )
+        )
+
+        return self._batches[batch_id]
+
+    def ListBatches(self, request: batch_pb2.ListBatchesRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        batches = list(self._batches.values())
+
+        limit = request.limit or 10
+        try:
+            offset = int(request.pagination_token or "0")
+        except ValueError:
+            offset = 0
+
+        paginated = batches[offset : offset + limit]
+        pagination_token = str(offset + limit) if offset + limit < len(batches) else ""
+
+        response = batch_pb2.ListBatchesResponse(
+            batches=paginated,
+            pagination_token=pagination_token,
+        )
+        return response
+
+    def ListBatchRequestMetadata(
+        self, request: batch_pb2.ListBatchRequestMetadataRequest, context: grpc.ServicerContext
+    ):
+        _check_auth(context)
+
+        batch_id = request.batch_id
+        if batch_id not in self._batches:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("Batch not found")
+            return batch_pb2.ListBatchRequestMetadataResponse()
+
+        metadata_list = []
+        for req in self._batch_requests.get(batch_id, []):
+            request_id = req.batch_request_id or f"req_{uuid.uuid4()}"
+            state = self._batch_request_states[batch_id].get(
+                request_id, batch_pb2.BatchRequestMetadata.State.STATE_PENDING
+            )
+            metadata = batch_pb2.BatchRequestMetadata(
+                batch_request_id=req.batch_request_id,
+                model=req.completion_request.model,
+                create_time=self._batches[batch_id].create_time,
+                finish_time=timestamp_pb2.Timestamp(seconds=int(time.time())),
+                endpoint="endpoint",
+                state=state,
+            )
+            metadata_list.append(metadata)
+
+        # Pagination similar to above
+        limit = request.limit or 10
+        try:
+            offset = int(request.pagination_token or "0")
+        except ValueError:
+            offset = 0
+
+        paginated = metadata_list[offset : offset + limit]
+        pagination_token = str(offset + limit) if offset + limit < len(metadata_list) else ""
+
+        response = batch_pb2.ListBatchRequestMetadataResponse(
+            batch_request_metadata=paginated,
+            pagination_token=pagination_token,
+        )
+        return response
+
+    def ListBatchResults(self, request: batch_pb2.ListBatchResultsRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        batch_id = request.batch_id
+        if batch_id not in self._batches:
+            context.set_code(grpc.StatusCode.NOT_FOUND)
+            context.set_details("Batch not found")
+            return batch_pb2.ListBatchResultsResponse()
+
+        # Create results on demand for all requests
+        results = []
+        num_succeeded = 0
+        for req in self._batch_requests.get(batch_id, []):
+            request_id = req.batch_request_id or f"req_{uuid.uuid4()}"
+            state = self._batch_request_states[batch_id].get(
+                request_id, batch_pb2.BatchRequestMetadata.State.STATE_PENDING
+            )
+
+            if state == batch_pb2.BatchRequestMetadata.State.STATE_PENDING:
+                # Process pending request: create success result and mark as succeeded
+                result = self._create_batch_result(req)
+                results.append(result)
+                self._batch_request_states[batch_id][request_id] = batch_pb2.BatchRequestMetadata.State.STATE_SUCCEEDED
+                num_succeeded += 1
+            elif state == batch_pb2.BatchRequestMetadata.State.STATE_SUCCEEDED:
+                # Create result for already succeeded request
+                result = self._create_batch_result(req)
+                results.append(result)
+            elif state == batch_pb2.BatchRequestMetadata.State.STATE_CANCELLED:
+                # Create error result for cancelled request
+                result = batch_pb2.BatchResult(
+                    batch_request_id=request_id,
+                    error=status_pb2.Status(code=1, message="Request was cancelled"),
+                )
+                results.append(result)
+
+        # Update batch state to reflect newly processed requests
+        if num_succeeded > 0:
+            current_state = self._batches[batch_id].state
+            self._batches[batch_id].state.CopyFrom(
+                batch_pb2.BatchState(
+                    num_requests=current_state.num_requests,
+                    num_pending=current_state.num_pending - num_succeeded,  # Reduce pending count
+                    num_success=current_state.num_success + num_succeeded,  # Increase success count
+                    num_error=current_state.num_error,
+                    num_cancelled=current_state.num_cancelled,
+                )
+            )
+
+        # Pagination
+        limit = request.limit or 10
+        try:
+            offset = int(request.pagination_token or "0")
+        except ValueError:
+            offset = 0
+
+        paginated = results[offset : offset + limit]
+        pagination_token = str(offset + limit) if offset + limit < len(results) else ""
+
+        response = batch_pb2.ListBatchResultsResponse(
+            results=paginated,
+            pagination_token=pagination_token,
+        )
+        return response
+
+    def _create_batch_result(self, req: batch_pb2.BatchRequest) -> batch_pb2.BatchResult:
+        """Create a mock result for a batch request."""
+        return batch_pb2.BatchResult(
+            batch_request_id=req.batch_request_id or f"req_{uuid.uuid4()}",
+            response=batch_pb2.BatchResultData(
+                completion_response=chat_pb2.GetChatCompletionResponse(
+                    id=f"{uuid.uuid4()}",
+                    outputs=[
+                        chat_pb2.CompletionOutput(
+                            index=0,
+                            message=chat_pb2.CompletionMessage(
+                                content="test-content",
+                                role=chat_pb2.MessageRole.ROLE_ASSISTANT,
+                            ),
+                            finish_reason=sample_pb2.FinishReason.REASON_STOP,
+                        )
+                    ],
+                    created=timestamp_pb2.Timestamp(seconds=int(time.time())),
+                    model=req.completion_request.model,
+                    system_fingerprint="dummy-fingerprint",
+                    usage=usage_pb2.SamplingUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+                )
+            ),
+        )
+
+
 class TestServer(threading.Thread):
     def __init__(
         self,
@@ -1141,6 +1398,7 @@ class TestServer(threading.Thread):
         self._image_server = http.server.HTTPServer(("", self._image_port), ImageHandler)
 
         auth_pb2_grpc.add_AuthServicer_to_server(AuthServicer(initial_failures), self._server)
+        batch_pb2_grpc.add_BatchMgmtServicer_to_server(BatchMgmtServicer(), self._server)
         chat_pb2_grpc.add_ChatServicer_to_server(ChatServicer(response_delay_seconds), self._server)
         models_pb2_grpc.add_ModelsServicer_to_server(ModelServicer(model_library), self._server)
         tokenize_pb2_grpc.add_TokenizeServicer_to_server(TokenizeServicer(), self._server)

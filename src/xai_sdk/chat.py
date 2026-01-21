@@ -62,6 +62,7 @@ class BaseClient(abc.ABC, Generic[T]):
         use_encrypted_content: Optional[bool] = None,
         max_turns: Optional[int] = None,
         include: Optional[Sequence[Union[IncludeOption, "chat_pb2.IncludeOption"]]] = None,
+        batch_request_id: Optional[str] = None,
     ) -> T:
         """Creates a new chat conversation.
 
@@ -164,6 +165,9 @@ class BaseClient(abc.ABC, Generic[T]):
             include: A list of output options to include in the response.
                 Check the `IncludeOption` enum for all possible values.
                 Defaults to None.
+            batch_request_id: An optional user-provided identifier for the batch request. **If provided, it must be
+              unique within the batch.**Used to identify the corresponding result when the response is returned to the
+              user.
 
         Returns:
             A new chat request bound to a client.
@@ -206,6 +210,7 @@ class BaseClient(abc.ABC, Generic[T]):
 
         return self._make_chat(
             conversation_id=conversation_id,
+            batch_request_id=batch_request_id,
             model=model,
             messages=messages,
             user=user,
@@ -232,7 +237,7 @@ class BaseClient(abc.ABC, Generic[T]):
         )
 
     @abc.abstractmethod
-    def _make_chat(self, conversation_id: Optional[str], **settings) -> T:
+    def _make_chat(self, conversation_id: Optional[str], batch_request_id: Optional[str], **settings) -> T:
         """Creates the proto wrapper for chat requests."""
 
 
@@ -245,6 +250,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         self,
         stub: chat_pb2_grpc.ChatStub,
         conversation_id: Optional[str],
+        batch_request_id: Optional[str],
         **settings,
     ) -> None:
         """Prepares a new chat request.
@@ -252,11 +258,14 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         Args:
             stub: gRPC stub used to connect to the server.
             conversation_id: The ID of the conversation.
+            batch_request_id: The ID of the batch request, should only be set when creating a chat completion
+                for a batch request.
             **settings: See `chat_pb2.GetCompletionsRequest`.
         """
         super().__init__(chat_pb2.GetCompletionsRequest(**settings))
         self._stub = stub
         self._conversation_id = conversation_id
+        self._batch_request_id = batch_request_id
 
     def append(self, message: Union[chat_pb2.Message, "Response"]) -> Self:
         """Adds a new message to the conversation history, enabling multi-turn interactions.
