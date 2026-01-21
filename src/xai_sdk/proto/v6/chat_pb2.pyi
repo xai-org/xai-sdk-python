@@ -33,6 +33,7 @@ class MessageRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     ROLE_SYSTEM: _ClassVar[MessageRole]
     ROLE_FUNCTION: _ClassVar[MessageRole]
     ROLE_TOOL: _ClassVar[MessageRole]
+    ROLE_DEVELOPER: _ClassVar[MessageRole]
 
 class ReasoningEffort(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -94,6 +95,7 @@ ROLE_ASSISTANT: MessageRole
 ROLE_SYSTEM: MessageRole
 ROLE_FUNCTION: MessageRole
 ROLE_TOOL: MessageRole
+ROLE_DEVELOPER: MessageRole
 INVALID_EFFORT: ReasoningEffort
 EFFORT_LOW: ReasoningEffort
 EFFORT_MEDIUM: ReasoningEffort

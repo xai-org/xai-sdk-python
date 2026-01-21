@@ -477,6 +477,9 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
             elif message.role == chat_pb2.MessageRole.ROLE_SYSTEM:
                 prompt_attributes[f"gen_ai.prompt.{index}.role"] = "system"
                 prompt_attributes[f"gen_ai.prompt.{index}.content"] = "".join([c.text for c in message.content])
+            elif message.role == chat_pb2.MessageRole.ROLE_DEVELOPER:
+                prompt_attributes[f"gen_ai.prompt.{index}.role"] = "developer"
+                prompt_attributes[f"gen_ai.prompt.{index}.content"] = "".join([c.text for c in message.content])
             elif message.role == chat_pb2.MessageRole.ROLE_TOOL:
                 prompt_attributes[f"gen_ai.prompt.{index}.role"] = "tool"
                 prompt_attributes[f"gen_ai.prompt.{index}.content"] = "".join([c.text for c in message.content])
@@ -587,6 +590,15 @@ def assistant(*args: Content) -> chat_pb2.Message:
 def system(*args: Content) -> chat_pb2.Message:
     """Creates a new message of role "system"."""
     return chat_pb2.Message(role=chat_pb2.MessageRole.ROLE_SYSTEM, content=[_process_content(c) for c in args])
+
+
+def developer(*args: Content) -> chat_pb2.Message:
+    """Creates a new message of role "developer".
+
+    Note: This role is only supported by model versions higher than `grok-4.1`/`grok-4-1` (not included). Using the
+    `developer` role in `grok-4.1` or below will be converted to `system` message by the backend.
+    """
+    return chat_pb2.Message(role=chat_pb2.MessageRole.ROLE_DEVELOPER, content=[_process_content(c) for c in args])
 
 
 def tool_result(result: str, tool_call_id: Optional[str] = None) -> chat_pb2.Message:

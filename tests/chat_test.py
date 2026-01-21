@@ -1,4 +1,4 @@
-from xai_sdk.chat import Response
+from xai_sdk.chat import Response, developer
 from xai_sdk.proto import chat_pb2, sample_pb2
 from xai_sdk.tools import get_tool_call_type
 
@@ -641,3 +641,19 @@ def test_web_search_user_location():
     # Verify user_location fields are set correctly
     assert tool.web_search.user_location.city == "San Francisco"
     assert tool.web_search.user_location.timezone == "America/Los_Angeles"
+
+
+def test_developer_message():
+    """Test that developer() creates a message with ROLE_DEVELOPER role."""
+    # Simple string content
+    msg = developer("Test developer message")
+    assert msg.role == chat_pb2.MessageRole.ROLE_DEVELOPER
+    assert len(msg.content) == 1
+    assert msg.content[0].text == "Test developer message"
+
+    # Multiple content args (str and text object)
+    msg2 = developer("Part 1", "Part 2")
+    assert msg2.role == chat_pb2.MessageRole.ROLE_DEVELOPER
+    assert len(msg2.content) == 2
+    assert msg2.content[0].text == "Part 1"
+    assert msg2.content[1].text == "Part 2"
