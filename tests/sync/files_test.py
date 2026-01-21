@@ -8,6 +8,7 @@ from unittest import mock
 
 import pytest
 from google.protobuf import timestamp_pb2
+from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
 from xai_sdk.files import _chunk_file_data, _chunk_file_from_path, _order_to_pb, _sort_by_to_pb
@@ -668,3 +669,53 @@ def test_batch_upload_empty_list(client_with_mock_stub: Client):
     """Test batch upload with empty file list."""
     with pytest.raises(ValueError):
         client_with_mock_stub.files.batch_upload([])
+
+
+@mock.patch("xai_sdk.sync.files.tracer")
+def test_upload_creates_span_with_correct_attributes(
+    mock_tracer: mock.MagicMock, client_with_mock_stub: Client, mock_stub
+):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    mock_response = files_pb2.File(id="file-123", filename="test.txt", size=12, team_id="team-456")
+    mock_stub.UploadFile.return_value = mock_response
+
+    result = client_with_mock_stub.files.upload(b"data", filename="test.txt")
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="file.upload",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "operation.name": "upload_file",
+            "provider.name": "xai",
+        },
+    )
+
+    mock_span.set_attribute.assert_any_call("file.id", result.id)
+    mock_span.set_attribute.assert_any_call("file.name", result.filename)
+
+
+@mock.patch("xai_sdk.sync.files.tracer")
+def test_delete_creates_span_with_correct_attributes(
+    mock_tracer: mock.MagicMock, client_with_mock_stub: Client, mock_stub
+):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    mock_response = files_pb2.DeleteFileResponse(id="file-456", deleted=True)
+    mock_stub.DeleteFile.return_value = mock_response
+
+    result = client_with_mock_stub.files.delete("file-456")
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="file.delete",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "operation.name": "delete",
+            "provider.name": "xai",
+        },
+    )
+
+    mock_span.set_attribute.assert_called_once_with("file.id", result.id)
+    assert result.deleted is True
