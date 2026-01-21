@@ -2,6 +2,8 @@ import datetime
 import time
 from typing import Optional, Sequence, Union
 
+from opentelemetry.trace import SpanKind
+
 from ..collections import (
     DEFAULT_INDEXING_POLL_INTERVAL,
     DEFAULT_INDEXING_TIMEOUT,
@@ -23,6 +25,9 @@ from ..collections import (
 from ..files import _chunk_file_data
 from ..poll_timer import PollTimer
 from ..proto import collections_pb2, documents_pb2, shared_pb2, types_pb2
+from ..telemetry import get_tracer
+
+tracer = get_tracer(__name__)
 
 
 class Client(BaseClient):
@@ -77,15 +82,26 @@ class Client(BaseClient):
                 else:
                     field_definitions_pb.append(field_definition)
 
-        return self._collections_stub.CreateCollection(
-            collections_pb2.CreateCollectionRequest(
-                collection_name=name,
-                index_configuration=types_pb2.IndexConfiguration(model_name=model_name) if model_name else None,
-                chunk_configuration=chunk_configuration_pb,
-                metric_space=metric_space_pb,
-                field_definitions=field_definitions_pb,
+        with tracer.start_as_current_span(
+            name="collections.create_collection",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "create_collection",
+                "provider.name": "xai",
+            },
+        ) as span:
+            collection = self._collections_stub.CreateCollection(
+                collections_pb2.CreateCollectionRequest(
+                    collection_name=name,
+                    index_configuration=types_pb2.IndexConfiguration(model_name=model_name) if model_name else None,
+                    chunk_configuration=chunk_configuration_pb,
+                    metric_space=metric_space_pb,
+                    field_definitions=field_definitions_pb,
+                )
             )
-        )
+            span.set_attribute("collection.id", collection.collection_id)
+            span.set_attribute("collection.name", collection.collection_name)
+            return collection
 
     def list(
         self,
@@ -171,13 +187,24 @@ class Client(BaseClient):
         else:
             chunk_configuration_pb = chunk_configuration
 
-        return self._collections_stub.UpdateCollection(
-            collections_pb2.UpdateCollectionRequest(
-                collection_id=collection_id,
-                collection_name=name,
-                chunk_configuration=chunk_configuration_pb,
+        with tracer.start_as_current_span(
+            name="collections.update_collection",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "update_collection",
+                "provider.name": "xai",
+            },
+        ) as span:
+            collection = self._collections_stub.UpdateCollection(
+                collections_pb2.UpdateCollectionRequest(
+                    collection_id=collection_id,
+                    collection_name=name,
+                    chunk_configuration=chunk_configuration_pb,
+                )
             )
-        )
+            span.set_attribute("collection.id", collection.collection_id)
+            span.set_attribute("collection.name", collection.collection_name)
+            return collection
 
     def delete(self, collection_id: str) -> None:
         """Deletes a collection.
@@ -185,9 +212,17 @@ class Client(BaseClient):
         Args:
             collection_id: The ID of the collection to delete.
         """
-        return self._collections_stub.DeleteCollection(
-            collections_pb2.DeleteCollectionRequest(collection_id=collection_id)
-        )
+        with tracer.start_as_current_span(
+            name="collections.delete_collection",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "delete_collection",
+                "provider.name": "xai",
+            },
+        ) as _span:
+            return self._collections_stub.DeleteCollection(
+                collections_pb2.DeleteCollectionRequest(collection_id=collection_id)
+            )
 
     def search(
         self,
@@ -289,8 +324,17 @@ class Client(BaseClient):
         """
         # Upload the raw bytes via the streaming Files API, then attach to the collection.
         upload_chunks = _chunk_file_data(filename=name, data=data)
-
-        uploaded_file = self._files_stub.UploadFile(upload_chunks)
+        with tracer.start_as_current_span(
+            name="collections.upload_document",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "upload_document",
+                "provider.name": "xai",
+            },
+        ) as span:
+            uploaded_file = self._files_stub.UploadFile(upload_chunks)
+            span.set_attribute("file.id", uploaded_file.id)
+            span.set_attribute("file.name", uploaded_file.filename)
 
         # Attach the uploaded file to the target collection as a document.
         self._collections_stub.AddDocumentToCollection(
@@ -367,13 +411,21 @@ class Client(BaseClient):
             file_id: The ID of the file (document) to add.
             fields: Additional metadata fields to store with the document in this collection.
         """
-        return self._collections_stub.AddDocumentToCollection(
-            collections_pb2.AddDocumentToCollectionRequest(
-                collection_id=collection_id,
-                file_id=file_id,
-                fields=fields,
+        with tracer.start_as_current_span(
+            name="collections.add_existing_document",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "add_existing_document",
+                "provider.name": "xai",
+            },
+        ) as _span:
+            return self._collections_stub.AddDocumentToCollection(
+                collections_pb2.AddDocumentToCollectionRequest(
+                    collection_id=collection_id,
+                    file_id=file_id,
+                    fields=fields,
+                )
             )
-        )
 
     def list_documents(
         self,
@@ -459,9 +511,17 @@ class Client(BaseClient):
             collection_id: The ID of the collection to remove the document from.
             file_id: The ID of the file (document) to remove.
         """
-        return self._collections_stub.RemoveDocumentFromCollection(
-            collections_pb2.RemoveDocumentFromCollectionRequest(collection_id=collection_id, file_id=file_id)
-        )
+        with tracer.start_as_current_span(
+            name="collections.remove_document",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "remove_document",
+                "provider.name": "xai",
+            },
+        ) as _span:
+            return self._collections_stub.RemoveDocumentFromCollection(
+                collections_pb2.RemoveDocumentFromCollectionRequest(collection_id=collection_id, file_id=file_id)
+            )
 
     def update_document(
         self,
@@ -485,16 +545,27 @@ class Client(BaseClient):
         Returns:
             The updated metadata for the document.
         """
-        return self._collections_stub.UpdateDocument(
-            collections_pb2.UpdateDocumentRequest(
-                collection_id=collection_id,
-                file_id=file_id,
-                name=name,
-                data=data,
-                content_type=content_type,
-                fields=fields,
+        with tracer.start_as_current_span(
+            name="collections.update_document",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "update_document",
+                "provider.name": "xai",
+            },
+        ) as span:
+            document = self._collections_stub.UpdateDocument(
+                collections_pb2.UpdateDocumentRequest(
+                    collection_id=collection_id,
+                    file_id=file_id,
+                    name=name,
+                    data=data,
+                    content_type=content_type,
+                    fields=fields,
+                )
             )
-        )
+            span.set_attribute("file.id", document.file_metadata.file_id)
+            span.set_attribute("file.name", document.file_metadata.name)
+            return document
 
     def reindex_document(self, collection_id: str, file_id: str) -> None:
         """Regenerates indices for a document.
