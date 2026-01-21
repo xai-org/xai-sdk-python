@@ -3,10 +3,12 @@
 
 import uuid
 from typing import Union
+from unittest import mock
 
 import grpc
 import pytest
 import pytest_asyncio
+from opentelemetry.trace import SpanKind
 from pydantic import ValidationError
 
 from xai_sdk import AsyncClient
@@ -797,3 +799,89 @@ async def test_update_document(client: AsyncClient):
     assert response.file_metadata.size_bytes == len(new_data)
     assert response.file_metadata.content_type == new_content_type
     assert response.fields == new_fields
+
+
+@mock.patch("xai_sdk.aio.collections.tracer")
+@pytest.mark.asyncio(loop_scope="session")
+async def test_upload_document_creates_span_with_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+    assert collection_metadata.collection_id is not None
+
+    mock_tracer.start_as_current_span.assert_any_call(
+        name="collections.create_collection",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "operation.name": "create_collection",
+            "provider.name": "xai",
+        },
+    )
+    mock_span.set_attribute.assert_any_call("collection.id", collection_metadata.collection_id)
+    mock_span.set_attribute.assert_any_call("collection.name", collection_metadata.collection_name)
+
+    name = "trace-document.txt"
+    data = b"Tracing test"
+    fields = {"key": "value"}
+
+    await client.collections.upload_document(collection_metadata.collection_id, name, data, fields)
+
+    mock_tracer.start_as_current_span.assert_any_call(
+        name="collections.upload_document",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "operation.name": "upload_document",
+            "provider.name": "xai",
+        },
+    )
+    mock_span.set_attribute.assert_any_call("file.id", mock.ANY)
+    mock_span.set_attribute.assert_any_call("file.name", name)
+
+
+@mock.patch("xai_sdk.aio.collections.tracer")
+@pytest.mark.asyncio(loop_scope="session")
+async def test_update_document_creates_span_with_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+    assert collection_metadata.collection_id is not None
+
+    mock_tracer.start_as_current_span.assert_any_call(
+        name="collections.create_collection",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "operation.name": "create_collection",
+            "provider.name": "xai",
+        },
+    )
+    mock_span.set_attribute.assert_any_call("collection.id", collection_metadata.collection_id)
+    mock_span.set_attribute.assert_any_call("collection.name", collection_metadata.collection_name)
+
+    document_metadata = await client.collections.upload_document(
+        collection_metadata.collection_id,
+        "test-document.txt",
+        b"Hello, world!",
+        {"key": "value"},
+    )
+    assert document_metadata.file_metadata.file_id is not None
+
+    new_name = "test-document-2.txt"
+
+    await client.collections.update_document(
+        collection_metadata.collection_id,
+        document_metadata.file_metadata.file_id,
+        name=new_name,
+    )
+
+    mock_tracer.start_as_current_span.assert_any_call(
+        name="collections.update_document",
+        kind=SpanKind.CLIENT,
+        attributes={
+            "operation.name": "update_document",
+            "provider.name": "xai",
+        },
+    )
+    mock_span.set_attribute.assert_any_call("document.id", document_metadata.file_metadata.file_id)
+    mock_span.set_attribute.assert_any_call("document.name", new_name)
