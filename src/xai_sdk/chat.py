@@ -369,10 +369,11 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         """Creates a dictionary with all relevant request attributes to be set on the span as it is created."""
         attributes: dict[str, Any] = {
             "gen_ai.operation.name": "chat",
-            "gen_ai.system": "xai",
+            "gen_ai.provider.name": "xai",
             "gen_ai.output.type": "text",
             "gen_ai.request.model": self._proto.model,
             "server.port": 443,
+            "server.address": "api.x.ai",
         }
 
         if should_disable_sensitive_attributes():
