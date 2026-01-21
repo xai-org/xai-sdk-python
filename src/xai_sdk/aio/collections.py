@@ -183,7 +183,6 @@ class Client(BaseClient):
             chunk_configuration_pb = _chunk_configuration_to_pb(chunk_configuration)
         else:
             chunk_configuration_pb = chunk_configuration
-
         with tracer.start_as_current_span(
             name="collections.update_collection",
             kind=SpanKind.CLIENT,
@@ -321,7 +320,6 @@ class Client(BaseClient):
         """
         # Upload the raw bytes via the streaming Files API, then attach to the collection.
         upload_chunks = _async_chunk_file_data(filename=name, data=data)
-
         with tracer.start_as_current_span(
             name="collections.upload_document",
             kind=SpanKind.CLIENT,

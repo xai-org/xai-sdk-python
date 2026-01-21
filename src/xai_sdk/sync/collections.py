@@ -186,7 +186,6 @@ class Client(BaseClient):
             chunk_configuration_pb = _chunk_configuration_to_pb(chunk_configuration)
         else:
             chunk_configuration_pb = chunk_configuration
-
         with tracer.start_as_current_span(
             name="collections.update_collection",
             kind=SpanKind.CLIENT,
