@@ -131,6 +131,9 @@ def web_source(
     Returns:
         A `chat_pb2.Source` object configured for web search.
 
+    Raises:
+        ValueError: If both excluded_websites and allowed_websites are specified.
+
     Example:
         ```
         from xai_sdk.chat import SearchParameters, web_source
@@ -141,6 +144,12 @@ def web_source(
         )
         ```
     """
+    if excluded_websites is not None and allowed_websites is not None:
+        raise ValueError(
+            "Cannot specify both 'excluded_websites' and 'allowed_websites'. "
+            "Please use only one parameter to either exclude or allow specific websites."
+        )
+
     return chat_pb2.Source(
         web=chat_pb2.WebSource(
             country=country,
