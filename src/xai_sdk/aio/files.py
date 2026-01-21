@@ -110,7 +110,6 @@ class Client(BaseClient):
                 else:
                     raise ValueError("filename is required when uploading a file-like object without a .name attribute")
             chunks = _async_chunk_file_from_fileobj(file_obj=file, filename=filename, progress=on_progress)
-
         else:
             raise ValueError(f"Unsupported file type: {type(file)}")
         with tracer.start_as_current_span(
