@@ -559,8 +559,8 @@ class Client(BaseClient):
                     fields=fields,
                 )
             )
-            span.set_attribute("file.id", document.file_metadata.file_id)
-            span.set_attribute("file.name", document.file_metadata.name)
+            span.set_attribute("document.id", document.file_metadata.file_id)
+            span.set_attribute("document.name", document.file_metadata.name)
             return document
 
     async def reindex_document(self, collection_id: str, file_id: str) -> None:
