@@ -1,21 +1,61 @@
 # Changelog
 
 ## [Unreleased]
+
+## [v1.6.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.6.0) - 2026-01-27
+### Added
+- **Batch API**: Added new `client.batch` sub-client for interacting with the Batch API:
+    - Ability to create, manage, and retrieve batch jobs
+    - Integration with existing chat objects when adding requests to a batch
+    - New optional `batch_request_id` field in `chat.create` method
+- **Developer Role**: Added `developer` role support for chat messages with `developer()` utility function
+- **Tool Call ID Field**: Added `tool_call_id` field and argument to `tool_result` utility function for explicit tool call identification
+- **User Location for Web Search**: Added user-location support to `web_search()` server-side tool with new location-related arguments
+
+### Changed
+- **Telemetry Improvements**:
+    - Updated chat spans to be compliant with latest OpenTelemetry `gen_ai` semantic conventions
+    - Now emits `xai` under `gen_ai.provider.name` field instead of `gen_ai.system`
+    - Added `server.address` attribute set to `api.x.ai`
+    - Added instrumentation for Files API methods (`upload`, `delete`)
+    - Added instrumentation for Collections API methods (`create`, `update`, `delete`, `upload_document`, `add_existing_document`, `remove_document`, `update_document`)
+
+## [v1.5.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.5.0) - 2025-12-04
+### Added
+- **Server-Side Tool Output Utilities**: Added utility functions to retrieve server-side tool call outputs from responses
+- **Collections API Enhancements**:
+    - Added `field_definitions` parameter to `collections.create()` enabling custom document metadata schemas with validation constraints (`required`, `unique`, `inject_into_chunk`)
+    - Added `metric_space` parameter to `collections.create()` supporting HNSW distance metrics (`cosine`, `euclidean`, `inner_product`)
+    - Added `filter` parameter to `collections.list()` with support for filtering by `collection_name`, `created_at`, and `documents_count`
+    - Added `wait_for_indexing` parameter to document upload with customizable `poll_interval` and `timeout`
+    - Added `instructions` and `retrieval_mode` parameters to `collections.search()`
+    - Implemented dict-based `TypedDict` interfaces as ergonomic alternatives to protobuf objects
+- **Inline Citations**: Added property methods for convenient access to inline citations on responses for both streaming and unary responses
+    - Added `end_index` field for `InlineCitation`
+- **Verbose Streaming**: Added `verbose_streaming` to include options for streaming responses
+
+### Changed
+- Renamed built-in document search tool to "attachment search" for clarity
+- Collections `upload_document` now streams bytes via the Files `UploadFile` endpoint, then attaches the resulting file to the collection
+
+### Removed
+- **Breaking Change**: The `content_type` parameter was removed from the public `collections.upload_document` function
+
+## [v1.4.1](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.4.1) - 2025-11-26
 ### Added
 - **Tool Call Status Tracking**: Added status field to tool call entries in chat response outputs for tracking tool execution progress
     - Tool call messages now include a status field indicating the current state of the tool call
     - Multiple entries for the same tool call can now represent different stages (in progress, success, failure)
     - Enables real-time tracking of server-side tool execution lifecycle
 - **Batch File Upload**: Added `batch_upload` method to both sync and async file clients for concurrent uploads of multiple files with progress tracking
+- **Max Turns Parameter**: Added `max_turns` parameter to `chat.create` for configuring the maximum number of agentic turns when using server-side tools
+- **Include Field**: Added `include` field to chat requests allowing users to specify optional outputs to be returned (e.g., tool output, inline citations)
+- **Inline Citations**: Added `InlineCitation` support for agentic search outputs
+- **Model Literals**: Introduced `Model` literals for type-safe model specification and editor autocomplete support
 
 ### Changed
-- Updates or modifications to existing features.
-
-### Fixed
-- Bug fixes.
-
-### Removed
-- Features or functionalities that have been removed.
+- Reorganized existing literals into the `types` folder for better organization
+- Updated gRPC metadata to include the language (Python) alongside SDK version
 
 ## [v1.4.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.4.0) - 2025-11-07
 ### Added
