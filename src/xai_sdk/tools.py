@@ -41,6 +41,9 @@ def web_search(
     Returns:
         A `chat_pb2.Tool` object configured for web search.
 
+    Raises:
+        ValueError: If both excluded_domains and allowed_domains are specified.
+
     Example:
         ```
         from xai_sdk.tools import web_search
@@ -55,6 +58,12 @@ def web_search(
         )
         ```
     """
+    if excluded_domains is not None and allowed_domains is not None:
+        raise ValueError(
+            "Cannot specify both 'excluded_domains' and 'allowed_domains'. "
+            "Please use only one parameter to either exclude or allow specific domains."
+        )
+
     user_location = None
     if (
         user_location_country is not None
@@ -112,6 +121,9 @@ def x_search(
     Returns:
         A `chat_pb2.Tool` object configured for X search.
 
+    Raises:
+        ValueError: If both allowed_x_handles and excluded_x_handles are specified.
+
     Example:
         ```
         import datetime
@@ -126,6 +138,12 @@ def x_search(
         )
         ```
     """
+    if allowed_x_handles is not None and excluded_x_handles is not None:
+        raise ValueError(
+            "Cannot specify both 'allowed_x_handles' and 'excluded_x_handles'. "
+            "Please use only one parameter to either allow or exclude specific X handles."
+        )
+
     from_date_pb = Timestamp()
     to_date_pb = Timestamp()
 

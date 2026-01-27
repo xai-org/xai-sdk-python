@@ -94,12 +94,28 @@ class Client(BaseClient):
         return channel
 
     def close(self) -> None:
-        """Close method to properly clean up gRPC channels."""
+        """Close method to properly clean up gRPC channels.
+
+        Ensures both channels are closed even if one fails, preventing resource leaks.
+        If both channels fail to close, the first exception is raised after attempting both.
+        """
+        exceptions = []
+
         if self._management_channel is not None:
-            self._management_channel.close()
+            try:
+                self._management_channel.close()
+            except Exception as e:
+                exceptions.append(e)
 
         if self._api_channel is not None:
-            self._api_channel.close()
+            try:
+                self._api_channel.close()
+            except Exception as e:
+                exceptions.append(e)
+
+        if exceptions:
+            # Raise the first exception after attempting to close both channels
+            raise exceptions[0]
 
     def __enter__(self):
         """Context manager entry."""
