@@ -13,8 +13,8 @@ dependencies = [
   "protobuf>=5.29.4,<7",
   "googleapis-common-protos>=1.65.0,<2",
   "pydantic>=2.5.3,<3",
-  "requests>=2.31.0,<3",
-  "aiohttp>=3.8.6,<4",
+  "requests>=2.32.5,<3",
+  "aiohttp>=3.13.3,<4",
   "packaging>=25.0,<26",
   "opentelemetry-sdk>=1.36.0,<2",
 ]
