@@ -31,6 +31,8 @@ if version.parse(google.protobuf.__version__).major == 5:
         tokenize_pb2_grpc,
         types_pb2,
         usage_pb2,
+        video_pb2,
+        video_pb2_grpc,
     )
 elif version.parse(google.protobuf.__version__).major == 6:
     from .v6 import (
@@ -61,6 +63,8 @@ elif version.parse(google.protobuf.__version__).major == 6:
         tokenize_pb2_grpc,
         types_pb2,
         usage_pb2,
+        video_pb2,
+        video_pb2_grpc,
     )
 else:
     raise ValueError(f"Unsupported protobuf version: {google.protobuf.__version__}")
