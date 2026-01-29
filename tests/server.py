@@ -40,12 +40,69 @@ from xai_sdk.proto import (
     tokenize_pb2,
     tokenize_pb2_grpc,
     usage_pb2,
+    video_pb2,
+    video_pb2_grpc,
 )
 
 # All valid requests should use this API key.
 API_KEY = "123"
 MANAGEMENT_API_KEY = "456"
 IMAGE_PATH = "test.jpg"
+
+_last_image_request_lock = threading.Lock()
+_last_video_request_lock = threading.Lock()
+
+
+class _LastImageRequestState:
+    def __init__(self) -> None:
+        self.value: Optional[image_pb2.GenerateImageRequest] = None
+
+
+_last_image_request_state = _LastImageRequestState()
+
+
+class _LastVideoRequestState:
+    def __init__(self) -> None:
+        self.value: Optional[video_pb2.GenerateVideoRequest] = None
+
+
+_last_video_request_state = _LastVideoRequestState()
+
+
+def clear_last_image_request() -> None:
+    with _last_image_request_lock:
+        _last_image_request_state.value = None
+
+
+def get_last_image_request() -> Optional[image_pb2.GenerateImageRequest]:
+    with _last_image_request_lock:
+        if _last_image_request_state.value is None:
+            return None
+        # Return a defensive copy so tests can't mutate shared state.
+        return image_pb2.GenerateImageRequest.FromString(_last_image_request_state.value.SerializeToString())
+
+
+def _record_last_image_request(request: image_pb2.GenerateImageRequest) -> None:
+    with _last_image_request_lock:
+        _last_image_request_state.value = image_pb2.GenerateImageRequest.FromString(request.SerializeToString())
+
+
+def clear_last_video_request() -> None:
+    with _last_video_request_lock:
+        _last_video_request_state.value = None
+
+
+def get_last_video_request() -> Optional[video_pb2.GenerateVideoRequest]:
+    with _last_video_request_lock:
+        if _last_video_request_state.value is None:
+            return None
+        # Return a defensive copy so tests can't mutate shared state.
+        return video_pb2.GenerateVideoRequest.FromString(_last_video_request_state.value.SerializeToString())
+
+
+def _record_last_video_request(request: video_pb2.GenerateVideoRequest) -> None:
+    with _last_video_request_lock:
+        _last_video_request_state.value = video_pb2.GenerateVideoRequest.FromString(request.SerializeToString())
 
 
 def read_image() -> bytes:
@@ -585,6 +642,7 @@ class ImageServicer(image_pb2_grpc.ImageServicer):
 
     def GenerateImage(self, request: image_pb2.GenerateImageRequest, context: grpc.ServicerContext):
         _check_auth(context)
+        _record_last_image_request(request)
 
         if request.format == image_pb2.ImageFormat.IMG_FORMAT_URL:
             return image_pb2.ImageResponse(
@@ -604,6 +662,52 @@ class ImageServicer(image_pb2_grpc.ImageServicer):
                     for _ in range(request.n)
                 ],
             )
+
+
+class VideoServicer(video_pb2_grpc.VideoServicer):
+    """Minimal Video service used by tests."""
+
+    def __init__(self, url: str):
+        self._url = url
+        self._deferred_requests: dict[str, tuple[video_pb2.GenerateVideoRequest, int]] = {}
+
+    def GenerateVideo(self, request: video_pb2.GenerateVideoRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+        _record_last_video_request(request)
+
+        key = f"video-{len(self._deferred_requests)}"
+        # Store a defensive copy + poll count.
+        self._deferred_requests[key] = (
+            video_pb2.GenerateVideoRequest.FromString(request.SerializeToString()),
+            0,
+        )
+        return deferred_pb2.StartDeferredResponse(request_id=key)
+
+    def GetDeferredVideo(self, request: video_pb2.GetDeferredVideoRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+
+        if request.request_id not in self._deferred_requests:
+            context.abort(grpc.StatusCode.NOT_FOUND, "Invalid request ID")
+
+        stored_request, polls = self._deferred_requests[request.request_id]
+
+        # Every request needs to be polled three times.
+        if polls < 2:
+            self._deferred_requests[request.request_id] = (stored_request, polls + 1)
+            return video_pb2.GetDeferredVideoResponse(status=deferred_pb2.DeferredStatus.PENDING)
+
+        duration = stored_request.duration if stored_request.HasField("duration") else 5
+
+        return video_pb2.GetDeferredVideoResponse(
+            status=deferred_pb2.DeferredStatus.DONE,
+            response=video_pb2.VideoResponse(
+                model=stored_request.model,
+                video=video_pb2.GeneratedVideo(
+                    url=self._url,
+                    duration=duration,
+                ),
+            ),
+        )
 
 
 class ImageHandler(http.server.SimpleHTTPRequestHandler):
@@ -1405,6 +1509,7 @@ class TestServer(threading.Thread):
         image_pb2_grpc.add_ImageServicer_to_server(
             ImageServicer(f"http://localhost:{self._image_port}/foo.jpg"), self._server
         )
+        video_pb2_grpc.add_VideoServicer_to_server(VideoServicer("https://example.com/foo.mp4"), self._server)
         documents_pb2_grpc.add_DocumentsServicer_to_server(DocumentServicer(), self._server)
         files_pb2_grpc.add_FilesServicer_to_server(FilesServicer(self._store), self._server)
 
