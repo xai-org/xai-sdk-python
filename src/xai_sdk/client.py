@@ -3,11 +3,14 @@
 import abc
 import json
 import sys
-from typing import Any, Optional, Sequence
+from typing import Any, Literal, Optional, Sequence
 
 import grpc
 
 from .__about__ import __version__
+
+# Transport type for video client
+VideoTransport = Literal["grpc", "rest"]
 
 # Retries if the service returns an UNAVAILABLE error.
 _DEFAULT_SERVICE_CONFIG_JSON = json.dumps(
@@ -64,6 +67,7 @@ class BaseClient(abc.ABC):
         channel_options: Optional[list[tuple[str, Any]]] = None,
         timeout: Optional[float] = None,
         use_insecure_channel: bool = False,
+        video_transport: VideoTransport = "grpc",
     ) -> None:
         """Initializes a new instance of the `Client` class.
 
@@ -83,6 +87,8 @@ class BaseClient(abc.ABC):
             use_insecure_channel: Whether to use an insecure gRPC channel. If True, an insecure gRPC client
                 is used for the underlying connection, though the API key will still be applied
                 to outgoing requests via metadata through gRPC interceptors. Defaults to False.
+            video_transport: Transport to use for the video client ("grpc" or "rest"). Defaults to "grpc".
+                REST transport enables use of the REST API for video generation/editing.
 
         Raises:
             ValueError: If the `XAI_API_KEY` environment variable is not set.
@@ -108,6 +114,7 @@ class BaseClient(abc.ABC):
             default_options + channel_options,
             timeout,
             use_insecure_channel,
+            video_transport,
         )
 
     @abc.abstractmethod
@@ -121,6 +128,7 @@ class BaseClient(abc.ABC):
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
         use_insecure_channel: bool,  # noqa: FBT001
+        video_transport: VideoTransport = "grpc",
     ) -> None:
         """Initializes the client instance."""
 

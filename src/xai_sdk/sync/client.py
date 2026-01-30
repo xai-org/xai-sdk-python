@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional, Sequence
+from typing import Any, Literal, Optional, Sequence
 
 import grpc
 
@@ -8,6 +8,7 @@ from ..client import (
     create_channel_credentials,
 )
 from ..interceptors import AuthInterceptor, TimeoutInterceptor
+from ..video import VideoTransport
 from . import auth, batch, chat, collections, files, image, models, tokenizer, video
 
 
@@ -34,6 +35,7 @@ class Client(BaseClient):
         channel_options: Sequence[tuple[str, Any]],
         timeout: float,
         use_insecure_channel: bool,  # noqa: FBT001
+        video_transport: VideoTransport = "grpc",
     ) -> None:
         """Creates the channel and sets up the sub-client."""
         api_key = api_key or os.getenv("XAI_API_KEY")
@@ -41,6 +43,11 @@ class Client(BaseClient):
             raise ValueError(
                 "Trying to read the xAI API key from the XAI_API_KEY environment variable but it doesn't exist."
             )
+
+        # Store API key and host for REST transport
+        self._api_key = api_key
+        self._api_host = api_host
+
         self._api_channel = self._make_grpc_channel(
             api_key,
             api_host,
@@ -73,7 +80,12 @@ class Client(BaseClient):
         self.image = image.Client(self._api_channel)
         self.models = models.Client(self._api_channel)
         self.tokenize = tokenizer.Client(self._api_channel)
-        self.video = video.Client(self._api_channel)
+        self.video = video.Client(
+            self._api_channel,
+            transport=video_transport,
+            api_key=api_key,
+            api_host=api_host,
+        )
 
     def _make_grpc_channel(
         self,

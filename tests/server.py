@@ -724,6 +724,110 @@ class ImageHandler(http.server.SimpleHTTPRequestHandler):
             self.send_error(404, "Not found")
 
 
+class RestVideoHandler(http.server.BaseHTTPRequestHandler):
+    """REST API handler for video generation endpoints."""
+
+    # Shared state for deferred requests (per server instance)
+    _deferred_requests: dict[str, tuple[dict, int]] = {}
+    _video_url: str = "https://example.com/foo.mp4"
+
+    def _send_json_response(self, data: dict, status_code: int = 200):
+        """Send a JSON response."""
+        import json
+
+        response_body = json.dumps(data).encode("utf-8")
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(response_body)))
+        self.end_headers()
+        self.wfile.write(response_body)
+
+    def _check_auth(self) -> bool:
+        """Check if the request has valid authorization."""
+        auth_header = self.headers.get("Authorization", "")
+        if auth_header != f"Bearer {API_KEY}":
+            self._send_json_response({"error": "Unauthorized"}, 401)
+            return False
+        return True
+
+    def _read_json_body(self) -> Optional[dict]:
+        """Read and parse JSON body from request."""
+        import json
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        if content_length == 0:
+            return None
+        body = self.rfile.read(content_length)
+        return json.loads(body.decode("utf-8"))
+
+    def do_POST(self):
+        """Handle POST requests for video generation and edits."""
+        if not self._check_auth():
+            return
+
+        body = self._read_json_body()
+        if body is None:
+            self._send_json_response({"error": "Missing request body"}, 400)
+            return
+
+        # Handle /v1/videos/generations and /v1/videos/edits
+        if self.path in ["/v1/videos/generations", "/v1/videos/edits"]:
+            request_id = f"rest-video-{len(self._deferred_requests)}"
+
+            # Store the request with poll count
+            self._deferred_requests[request_id] = (body, 0)
+
+            self._send_json_response({"request_id": request_id})
+        else:
+            self._send_json_response({"error": "Not found"}, 404)
+
+    def do_GET(self):
+        """Handle GET requests for video status retrieval."""
+        if not self._check_auth():
+            return
+
+        # Handle /v1/videos/{request_id}
+        if self.path.startswith("/v1/videos/"):
+            request_id = self.path.split("/")[-1]
+
+            if request_id not in self._deferred_requests:
+                self._send_json_response({"error": "Not found"}, 404)
+                return
+
+            body, poll_count = self._deferred_requests[request_id]
+
+            # Require 2 polls before returning done (same as gRPC test server)
+            if poll_count < 2:
+                self._deferred_requests[request_id] = (body, poll_count + 1)
+                self._send_json_response({
+                    "request_id": request_id,
+                    "status": "pending",
+                })
+                return
+
+            # Return completed response
+            duration = body.get("duration", 5)
+            self._send_json_response({
+                "request_id": request_id,
+                "status": "done",
+                "model": body.get("model", "grok-imagine-video"),
+                "url": self._video_url,
+                "duration": duration,
+                "respect_moderation": True,
+                "usage": {
+                    "prompt_tokens": 10,
+                    "completion_tokens": 5,
+                    "total_tokens": 15,
+                },
+            })
+        else:
+            self._send_json_response({"error": "Not found"}, 404)
+
+    def log_message(self, format, *args):
+        """Suppress default logging."""
+        pass
+
+
 class InMemoryStore:
     def __init__(self):
         # collection_id -> collection_metadata
@@ -1501,6 +1605,10 @@ class TestServer(threading.Thread):
         self._image_port = portpicker.pick_unused_port()
         self._image_server = http.server.HTTPServer(("", self._image_port), ImageHandler)
 
+        # REST video server
+        self._rest_video_port = portpicker.pick_unused_port()
+        self._rest_video_server = http.server.HTTPServer(("", self._rest_video_port), RestVideoHandler)
+
         auth_pb2_grpc.add_AuthServicer_to_server(AuthServicer(initial_failures), self._server)
         batch_pb2_grpc.add_BatchMgmtServicer_to_server(BatchMgmtServicer(), self._server)
         chat_pb2_grpc.add_ChatServicer_to_server(ChatServicer(response_delay_seconds), self._server)
@@ -1513,12 +1621,22 @@ class TestServer(threading.Thread):
         documents_pb2_grpc.add_DocumentsServicer_to_server(DocumentServicer(), self._server)
         files_pb2_grpc.add_FilesServicer_to_server(FilesServicer(self._store), self._server)
 
+    @property
+    def rest_video_port(self) -> int:
+        """Returns the port for the REST video API server."""
+        return self._rest_video_port
+
     def stop(self):
         self._image_server.shutdown()
+        self._rest_video_server.shutdown()
         self._server.stop(grace=1.0)
 
     def run(self):
         self._server.start()
+        # Run REST video server in a separate thread
+        rest_thread = threading.Thread(target=self._rest_video_server.serve_forever)
+        rest_thread.daemon = True
+        rest_thread.start()
         self._image_server.serve_forever()
         self._server.wait_for_termination()
 
@@ -1553,6 +1671,24 @@ def run_test_server(
     try:
         server.start()
         yield port
+    finally:
+        server.stop()
+        server.join()
+
+
+@contextlib.contextmanager
+def run_test_server_with_rest(
+    initial_failures: int = 0,
+    response_delay_seconds: int = 0,
+    model_library: Optional[ModelLibrary] = None,
+    in_memory_store: Optional[InMemoryStore] = None,
+) -> Generator[tuple[int, int], None, None]:
+    """Runs the test server and yields (grpc_port, rest_video_port)."""
+    port = portpicker.pick_unused_port()
+    server = TestServer(port, initial_failures, response_delay_seconds, model_library, in_memory_store)
+    try:
+        server.start()
+        yield port, server.rest_video_port
     finally:
         server.stop()
         server.join()
