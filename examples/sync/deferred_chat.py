@@ -17,7 +17,7 @@ N = flags.DEFINE_integer("n", 1, "Number of responses to generate.")
 def deferred_chat(client: Client):
     """Sample a response from a model using polling."""
 
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello"))
     try:
         response = chat.defer(timeout=timedelta(minutes=TIMEOUT.value), interval=timedelta(milliseconds=INTERVAL.value))
@@ -32,7 +32,7 @@ def deferred_chat(client: Client):
 
 def batch_deferred_chat(client: Client):
     """Sample multiple responses from a model using polling."""
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello"))
     try:
         responses = chat.defer_batch(

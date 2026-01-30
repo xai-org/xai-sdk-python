@@ -58,7 +58,7 @@ async def test_add_batch_requests_with_chat_objects(client: AsyncClient):
 
     batch_requests = []
     for i, message in enumerate(["Hello", "How are you?", "Goodbye"]):
-        chat = client.chat.create(model="grok-3", max_tokens=100, batch_request_id=f"req_{i}")
+        chat = client.chat.create(model="grok-4-1-fast-reasoning", max_tokens=100, batch_request_id=f"req_{i}")
         chat.append(user(message))
         batch_requests.append(chat)
 
@@ -73,7 +73,7 @@ async def test_add_batch_requests_with_chat_objects(client: AsyncClient):
     assert len(batch_metadata.batch_request_metadata) == 3
     for metadata in batch_metadata.batch_request_metadata:
         assert metadata.state == batch_pb2.BatchRequestMetadata.State.STATE_PENDING
-        assert metadata.model == "grok-3"
+        assert metadata.model == "grok-4-1-fast-reasoning"
         assert metadata.batch_request_id.startswith("req_")
 
 
@@ -87,7 +87,7 @@ async def test_add_batch_requests_with_proto_objects(client: AsyncClient):
         request = batch_pb2.BatchRequest(
             batch_request_id=f"proto_req_{i}",
             completion_request=chat_pb2.GetCompletionsRequest(
-                model="grok-3-latest",
+                model="grok-4-1-fast-reasoning",
                 messages=[
                     chat_pb2.Message(
                         role=chat_pb2.MessageRole.ROLE_USER, content=[chat_pb2.Content(text=f"Test message {i}")]
@@ -109,7 +109,7 @@ async def test_add_batch_requests_with_proto_objects(client: AsyncClient):
     assert len(batch_metadata.batch_request_metadata) == 2
     for metadata in batch_metadata.batch_request_metadata:
         assert metadata.state == batch_pb2.BatchRequestMetadata.State.STATE_PENDING
-        assert metadata.model == "grok-3-latest"
+        assert metadata.model == "grok-4-1-fast-reasoning"
         assert metadata.batch_request_id.startswith("proto_req_")
 
 
@@ -132,7 +132,7 @@ async def test_list_batch_request_metadata(client: AsyncClient):
 
     chats = []
     for i in range(2):
-        chat = client.chat.create(model="grok-3-latest", batch_request_id=f"req_{i}")
+        chat = client.chat.create(model="grok-4-1-fast-reasoning", batch_request_id=f"req_{i}")
         chat.append(user(f"Message {i}"))
         chats.append(chat)
 
@@ -145,7 +145,7 @@ async def test_list_batch_request_metadata(client: AsyncClient):
     for metadata in batch_metadata.batch_request_metadata:
         assert metadata.state == batch_pb2.BatchRequestMetadata.State.STATE_PENDING
         assert metadata.endpoint == "endpoint"
-        assert metadata.model == "grok-3-latest"
+        assert metadata.model == "grok-4-1-fast-reasoning"
 
 
 @pytest.mark.asyncio
@@ -155,7 +155,7 @@ async def test_list_batch_results(client: AsyncClient):
 
     batch_requests = []
     for i in range(2):
-        chat = client.chat.create(model="grok-3-latest", batch_request_id=f"req_{i}")
+        chat = client.chat.create(model="grok-4-1-fast-reasoning", batch_request_id=f"req_{i}")
         chat.append(user(f"Message {i}"))
         batch_requests.append(chat)
 
@@ -196,7 +196,7 @@ async def test_cancel_batch(client: AsyncClient):
 
     batch_requests = []
     for i in range(2):
-        chat = client.chat.create(model="grok-3-latest", batch_request_id=f"req_{i}")
+        chat = client.chat.create(model="grok-4-1-fast-reasoning", batch_request_id=f"req_{i}")
         chat.append(user(f"Message {i}"))
         batch_requests.append(chat)
 
@@ -222,7 +222,7 @@ async def test_add_multiple_request_batches(client: AsyncClient):
 
     batch_requests_one = []
     for i in range(2):
-        chat = client.chat.create(model="grok-3-latest", batch_request_id=f"batch1_req_{i}")
+        chat = client.chat.create(model="grok-4-1-fast-reasoning", batch_request_id=f"batch1_req_{i}")
         chat.append(user(f"First batch message {i}"))
         batch_requests_one.append(chat)
 
@@ -230,7 +230,7 @@ async def test_add_multiple_request_batches(client: AsyncClient):
 
     batch_requests_two = []
     for i in range(3):
-        chat = client.chat.create(model="grok-3-latest", batch_request_id=f"batch2_req_{i}")
+        chat = client.chat.create(model="grok-4-1-fast-reasoning", batch_request_id=f"batch2_req_{i}")
         chat.append(user(f"Second batch message {i}"))
         batch_requests_two.append(chat)
 
@@ -281,7 +281,7 @@ async def test_list_batch_results_pagination(client: AsyncClient):
 
     batch_requests = []
     for i in range(5):
-        chat = client.chat.create(model="grok-3-latest", batch_request_id=f"req_{i}")
+        chat = client.chat.create(model="grok-4-1-fast-reasoning", batch_request_id=f"req_{i}")
         chat.append(user(f"Message {i}"))
         batch_requests.append(chat)
 
@@ -313,7 +313,7 @@ async def test_get_nonexistent_batch(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_add_to_nonexistent_batch(client: AsyncClient):
     """Test adding to a non-existent batch raises an error."""
-    chat = client.chat.create(model="grok-3-latest")
+    chat = client.chat.create(model="grok-4-1-fast-reasoning")
     chat.append(user("test"))
 
     with pytest.raises(grpc.RpcError) as e:

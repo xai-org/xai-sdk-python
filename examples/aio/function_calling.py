@@ -19,7 +19,7 @@ async def function_calling(client: AsyncClient) -> None:
         return f"The weather in {city} is sunny at a temperature of {temperature} {units}."
 
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         messages=[system("You are a helpful assistant that can answer questions and help with tasks.")],
         tools=[
             tool(
@@ -86,7 +86,7 @@ async def function_calling_streaming(client: AsyncClient) -> None:
         return f"The weather in {request.city} is sunny at a temperature of {temperature} {request.units}."
 
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         messages=[system("You are a helpful assistant that can answer questions and help with tasks.")],
         tools=[
             tool(

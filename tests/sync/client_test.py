@@ -101,7 +101,7 @@ def test_timeout_unary_unary():
         client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1)
 
         with pytest.raises(grpc.RpcError) as excinfo:
-            chat = client.chat.create(model="grok-3")
+            chat = client.chat.create(model="grok-4-1-fast-reasoning")
             chat.append(user("Hello, world!"))
             chat.sample()
 
@@ -113,7 +113,7 @@ def test_timeout_unary_stream():
         client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1)
 
         with pytest.raises(grpc.RpcError) as excinfo:
-            chat = client.chat.create(model="grok-3")
+            chat = client.chat.create(model="grok-4-1-fast-reasoning")
             chat.append(user("Hello, world!"))
             for _, _ in chat.stream():
                 pass
@@ -145,7 +145,7 @@ def test_insecure_client_timeout_unary_unary():
         client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1, use_insecure_channel=True)
 
         with pytest.raises(grpc.RpcError) as excinfo:
-            chat = client.chat.create(model="grok-3")
+            chat = client.chat.create(model="grok-4-1-fast-reasoning")
             chat.append(user("Hello, world!"))
             chat.sample()
 
@@ -158,7 +158,7 @@ def test_insecure_client_timeout_unary_stream():
         client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1, use_insecure_channel=True)
 
         with pytest.raises(grpc.RpcError) as excinfo:
-            chat = client.chat.create(model="grok-3")
+            chat = client.chat.create(model="grok-4-1-fast-reasoning")
             chat.append(user("Hello, world!"))
             for _, _ in chat.stream():
                 pass

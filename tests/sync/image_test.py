@@ -22,21 +22,21 @@ def image_asset():
 
 
 def test_base64(client: Client, image_asset: bytes):
-    response = client.image.sample(prompt="foo", model="grok-2-image", image_format="base64")
+    response = client.image.sample(prompt="foo", model="grok-imagine-image", image_format="base64")
 
     assert response.prompt == "foo"
     assert image_asset == response.image
 
 
 def test_url(client: Client, image_asset: bytes):
-    response = client.image.sample(prompt="foo", model="grok-2-image", image_format="url")
+    response = client.image.sample(prompt="foo", model="grok-imagine-image", image_format="url")
 
     assert response.prompt == "foo"
     assert image_asset == response.image
 
 
 def test_batch(client: Client, image_asset: bytes):
-    responses = client.image.sample_batch(prompt="foo", model="grok-2-image", n=2, image_format="base64")
+    responses = client.image.sample_batch(prompt="foo", model="grok-imagine-image", n=2, image_format="base64")
 
     assert len(responses) == 2
 
@@ -50,7 +50,7 @@ def test_sample_passes_aspect_ratio_and_resolution(client: Client):
 
     client.image.sample(
         prompt="foo",
-        model="grok-2-image",
+        model="grok-imagine-image",
         aspect_ratio="1:1",
         resolution="1k",
     )
@@ -68,7 +68,7 @@ def test_sample_batch_passes_aspect_ratio_and_resolution(client: Client):
 
     client.image.sample_batch(
         prompt="foo",
-        model="grok-2-image",
+        model="grok-imagine-image",
         n=2,
         aspect_ratio="16:9",
         resolution="1k",
@@ -105,7 +105,7 @@ def test_sample_creates_span_with_correct_attributes(
 
     user = "test-user-123"
     response = client.image.sample(
-        prompt="A beautiful sunset", model="grok-2-image", image_format=image_format, user=user
+        prompt="A beautiful sunset", model="grok-imagine-image", image_format=image_format, user=user
     )
 
     expected_request_attributes = {
@@ -113,20 +113,20 @@ def test_sample_creates_span_with_correct_attributes(
         "gen_ai.operation.name": "generate_image",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "image",
-        "gen_ai.request.model": "grok-2-image",
+        "gen_ai.request.model": "grok-imagine-image",
         "gen_ai.request.image.format": image_format,
         "gen_ai.request.image.count": 1,
         "user_id": user,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="image.sample grok-2-image",
+        name="image.sample grok-imagine-image",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
 
     expected_response_attributes = {
-        "gen_ai.response.model": "grok-2-image",
+        "gen_ai.response.model": "grok-imagine-image",
         "gen_ai.response.image.format": image_format,
         "gen_ai.usage.input_tokens": response.usage.prompt_tokens,
         "gen_ai.usage.output_tokens": response.usage.completion_tokens,
@@ -158,23 +158,23 @@ def test_sample_creates_span_without_sensitive_attributes_when_disabled(
 
     user = "test-user-123"
     with mock.patch.dict("os.environ", {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": "1"}):
-        client.image.sample(prompt="A beautiful sunset", model="grok-2-image", image_format=image_format, user=user)
+        client.image.sample(prompt="A beautiful sunset", model="grok-imagine-image", image_format=image_format, user=user)
 
     expected_request_attributes = {
         "gen_ai.operation.name": "generate_image",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "image",
-        "gen_ai.request.model": "grok-2-image",
+        "gen_ai.request.model": "grok-imagine-image",
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="image.sample grok-2-image",
+        name="image.sample grok-imagine-image",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
 
     expected_response_attributes = {
-        "gen_ai.response.model": "grok-2-image",
+        "gen_ai.response.model": "grok-imagine-image",
     }
 
     mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
@@ -190,7 +190,7 @@ def test_sample_batch_creates_span_with_correct_attributes(
 
     user = "test-user-123"
     responses = client.image.sample_batch(
-        prompt="A beautiful sunset", model="grok-2-image", n=3, image_format=image_format, user=user
+        prompt="A beautiful sunset", model="grok-imagine-image", n=3, image_format=image_format, user=user
     )
 
     assert len(responses) == 3
@@ -200,20 +200,20 @@ def test_sample_batch_creates_span_with_correct_attributes(
         "gen_ai.operation.name": "generate_image",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "image",
-        "gen_ai.request.model": "grok-2-image",
+        "gen_ai.request.model": "grok-imagine-image",
         "gen_ai.request.image.format": image_format,
         "gen_ai.request.image.count": 3,
         "user_id": user,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="image.sample_batch grok-2-image",
+        name="image.sample_batch grok-imagine-image",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
 
     expected_response_attributes = {
-        "gen_ai.response.model": "grok-2-image",
+        "gen_ai.response.model": "grok-imagine-image",
         "gen_ai.response.image.format": image_format,
         "gen_ai.usage.input_tokens": responses[0].usage.prompt_tokens,
         "gen_ai.usage.output_tokens": responses[0].usage.completion_tokens,

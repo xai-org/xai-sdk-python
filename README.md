@@ -86,7 +86,7 @@ from xai_sdk.chat import system, user
 
 client = Client()
 chat = client.chat.create(
-    model="grok-3",
+    model="grok-4-1-fast-non-reasoning",
     messages=[system("You are a pirate assistant.")]
 )
 
@@ -112,7 +112,7 @@ from xai_sdk.chat import system, user
 async def main():
     client = AsyncClient()
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         messages=[system("You are a pirate assistant.")]
     )
 
@@ -138,7 +138,7 @@ from xai_sdk import Client
 from xai_sdk.chat import user
 
 client = Client()
-chat = client.chat.create(model="grok-3")
+chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 
 while True:
     prompt = input("You: ")
@@ -161,7 +161,7 @@ from xai_sdk import Client
 from xai_sdk.chat import image, user
 
 client = Client()
-chat = client.chat.create(model="grok-2-vision")
+chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 
 chat.append(
     user(
@@ -215,7 +215,7 @@ telemetry.setup_console_exporter()
 client = Client()
 
 # The call to sample will now generate a trace that you will be able to see in the console
-chat = client.chat.create(model="grok-3")
+chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 chat.append(user("Hello, how are you?"))
 response = chat.sample()
 print(f"Response: {response.content}")
@@ -237,7 +237,7 @@ telemetry.setup_otlp_exporter(
 client = Client()
 
 # The call to sample will now generate a trace that you will be able to see in your observability platform
-chat = client.chat.create(model="grok-3")
+chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 chat.append(user("Hello, how are you?"))
 response = chat.sample()
 print(f"Response: {response.content}")
@@ -423,7 +423,7 @@ from xai_sdk import Client
 from xai_sdk.chat import user
 
 client = Client()
-chat = client.chat.create(model="grok-3")
+chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 chat.append(user("Hello, how are you?"))
 response = chat.sample()
 

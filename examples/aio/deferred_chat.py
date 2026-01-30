@@ -17,7 +17,7 @@ INTERVAL = flags.DEFINE_integer("interval", 2000, "Interval for the deferred cha
 async def deferred_chat(client: AsyncClient):
     """Sample a response from a model using polling."""
 
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello"))
     try:
         response = await chat.defer(
@@ -34,7 +34,7 @@ async def deferred_chat(client: AsyncClient):
 
 async def batch_deferred_chat(client: AsyncClient):
     """Sample multiple responses from a model using polling."""
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello"))
     try:
         responses = await chat.defer_batch(

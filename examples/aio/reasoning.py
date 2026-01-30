@@ -13,7 +13,7 @@ REASONING_EFFORT = flags.DEFINE_enum("effort", "low", ["low", "high"], "The effo
 async def reasoning(client: AsyncClient, reasoning_effort: ReasoningEffort) -> None:
     """Sample from a reasoning model."""
     chat = client.chat.create(
-        model="grok-3-mini",  # This model is a reasoning model.
+        model="grok-4-1-fast-reasoning",  # This model is a reasoning model.
         reasoning_effort=reasoning_effort,
     )
 
@@ -33,7 +33,7 @@ async def reasoning(client: AsyncClient, reasoning_effort: ReasoningEffort) -> N
 async def reasoning_with_streaming(client: AsyncClient, reasoning_effort: ReasoningEffort) -> None:
     """Sample from a reasoning model and stream the response."""
     chat = client.chat.create(
-        model="grok-3-mini",  # This model is a reasoning model.
+        model="grok-4-1-fast-reasoning",  # This model is a reasoning model.
         reasoning_effort=reasoning_effort,
     )
 

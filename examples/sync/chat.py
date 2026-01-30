@@ -96,7 +96,7 @@ def main(argv: Sequence[str]) -> None:
     client = xai_sdk.Client()
 
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         messages=[
             system("You talk like a pirate."),
             user("How are you?"),

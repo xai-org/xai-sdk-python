@@ -13,7 +13,7 @@ async def no_telemetry_example(client: AsyncClient):
     """
     Example without telemetry - no traces will be collected.
     """
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
     print(f"Response: {response.content}")
@@ -26,7 +26,7 @@ async def console_export_example(client: AsyncClient):
     telemetry = Telemetry()
     telemetry.setup_console_exporter()
 
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
     print(f"Response: {response.content}")
@@ -44,7 +44,7 @@ async def otlp_export_example(client: AsyncClient):
     telemetry = Telemetry()
     telemetry.setup_otlp_exporter()
 
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
     print(f"Response: {response.content}")
@@ -61,7 +61,7 @@ async def custom_tracer_provider_example(client: AsyncClient):
     telemetry = Telemetry(tracer_provider)
     telemetry.setup_otlp_exporter()
 
-    chat = client.chat.create(model="grok-3")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
     print(f"Response: {response.content}")

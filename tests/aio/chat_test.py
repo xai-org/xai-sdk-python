@@ -46,14 +46,14 @@ async def client(test_server_port: int):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_unary_no_messages(client: AsyncClient):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     with pytest.raises(ValueError):
         await chat.sample()
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_unary(client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     response = await chat.sample()
 
@@ -62,7 +62,7 @@ async def test_unary(client):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_unary_batch(client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     responses = await chat.sample_batch(10)
 
@@ -74,7 +74,7 @@ async def test_unary_batch(client):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_streaming(client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     response = chat.stream()
 
@@ -95,7 +95,7 @@ async def test_streaming(client):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_streaming_batch(client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     response = chat.stream_batch(2)
 
@@ -136,7 +136,7 @@ async def test_streaming_batch(client):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_deferred(client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     response = await chat.defer()
     assert response.content == "Hello, this is a test response!"
@@ -144,7 +144,7 @@ async def test_deferred(client):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_deferred_batch(client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     responses = await chat.defer_batch(10)
     assert len(responses) == 10
@@ -156,7 +156,7 @@ async def test_deferred_batch(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_function_calling(client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -182,7 +182,7 @@ async def test_function_calling(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_function_calling_batch(client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -210,7 +210,7 @@ async def test_function_calling_batch(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_function_calling_streaming(client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -259,7 +259,7 @@ async def test_function_calling_streaming(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_function_calling_streaming_batch(client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -355,7 +355,7 @@ async def test_function_calling_streaming_batch(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_agentic_tool_calling_streaming(client):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         tools=[web_search()],
     )
     chat.append(user("What is the weather in London?"))
@@ -403,7 +403,7 @@ async def test_agentic_tool_calling_streaming(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_agentic_tool_calling_non_streaming(client):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         tools=[web_search()],
     )
     chat.append(user("What is the weather in London?"))
@@ -434,7 +434,7 @@ async def test_structured_output_parse(client):
         units: str
         temperature: int
 
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("What is the weather in London?"))
     response, receipt = await chat.parse(Weather)
 
@@ -452,7 +452,7 @@ async def test_structured_output_chat_create(client):
         units: str
         temperature: int
 
-    chat = client.chat.create("grok-3-latest", response_format=Weather)
+    chat = client.chat.create("grok-4-1-fast-reasoning", response_format=Weather)
     chat.append(user("What is the weather in London?"))
     response = await chat.sample()
 
@@ -468,7 +468,7 @@ async def test_structured_output_chat_create(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search(client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[
@@ -492,7 +492,7 @@ async def test_search(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search_batch(client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[
@@ -516,7 +516,7 @@ async def test_search_batch(client):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search_with_streaming(client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[
@@ -552,7 +552,7 @@ async def test_search_with_streaming(client):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_get_stored_completion_returns_single_completion(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True)
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
 
@@ -567,7 +567,7 @@ async def test_get_stored_completion_returns_single_completion(client: AsyncClie
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_get_stored_completion_returns_multiple_completions(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True)
     chat.append(user("Hello, how are you?"))
     responses = await chat.sample_batch(3)
     assert len(responses) == 3
@@ -584,7 +584,7 @@ async def test_get_stored_completion_returns_multiple_completions(client: AsyncC
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_delete_stored_completion_deletes_single_completion(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True)
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
 
@@ -602,7 +602,7 @@ async def test_delete_stored_completion_deletes_single_completion(client: AsyncC
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_get_stored_completion_raises_not_found_error_if_response_not_found(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=False)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=False)
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
 
@@ -615,7 +615,7 @@ async def test_get_stored_completion_raises_not_found_error_if_response_not_foun
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_delete_stored_completion_raises_not_found_error_if_response_not_found(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=False)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=False)
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
 
@@ -628,7 +628,7 @@ async def test_delete_stored_completion_raises_not_found_error_if_response_not_f
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_use_encrypted_content(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", use_encrypted_content=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", use_encrypted_content=True)
     chat.append(user("Hello, how are you?"))
     response = await chat.sample()
 
@@ -644,7 +644,7 @@ async def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     response = await chat.sample()
@@ -653,7 +653,7 @@ async def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -669,7 +669,7 @@ async def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -702,7 +702,7 @@ async def test_sample_creates_span_without_sensitive_attributes_when_disabled(
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     with mock.patch.dict("os.environ", {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": "1"}):
@@ -712,13 +712,13 @@ async def test_sample_creates_span_without_sensitive_attributes_when_disabled(
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "server.port": 443,
         "server.address": "api.x.ai",
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -737,7 +737,7 @@ async def test_sample_creates_span_with_correct_optional_attributes(mock_tracer:
 
     # Set all possible request attributes
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-reasoning",
         conversation_id=conversation_id,
         messages=[
             system("You are a helpful assistant."),
@@ -769,7 +769,7 @@ async def test_sample_creates_span_with_correct_optional_attributes(mock_tracer:
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "json_object",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": True,
         "gen_ai.request.frequency_penalty": 0.2,
         "gen_ai.request.presence_penalty": 0.1,
@@ -798,7 +798,7 @@ async def test_sample_creates_span_with_correct_optional_attributes(mock_tracer:
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -811,7 +811,7 @@ async def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mo
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     responses = await chat.sample_batch(3)
@@ -820,7 +820,7 @@ async def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -836,7 +836,7 @@ async def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mo
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample_batch grok-3",
+        name="chat.sample_batch grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -871,7 +871,7 @@ async def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     chunks_received = []
@@ -888,7 +888,7 @@ async def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -904,7 +904,7 @@ async def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.stream grok-3",
+        name="chat.stream grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -936,7 +936,7 @@ async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mo
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     chunks_received = []
@@ -954,7 +954,7 @@ async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -970,7 +970,7 @@ async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mo
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.stream_batch grok-3",
+        name="chat.stream_batch grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1011,7 +1011,7 @@ async def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.Magi
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("What's the weather in London?"))
 
     response, parsed = await chat.parse(TestResponse)
@@ -1027,7 +1027,7 @@ async def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.Magi
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "json_schema",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1043,7 +1043,7 @@ async def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.Magi
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.parse grok-3",
+        name="chat.parse grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1073,7 +1073,7 @@ async def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.Magi
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     response = await chat.defer()
@@ -1082,7 +1082,7 @@ async def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.Magi
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1098,7 +1098,7 @@ async def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.Magi
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.defer grok-3",
+        name="chat.defer grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1128,7 +1128,7 @@ async def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: moc
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     responses = await chat.defer_batch(3)
@@ -1141,7 +1141,7 @@ async def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: moc
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1157,7 +1157,7 @@ async def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: moc
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.defer_batch grok-3",
+        name="chat.defer_batch grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1194,7 +1194,7 @@ async def test_chat_with_function_calling_creates_span_with_correct_attributes(
 
     conversation_id = "test-conversation-id"
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-reasoning",
         conversation_id=conversation_id,
         tools=[
             tool(
@@ -1211,7 +1211,7 @@ async def test_chat_with_function_calling_creates_span_with_correct_attributes(
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1227,7 +1227,7 @@ async def test_chat_with_function_calling_creates_span_with_correct_attributes(
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1270,7 +1270,7 @@ async def test_chat_with_function_call_result_creates_span_with_correct_attribut
 
     conversation_id = "test-conversation-id"
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-reasoning",
         conversation_id=conversation_id,
     )
     chat.append(user("What's the weather in London?"))
@@ -1293,7 +1293,7 @@ async def test_chat_with_function_call_result_creates_span_with_correct_attribut
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1322,7 +1322,7 @@ async def test_chat_with_function_call_result_creates_span_with_correct_attribut
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1337,7 +1337,7 @@ async def test_multi_turn_conversation_creates_multiple_spans_with_same_conversa
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     # Sample twice to create two spans which should have the same conversation_id
@@ -1361,7 +1361,7 @@ def test_chat_create_with_reasoning(
     client: AsyncClient, reasoning_effort: Union[ReasoningEffort, "chat_pb2.ReasoningEffort"]
 ):
     chat = client.chat.create(
-        "grok-3-mini",
+        "grok-4-1-fast-reasoning",
         reasoning_effort=reasoning_effort,
     )
 
@@ -1377,7 +1377,7 @@ def test_chat_create_with_reasoning(
 def test_chat_with_reasoning_invalid_value(client: AsyncClient):
     with pytest.raises(ValueError) as e:
         client.chat.create(
-            "grok-3-mini",
+            "grok-4-1-fast-reasoning",
             reasoning_effort="invalid",  # type: ignore
         )
     assert str(e.value) == "Invalid reasoning effort: invalid. Must be one of: ('low', 'high')"
@@ -1385,7 +1385,7 @@ def test_chat_with_reasoning_invalid_value(client: AsyncClient):
 
 def test_chat_create_with_tools(client: AsyncClient):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -1428,7 +1428,7 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
     to_date = datetime(2024, 12, 31, tzinfo=timezone.utc)
 
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tools=[
             web_search(
                 excluded_domains=["spam.com", "unwanted.com"],
@@ -1491,7 +1491,7 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
 )
 def test_chat_create_with_tool_mode(client: AsyncClient, tool_choice: Union[ToolMode, chat_pb2.ToolChoice]):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tool_choice=tool_choice,
     )
 
@@ -1508,7 +1508,7 @@ def test_chat_create_with_tool_mode(client: AsyncClient, tool_choice: Union[Tool
 
 def test_chat_create_with_required_tool(client: AsyncClient):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -1546,7 +1546,7 @@ def test_chat_create_with_response_format(
     client: AsyncClient, response_format: Union[ResponseFormat, chat_pb2.ResponseFormat]
 ):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         response_format=response_format,
     )
 
@@ -1569,7 +1569,7 @@ def test_chat_create_with_response_format(
 def test_chat_create_with_response_format_invalid_value(client: AsyncClient):
     with pytest.raises(ValueError) as e:
         client.chat.create(
-            "grok-3",
+            "grok-4-1-fast-reasoning",
             response_format="invalid",  # type: ignore
         )
     assert str(e.value) == "Invalid response format: invalid. Must be one of: ('text', 'json_object')"
@@ -1586,7 +1586,7 @@ def test_chat_create_with_search_parameters(client: AsyncClient):
     expected_to_date_pb.FromDatetime(to_date)
 
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             from_date=from_date,
@@ -1660,7 +1660,7 @@ def test_chat_create_with_search_parameters_proto(client: AsyncClient):
     )
 
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         search_parameters=search_parameters_pb,
     )
 
@@ -1668,7 +1668,7 @@ def test_chat_create_with_search_parameters_proto(client: AsyncClient):
 
 
 def test_chat_append(client: AsyncClient):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(system("You are a helpful assistant."))
     chat.append(user("What is the weather in London?"))
     chat.append(assistant("The weather in London is sunny."))
@@ -1687,7 +1687,7 @@ def test_chat_append(client: AsyncClient):
 
 @pytest.mark.parametrize("detail", ["auto", "high", "low"])
 def test_chat_append_with_images(client: AsyncClient, detail: ImageDetail):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(system("You are a helpful assistant."))
     chat.append(
         user(
@@ -1728,7 +1728,7 @@ def test_chat_append_with_images(client: AsyncClient, detail: ImageDetail):
 
 
 def test_chat_append_response(client: AsyncClient):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
 
     chat_completion_response = chat_pb2.GetChatCompletionResponse(
@@ -1764,7 +1764,7 @@ def test_chat_append_response(client: AsyncClient):
 
 
 def test_chat_append_tool_result(client: AsyncClient):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     chat.append(tool_result("test result"))
     chat.append(tool_result("test result with id", tool_call_id="test-tool-call-id"))
@@ -1785,7 +1785,7 @@ def test_chat_append_tool_result(client: AsyncClient):
 
 def test_chat_create_with_max_turns(client: AsyncClient):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         max_turns=5,
     )
 
@@ -1796,7 +1796,7 @@ def test_chat_create_with_max_turns(client: AsyncClient):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_response_created_timestamp(client: AsyncClient):
     """Test that the Response.created property returns a Python datetime object."""
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     response = await chat.sample()
 
@@ -1811,7 +1811,7 @@ async def test_response_created_timestamp(client: AsyncClient):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_chunk_created_timestamp(client: AsyncClient):
     """Test that the Chunk.created property returns a Python datetime object."""
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     stream = chat.stream()
 
@@ -1831,7 +1831,7 @@ async def test_chunk_created_timestamp(client: AsyncClient):
 
 def test_chat_create_with_include_output(client: AsyncClient):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         include=[
             "web_search_call_output",
             "x_search_call_output",

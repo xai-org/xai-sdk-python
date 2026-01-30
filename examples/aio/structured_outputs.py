@@ -23,7 +23,7 @@ async def structured_output(client: AsyncClient) -> None:
         total_in_cents: int
 
     chat = client.chat.create(
-        model="grok-2-vision",
+        model="grok-4-1-fast-non-reasoning",
         messages=[
             system("You are an expert at extracting information from receipts. You pay great attention to detail.")
         ],
@@ -69,7 +69,7 @@ async def alternate_structured_output(client: AsyncClient) -> None:
     # Alternatively, you can pass the Pydantic model directly to the
     # response_format parameter of the chat.create method.
     chat = client.chat.create(
-        model="grok-4-fast",
+        model="grok-4-1-fast-non-reasoning",
         response_format=Receipt,
         messages=[
             system("You are an expert at extracting information from receipts. You pay great attention to detail."),

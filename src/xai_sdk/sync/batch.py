@@ -65,7 +65,7 @@ class Client(BaseClient):
             countries = ["UK", "USA", "Egypt"]
             for country in countries:
                 chat = client.chat.create(
-                    model="grok-3-latest",
+                    model="grok-4-1-fast-non-reasoning",
                     max_tokens=200,
                     temperature=0.7,
                     batch_request_id=f"capital_{country.lower()}",  # Optional: helps match responses to requests

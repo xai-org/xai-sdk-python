@@ -24,7 +24,7 @@ async def test_client(test_server_port: int):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_tokenize(test_client: AsyncClient):
-    tokens = await test_client.tokenize.tokenize_text(model="grok-3", text="Hello, world!")
+    tokens = await test_client.tokenize.tokenize_text(model="grok-4-1-fast-reasoning", text="Hello, world!")
     assert tokens == [
         tokenize_pb2.Token(token_id=1, string_token="Hello", token_bytes=b"test"),
         tokenize_pb2.Token(token_id=2, string_token=" world", token_bytes=b"test"),
@@ -37,10 +37,10 @@ async def test_tokenize(test_client: AsyncClient):
 async def test_tokenize_text_creates_span_with_correct_attributes(
     mock_tracer: mock.MagicMock, test_client: AsyncClient
 ):
-    await test_client.tokenize.tokenize_text(model="grok-3", text="Hello, world!")
+    await test_client.tokenize.tokenize_text(model="grok-4-1-fast-reasoning", text="Hello, world!")
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="tokenize_text grok-3",
+        name="tokenize_text grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
-        attributes={"gen_ai.request.model": "grok-3"},
+        attributes={"gen_ai.request.model": "grok-4-1-fast-reasoning"},
     )

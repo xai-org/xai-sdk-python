@@ -6,7 +6,7 @@ from xai_sdk.chat import system, user
 
 def stored_response(client: Client):
     # Create a new chat instance with message storage enabled
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
     original_response = chat.sample()
@@ -16,7 +16,7 @@ def stored_response(client: Client):
 
     # Start a new chat with the previous response as the previous_response_id
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         previous_response_id=original_response.id,
         store_messages=True,
     )
@@ -29,7 +29,7 @@ def stored_response(client: Client):
 
     # Optionally, easily create a new thread of conversation using the original chat as a starting point.
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         previous_response_id=original_response.id,
         store_messages=True,
     )
@@ -41,7 +41,7 @@ def stored_response(client: Client):
 
 
 def get_stored_response(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
 
@@ -54,7 +54,7 @@ def get_stored_response(client: Client):
 
 
 def get_stored_response_batch(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
 
@@ -68,7 +68,7 @@ def get_stored_response_batch(client: Client):
 
 
 def delete_stored_response(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
 
