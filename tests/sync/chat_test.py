@@ -40,13 +40,13 @@ def client():
 
 
 def test_unary_no_messages(client: Client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     with pytest.raises(ValueError):
         chat.sample()
 
 
 def test_unary(client: Client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     response = chat.sample()
 
@@ -54,7 +54,7 @@ def test_unary(client: Client):
 
 
 def test_unary_batch(client: Client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     responses = chat.sample_batch(10)
 
@@ -65,7 +65,7 @@ def test_unary_batch(client: Client):
 
 
 def test_streaming(client: Client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     stream = chat.stream()
 
@@ -85,7 +85,7 @@ def test_streaming(client: Client):
 
 
 def test_streaming_batch(client: Client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     stream = chat.stream_batch(2)
 
@@ -126,7 +126,7 @@ def test_streaming_batch(client: Client):
 
 def test_function_calling(client: Client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -151,7 +151,7 @@ def test_function_calling(client: Client):
 
 def test_function_calling_batch(client: Client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -177,7 +177,7 @@ def test_function_calling_batch(client: Client):
 
 def test_function_calling_streaming(client: Client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -224,7 +224,7 @@ def test_function_calling_streaming(client: Client):
 
 def test_function_calling_streaming_batch(client: Client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -319,7 +319,7 @@ def test_function_calling_streaming_batch(client: Client):
 
 def test_agentic_tool_calling_streaming(client):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         tools=[web_search()],
     )
     chat.append(user("What is the weather in London?"))
@@ -364,7 +364,7 @@ def test_agentic_tool_calling_streaming(client):
 
 def test_agentic_tool_calling_non_streaming(client):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         tools=[web_search()],
     )
     chat.append(user("What is the weather in London?"))
@@ -394,7 +394,7 @@ def test_structured_output_parse(client: Client):
         units: str
         temperature: int
 
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("What is the weather in London?"))
     response, receipt = chat.parse(Weather)
 
@@ -412,7 +412,7 @@ def test_structured_output_chat_create(client: Client):
         units: str
         temperature: int
 
-    chat = client.chat.create("grok-3-latest", response_format=Weather)
+    chat = client.chat.create("grok-4-1-fast-reasoning", response_format=Weather)
     chat.append(user("What is the weather in London?"))
     response = chat.sample()
 
@@ -426,7 +426,7 @@ def test_structured_output_chat_create(client: Client):
 
 
 def test_deferred(client: Client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("What is the weather in London?"))
     response = chat.defer()
 
@@ -434,7 +434,7 @@ def test_deferred(client: Client):
 
 
 def test_deferred_batch(client: Client):
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("What is the weather in London?"))
     responses = chat.defer_batch(10)
 
@@ -445,7 +445,7 @@ def test_deferred_batch(client: Client):
 
 def test_search(client: Client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[
@@ -469,7 +469,7 @@ def test_search(client: Client):
 
 def test_search_batch(client: Client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[
@@ -495,7 +495,7 @@ def test_search_batch(client: Client):
 
 def test_search_with_streaming(client: Client):
     chat = client.chat.create(
-        "grok-3-latest",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[
@@ -531,7 +531,7 @@ def test_search_with_streaming(client: Client):
 
 
 def test_get_stored_completion_returns_single_completion(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True)
     chat.append(user("Hello, how are you?"))
     response = chat.sample()
 
@@ -545,7 +545,7 @@ def test_get_stored_completion_returns_single_completion(client: Client):
 
 
 def test_get_stored_completion_returns_multiple_completions(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True)
     chat.append(user("Hello, how are you?"))
     responses = chat.sample_batch(3)
     assert len(responses) == 3
@@ -561,7 +561,7 @@ def test_get_stored_completion_returns_multiple_completions(client: Client):
 
 
 def test_delete_stored_completion_deletes_single_completion(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=True)
     chat.append(user("Hello, how are you?"))
     response = chat.sample()
 
@@ -578,7 +578,7 @@ def test_delete_stored_completion_deletes_single_completion(client: Client):
 
 
 def test_get_stored_completion_raises_not_found_error_if_response_not_found(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=False)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=False)
     chat.append(user("Hello, how are you?"))
     response = chat.sample()
 
@@ -590,7 +590,7 @@ def test_get_stored_completion_raises_not_found_error_if_response_not_found(clie
 
 
 def test_delete_stored_completion_raises_not_found_error_if_response_not_found(client: Client):
-    chat = client.chat.create(model="grok-3", store_messages=False)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", store_messages=False)
     chat.append(user("Hello, how are you?"))
     response = chat.sample()
 
@@ -602,7 +602,7 @@ def test_delete_stored_completion_raises_not_found_error_if_response_not_found(c
 
 
 def test_use_encrypted_content(client: Client):
-    chat = client.chat.create(model="grok-3", use_encrypted_content=True)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", use_encrypted_content=True)
     chat.append(user("Hello, how are you?"))
     response = chat.sample()
 
@@ -617,7 +617,7 @@ def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     response = chat.sample()
@@ -626,7 +626,7 @@ def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -642,7 +642,7 @@ def test_sample_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -672,7 +672,7 @@ def test_sample_creates_span_without_sensitive_attributes_when_disabled(mock_tra
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     with mock.patch.dict("os.environ", {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": "1"}):
@@ -682,13 +682,13 @@ def test_sample_creates_span_without_sensitive_attributes_when_disabled(mock_tra
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "server.port": 443,
         "server.address": "api.x.ai",
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -707,7 +707,7 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
 
     # Set all possible request attributes
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-reasoning",
         conversation_id=conversation_id,
         messages=[
             system("You are a helpful assistant."),  # system message
@@ -739,7 +739,7 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "json_object",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": True,
         "gen_ai.request.frequency_penalty": 0.2,
         "gen_ai.request.presence_penalty": 0.1,
@@ -768,7 +768,7 @@ def test_sample_creates_span_with_correct_optional_attributes(mock_tracer: mock.
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -780,7 +780,7 @@ def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     responses = chat.sample_batch(3)
@@ -789,7 +789,7 @@ def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -805,7 +805,7 @@ def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample_batch grok-3",
+        name="chat.sample_batch grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -840,7 +840,7 @@ def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     chunks_received = []
@@ -857,7 +857,7 @@ def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -873,7 +873,7 @@ def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.stream grok-3",
+        name="chat.stream grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -904,7 +904,7 @@ def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     # Consume the stream batch
@@ -923,7 +923,7 @@ def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -939,7 +939,7 @@ def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.Mag
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.stream_batch grok-3",
+        name="chat.stream_batch grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -977,7 +977,7 @@ def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("What's the weather in London?"))
 
     response, parsed = chat.parse(TestResponse)
@@ -993,7 +993,7 @@ def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "json_schema",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1009,7 +1009,7 @@ def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.parse grok-3",
+        name="chat.parse grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1038,7 +1038,7 @@ def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     response = chat.defer()
@@ -1047,7 +1047,7 @@ def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1063,7 +1063,7 @@ def test_defer_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.defer grok-3",
+        name="chat.defer grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1092,7 +1092,7 @@ def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: mock.Magi
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     responses = chat.defer_batch(3)
@@ -1105,7 +1105,7 @@ def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: mock.Magi
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1121,7 +1121,7 @@ def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: mock.Magi
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.defer_batch grok-3",
+        name="chat.defer_batch grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1155,7 +1155,7 @@ def test_chat_with_function_calling_creates_span_with_correct_attributes(mock_tr
 
     conversation_id = "test-conversation-id"
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-reasoning",
         conversation_id=conversation_id,
         tools=[
             tool(
@@ -1172,7 +1172,7 @@ def test_chat_with_function_calling_creates_span_with_correct_attributes(mock_tr
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1188,7 +1188,7 @@ def test_chat_with_function_calling_creates_span_with_correct_attributes(mock_tr
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1230,7 +1230,7 @@ def test_chat_with_function_call_result_creates_span_with_correct_attributes(
 
     conversation_id = "test-conversation-id"
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-reasoning",
         conversation_id=conversation_id,
     )
     chat.append(user("What's the weather in London?"))
@@ -1253,7 +1253,7 @@ def test_chat_with_function_call_result_creates_span_with_correct_attributes(
         "gen_ai.operation.name": "chat",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "text",
-        "gen_ai.request.model": "grok-3",
+        "gen_ai.request.model": "grok-4-1-fast-reasoning",
         "gen_ai.request.logprobs": False,
         "gen_ai.request.frequency_penalty": 0.0,
         "gen_ai.request.presence_penalty": 0.0,
@@ -1282,7 +1282,7 @@ def test_chat_with_function_call_result_creates_span_with_correct_attributes(
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="chat.sample grok-3",
+        name="chat.sample grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
@@ -1296,7 +1296,7 @@ def test_multi_turn_conversation_creates_multiple_spans_with_same_conversation_i
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
     conversation_id = "test-conversation-id"
-    chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
+    chat = client.chat.create(model="grok-4-1-fast-reasoning", conversation_id=conversation_id)
     chat.append(user("Hello, how are you?"))
 
     # Sample twice to create two spans which should have the same conversation_id
@@ -1320,7 +1320,7 @@ def test_chat_create_with_reasoning(
     client: Client, reasoning_effort: Union[ReasoningEffort, "chat_pb2.ReasoningEffort"]
 ):
     chat = client.chat.create(
-        "grok-3-mini",
+        "grok-4-1-fast-reasoning",
         reasoning_effort=reasoning_effort,
     )
 
@@ -1336,7 +1336,7 @@ def test_chat_create_with_reasoning(
 def test_chat_with_reasoning_invalid_value(client: Client):
     with pytest.raises(ValueError) as e:
         client.chat.create(
-            "grok-3-mini",
+            "grok-4-1-fast-reasoning",
             reasoning_effort="invalid",  # type: ignore
         )
     assert str(e.value) == "Invalid reasoning effort: invalid. Must be one of: ('low', 'high')"
@@ -1344,7 +1344,7 @@ def test_chat_with_reasoning_invalid_value(client: Client):
 
 def test_chat_create_with_tools(client: Client):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -1387,7 +1387,7 @@ def test_chat_create_with_server_side_tools(client: Client):
     to_date = datetime(2024, 12, 31, tzinfo=timezone.utc)
 
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tools=[
             web_search(
                 excluded_domains=["spam.com", "unwanted.com"],
@@ -1484,7 +1484,7 @@ def test_chat_create_with_server_side_tools(client: Client):
 )
 def test_chat_create_with_tool_mode(client: Client, tool_choice: Union[ToolMode, chat_pb2.ToolChoice]):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tool_choice=tool_choice,
     )
 
@@ -1501,7 +1501,7 @@ def test_chat_create_with_tool_mode(client: Client, tool_choice: Union[ToolMode,
 
 def test_chat_create_with_required_tool(client: Client):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         tools=[
             tool(
                 name="get_weather",
@@ -1539,7 +1539,7 @@ def test_chat_create_with_response_format(
     client: Client, response_format: Union[ResponseFormat, chat_pb2.ResponseFormat]
 ):
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         response_format=response_format,
     )
 
@@ -1562,7 +1562,7 @@ def test_chat_create_with_response_format(
 def test_chat_create_with_response_format_invalid_value(client: Client):
     with pytest.raises(ValueError) as e:
         client.chat.create(
-            "grok-3",
+            "grok-4-1-fast-reasoning",
             response_format="invalid",  # type: ignore
         )
     assert str(e.value) == "Invalid response format: invalid. Must be one of: ('text', 'json_object')"
@@ -1573,7 +1573,7 @@ def test_chat_create_with_search_parameters(client: Client):
     to_date = datetime(2025, 1, 31, tzinfo=timezone.utc)
 
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             from_date=from_date,
@@ -1653,7 +1653,7 @@ def test_chat_create_with_search_parameters_proto(client: Client):
     )
 
     chat = client.chat.create(
-        "grok-3",
+        "grok-4-1-fast-reasoning",
         search_parameters=search_parameters_pb,
     )
 
@@ -1661,7 +1661,7 @@ def test_chat_create_with_search_parameters_proto(client: Client):
 
 
 def test_chat_append(client: Client):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(system("You are a helpful assistant."))
     chat.append(user("What is the weather in London?"))
     chat.append(assistant("The weather in London is sunny."))
@@ -1680,7 +1680,7 @@ def test_chat_append(client: Client):
 
 @pytest.mark.parametrize("detail", ["auto", "high", "low"])
 def test_chat_append_with_images(client: Client, detail: ImageDetail):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(system("You are a helpful assistant."))
     chat.append(
         user(
@@ -1721,7 +1721,7 @@ def test_chat_append_with_images(client: Client, detail: ImageDetail):
 
 
 def test_chat_append_response(client: Client):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
 
     chat_completion_response = chat_pb2.GetChatCompletionResponse(
@@ -1758,7 +1758,7 @@ def test_chat_append_response(client: Client):
 
 
 def test_chat_append_tool_result(client: Client):
-    chat = client.chat.create("grok-3")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     chat.append(tool_result("test result"))
     chat.append(tool_result("test result with id", tool_call_id="test-tool-call-id"))
@@ -1778,7 +1778,7 @@ def test_chat_append_tool_result(client: Client):
 
 
 def test_chat_append_response_multiple_outputs_for_agentic_tool_calling(client: Client):
-    chat = client.chat.create("grok-4-fast")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("what is xai?"))
 
     chat_completion_response = chat_pb2.GetChatCompletionResponse(
@@ -1848,7 +1848,7 @@ def test_chat_append_response_multiple_outputs_for_agentic_tool_calling(client: 
 
 
 def test_chat_append_response_multiple_outputs_for_non_agentic_tool_calling(client: Client):
-    chat = client.chat.create("grok-4-fast")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("what is xai?"))
 
     chat_completion_response = chat_pb2.GetChatCompletionResponse(
@@ -1910,7 +1910,7 @@ def test_chat_append_response_multiple_outputs_for_non_agentic_tool_calling(clie
 
 def test_chat_create_with_max_turns(client: Client):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         max_turns=5,
     )
 
@@ -1920,7 +1920,7 @@ def test_chat_create_with_max_turns(client: Client):
 
 def test_response_created_timestamp(client: Client):
     """Test that the Response.created property returns a Python datetime object."""
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     response = chat.sample()
 
@@ -1934,7 +1934,7 @@ def test_response_created_timestamp(client: Client):
 
 def test_chunk_created_timestamp(client: Client):
     """Test that the Chunk.created property returns a Python datetime object."""
-    chat = client.chat.create("grok-3-latest")
+    chat = client.chat.create("grok-4-1-fast-reasoning")
     chat.append(user("test message"))
     stream = chat.stream()
 
@@ -1954,7 +1954,7 @@ def test_chunk_created_timestamp(client: Client):
 
 def test_chat_create_with_include_output(client: Client):
     chat = client.chat.create(
-        "grok-4-fast",
+        "grok-4-1-fast-reasoning",
         include=[
             "web_search_call_output",
             "x_search_call_output",

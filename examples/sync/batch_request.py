@@ -24,7 +24,7 @@ def main():
 
     for index, image_url in enumerate(image_urls):
         chat = client.chat.create(
-            model="grok-4-fast-reasoning",
+            model="grok-4-1-fast-reasoning",
             max_tokens=1000,
             temperature=0.7,
             batch_request_id=f"req_{index}",

@@ -12,7 +12,7 @@ FORMAT = flags.DEFINE_enum("format", "url", ["url", "base64"], "Image format use
 
 def image_understanding(client: Client) -> None:
     """Image understanding with multiple images."""
-    chat = client.chat.create(model="grok-2-vision")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 
     # We can easily interleave text and images in a single user conversation turn.
     chat.append(
@@ -37,7 +37,7 @@ def image_understanding(client: Client) -> None:
 
 def image_understanding_b64(client: Client) -> None:
     """Image understanding with an image encoded as base64."""
-    chat = client.chat.create(model="grok-2-vision")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 
     image_url = "https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg"
     image_data = requests.get(image_url, timeout=5).content

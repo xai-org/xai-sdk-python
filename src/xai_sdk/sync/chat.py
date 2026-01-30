@@ -94,7 +94,7 @@ class Chat(BaseChat):
                 and metadata for the first (and only) choice.
 
         Example:
-            >>> chat = client.chat.create(model="grok-3")
+            >>> chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
             >>> chat.append(user("Hello, how are you?"))
             >>> response = chat.sample()
             >>> print(response.content)
@@ -126,7 +126,7 @@ class Chat(BaseChat):
             Sequence[Response]: A sequence of `Response` objects, each representing one of the `n` generated responses.
 
         Example:
-            >>> chat = client.chat.create(model="grok-3")
+            >>> chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
             >>> chat.append(user("Suggest a gift idea"))
             >>> responses = chat.sample_batch(3)
             >>> for i, response in enumerate(responses):
@@ -165,7 +165,7 @@ class Chat(BaseChat):
                     current chunk.
 
         Example:
-            >>> chat = client.chat.create(model="grok-3")
+            >>> chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
             >>> chat.append(user("Tell me a story"))
             >>> for response, chunk in chat.stream():
             ...     print(chunk.content, end="", flush=True)
@@ -219,7 +219,7 @@ class Chat(BaseChat):
                     containing the content and metadata of the current chunk.
 
         Example:
-            >>> chat = client.chat.create(model="grok-3")
+            >>> chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
             >>> chat.append(user("Suggest a gift"))
             >>> for responses, chunks in chat.stream_batch(2):
             ...     for i, chunk in enumerate(chunks):
@@ -277,7 +277,7 @@ class Chat(BaseChat):
             >>> from pydantic import BaseModel
             >>> class Answer(BaseModel):
             ...     text: str
-            >>> chat = client.chat.create(model="grok-3")
+            >>> chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
             >>> chat.append(user("Say hello"))
             >>> response, parsed = chat.parse(Answer)
             >>> print(parsed.text)
@@ -370,7 +370,7 @@ class Chat(BaseChat):
                 only) choice.
 
         Example:
-            >>> chat = client.chat.create(model="grok-3")
+            >>> chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
             >>> chat.append(user("Hello"))
             >>> response = chat.defer(timeout=datetime.timedelta(minutes=5))
             >>> print(response.content)
@@ -398,7 +398,7 @@ class Chat(BaseChat):
                 the `n` generated responses.
 
         Example:
-            >>> chat = client.chat.create(model="grok-3")
+            >>> chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
             >>> chat.append(user("Suggest a gift"))
             >>> responses = chat.defer_batch(3, timeout=datetime.timedelta(minutes=5))
             >>> for i, response in enumerate(responses):

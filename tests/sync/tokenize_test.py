@@ -16,7 +16,7 @@ def test_client():
 
 
 def test_tokenize(test_client: Client):
-    tokens = test_client.tokenize.tokenize_text(model="grok-3", text="Hello, world!")
+    tokens = test_client.tokenize.tokenize_text(model="grok-4-1-fast-reasoning", text="Hello, world!")
     assert tokens == [
         tokenize_pb2.Token(token_id=1, string_token="Hello", token_bytes=b"test"),
         tokenize_pb2.Token(token_id=2, string_token=" world", token_bytes=b"test"),
@@ -26,10 +26,10 @@ def test_tokenize(test_client: Client):
 
 @mock.patch("xai_sdk.sync.tokenizer.tracer")
 def test_tokenize_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, test_client: Client):
-    test_client.tokenize.tokenize_text(model="grok-3", text="Hello, world!")
+    test_client.tokenize.tokenize_text(model="grok-4-1-fast-reasoning", text="Hello, world!")
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="tokenize_text grok-3",
+        name="tokenize_text grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
-        attributes={"gen_ai.request.model": "grok-3"},
+        attributes={"gen_ai.request.model": "grok-4-1-fast-reasoning"},
     )

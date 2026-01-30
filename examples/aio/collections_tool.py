@@ -75,7 +75,7 @@ async def agentic_collections_search(client: AsyncClient, model: str) -> None:
 
 async def main() -> None:
     client = AsyncClient()
-    await agentic_collections_search(client, model="grok-4-fast")
+    await agentic_collections_search(client, model="grok-4-1-fast-reasoning")
 
 
 if __name__ == "__main__":

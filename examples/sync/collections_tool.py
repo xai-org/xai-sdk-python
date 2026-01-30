@@ -71,7 +71,7 @@ def agentic_collections_search(client: Client, model: str) -> None:
 
 def main() -> None:
     client = Client()
-    agentic_collections_search(client, model="grok-4-fast")
+    agentic_collections_search(client, model="grok-4-1-fast-reasoning")
 
 
 if __name__ == "__main__":

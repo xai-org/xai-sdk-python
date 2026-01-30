@@ -7,7 +7,7 @@ from xai_sdk.search import SearchParameters, news_source, rss_source, web_source
 
 def live_search(client: Client):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         # When no search sources are explicitly specified, the model will use the default
         # search sources which are web and X.
         # Mode auto means that the model will decide when to perform a search based on the
@@ -26,7 +26,7 @@ def live_search(client: Client):
 
 def live_search_streaming(client: Client):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(mode="auto"),
     )
 
@@ -48,7 +48,7 @@ def live_search_streaming(client: Client):
 
 def live_search_with_x(client: Client):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="auto",
             sources=[x_source(included_x_handles=["xai"], post_favorite_count=1000)],
@@ -65,7 +65,7 @@ def live_search_with_x(client: Client):
 
 def live_search_with_web(client: Client):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             # Mode on means the model will always perform a search and only use the explicit
             # sources that are specified.
@@ -84,7 +84,7 @@ def live_search_with_web(client: Client):
 
 def live_search_with_news(client: Client):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[news_source(country="US", excluded_websites=["foxnews.com"])],
@@ -101,7 +101,7 @@ def live_search_with_news(client: Client):
 
 def live_search_with_web_and_news(client: Client):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             # Only consider news and web articles from the last 7 days
@@ -120,7 +120,7 @@ def live_search_with_web_and_news(client: Client):
 
 def live_search_with_rss(client: Client):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[

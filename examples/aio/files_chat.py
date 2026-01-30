@@ -16,7 +16,7 @@ async def chat_with_file(client: AsyncClient, file_path: str, query: str) -> Non
     print(f"File uploaded with ID: {uploaded_file.id}\n")
 
     # Create a chat
-    chat = client.chat.create(model="grok-4-fast")
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
 
     # Append a message with the file
     chat.append(user(query, file(uploaded_file.id)))

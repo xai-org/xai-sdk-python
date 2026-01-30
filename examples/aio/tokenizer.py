@@ -5,7 +5,7 @@ from xai_sdk import AsyncClient
 
 async def tokenize_text(client: AsyncClient):
     prompt = input("Enter a prompt: ")
-    tokens = await client.tokenize.tokenize_text(prompt, model="grok-3")
+    tokens = await client.tokenize.tokenize_text(prompt, model="grok-4-1-fast-non-reasoning")
     for token in tokens:
         print(f"Token ID: {token.token_id}")
         print(f"Token Text: {token.string_token}")

@@ -50,7 +50,7 @@ class SearchParameters:
 
         # Use in a chat request
         chat = client.chat.create(
-            model="grok-3-latest",
+            model="grok-4-1-fast-non-reasoning",
             messages=[user("What's the latest news on AI developments?")],
             search_parameters=search_config
         )

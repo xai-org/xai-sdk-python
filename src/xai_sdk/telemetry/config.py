@@ -48,7 +48,7 @@ class Telemetry:
         # Now all SDK operations will emit traces to the console
 
         client = Client()
-        chat = client.chat.create(model="grok-3")
+        chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
         chat.append(user("Hello, how are you?"))
         response = chat.sample()
         ```
@@ -68,7 +68,7 @@ class Telemetry:
 
         # All SDK operations will now send traces to your observability platform
         client = Client()
-        chat = client.chat.create(model="grok-3")
+        chat = client.chat.create(model="grok-4-1-fast-non-reasoning")
         chat.append(user("Hello, how are you?"))
         response = chat.sample()
         ```

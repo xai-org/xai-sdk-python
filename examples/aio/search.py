@@ -8,7 +8,7 @@ from xai_sdk.search import SearchParameters, news_source, rss_source, web_source
 
 async def live_search(client: AsyncClient):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         # When no search sources are explicitly specified, the model will use the default
         # search sources which are web and X.
         # Mode auto means that the model will decide when to perform a search based on the
@@ -27,7 +27,7 @@ async def live_search(client: AsyncClient):
 
 async def live_search_streaming(client: AsyncClient):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(mode="auto"),
     )
 
@@ -49,7 +49,7 @@ async def live_search_streaming(client: AsyncClient):
 
 async def live_search_with_x(client: AsyncClient):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="auto",
             sources=[x_source(included_x_handles=["xai"], post_favorite_count=1000)],
@@ -66,7 +66,7 @@ async def live_search_with_x(client: AsyncClient):
 
 async def live_search_with_web(client: AsyncClient):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             # Mode on means the model will always perform a search and only use the explicit
             # sources that are specified.
@@ -85,7 +85,7 @@ async def live_search_with_web(client: AsyncClient):
 
 async def live_search_with_news(client: AsyncClient):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[news_source(country="US", excluded_websites=["foxnews.com"])],
@@ -102,7 +102,7 @@ async def live_search_with_news(client: AsyncClient):
 
 async def live_search_with_web_and_news(client: AsyncClient):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             # Only consider news and web articles from the last 7 days
@@ -121,7 +121,7 @@ async def live_search_with_web_and_news(client: AsyncClient):
 
 async def live_search_with_rss(client: AsyncClient):
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         search_parameters=SearchParameters(
             mode="on",
             sources=[

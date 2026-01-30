@@ -8,7 +8,7 @@ from xai_sdk.chat import system, user
 
 async def stored_response(client: AsyncClient):
     # Create a new chat instance with message storage enabled
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
     original_response = await chat.sample()
@@ -18,7 +18,7 @@ async def stored_response(client: AsyncClient):
 
     # Start a new chat with the previous response as the previous_response_id
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         previous_response_id=original_response.id,
         store_messages=True,
     )
@@ -31,7 +31,7 @@ async def stored_response(client: AsyncClient):
 
     # Optionally, easily create a new thread of conversation using the original chat as a starting point.
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         previous_response_id=original_response.id,
         store_messages=True,
     )
@@ -43,7 +43,7 @@ async def stored_response(client: AsyncClient):
 
 
 async def get_stored_response(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
 
@@ -56,7 +56,7 @@ async def get_stored_response(client: AsyncClient):
 
 
 async def get_stored_response_batch(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
 
@@ -70,7 +70,7 @@ async def get_stored_response_batch(client: AsyncClient):
 
 
 async def delete_stored_response(client: AsyncClient):
-    chat = client.chat.create(model="grok-3", store_messages=True)
+    chat = client.chat.create(model="grok-4-1-fast-non-reasoning", store_messages=True)
     chat.append(system("You give brief answers"))
     chat.append(user("Tell me about xAI"))
 

@@ -12,14 +12,14 @@ from ..server import ModelLibrary
 
 MODEL_LIBRARY = ModelLibrary(
     language_models={
-        "grok-2": models_pb2.LanguageModel(
-            name="grok-2",
-            aliases=["grok-2"],
+        "grok-4-1-fast-reasoning": models_pb2.LanguageModel(
+            name="grok-4-1-fast-reasoning",
+            aliases=["grok-4-1-fast-reasoning"],
             version="1.0.0",
         ),
-        "grok-3": models_pb2.LanguageModel(
-            name="grok-3-beta",
-            aliases=["grok-3", "grok-3-latest"],
+        "grok-4-1-fast-non-reasoning": models_pb2.LanguageModel(
+            name="grok-4-1-fast-non-reasoning",
+            aliases=["grok-4-1-fast-non-reasoning"],
             version="1.0.0",
         ),
     },
@@ -31,9 +31,9 @@ MODEL_LIBRARY = ModelLibrary(
         ),
     },
     image_generation_models={
-        "grok-2-image": models_pb2.ImageGenerationModel(
-            name="grok-2-image",
-            aliases=["grok-2-image"],
+        "grok-imagine-image": models_pb2.ImageGenerationModel(
+            name="grok-imagine-image",
+            aliases=["grok-imagine-image"],
             version="1.0.0",
         ),
     },
@@ -56,8 +56,8 @@ async def test_client(test_server_port: int):
 async def test_list_language_models(test_client: AsyncClient):
     models = await test_client.models.list_language_models()
     assert len(models) == 2
-    assert models[0].name == "grok-2"
-    assert models[1].name == "grok-3-beta"
+    assert models[0].name == "grok-4-1-fast-reasoning"
+    assert models[1].name == "grok-4-1-fast-non-reasoning"
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -71,13 +71,13 @@ async def test_list_embedding_models(test_client: AsyncClient):
 async def test_list_image_generation_models(test_client: AsyncClient):
     models = await test_client.models.list_image_generation_models()
     assert len(models) == 1
-    assert models[0].name == "grok-2-image"
+    assert models[0].name == "grok-imagine-image"
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_get_language_model(test_client: AsyncClient):
-    model = await test_client.models.get_language_model("grok-2")
-    assert model.name == "grok-2"
+    model = await test_client.models.get_language_model("grok-4-1-fast-reasoning")
+    assert model.name == "grok-4-1-fast-reasoning"
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -88,8 +88,8 @@ async def test_get_embedding_model(test_client: AsyncClient):
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_get_image_generation_model(test_client: AsyncClient):
-    model = await test_client.models.get_image_generation_model("grok-2-image")
-    assert model.name == "grok-2-image"
+    model = await test_client.models.get_image_generation_model("grok-imagine-image")
+    assert model.name == "grok-imagine-image"
 
 
 @mock.patch("xai_sdk.aio.models.tracer")
@@ -110,12 +110,12 @@ async def test_list_language_models_creates_span_with_correct_attributes(
 async def test_get_language_model_creates_span_with_correct_attributes(
     mock_tracer: mock.MagicMock, test_client: AsyncClient
 ):
-    await test_client.models.get_language_model("grok-2")
+    await test_client.models.get_language_model("grok-4-1-fast-reasoning")
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="get_language_model grok-2",
+        name="get_language_model grok-4-1-fast-reasoning",
         kind=SpanKind.CLIENT,
-        attributes={"gen_ai.request.model": "grok-2"},
+        attributes={"gen_ai.request.model": "grok-4-1-fast-reasoning"},
     )
 
 
@@ -164,10 +164,10 @@ async def test_list_image_generation_models_creates_span_with_correct_attributes
 async def test_get_image_generation_model_creates_span_with_correct_attributes(
     mock_tracer: mock.MagicMock, test_client: AsyncClient
 ):
-    await test_client.models.get_image_generation_model("grok-2-image")
+    await test_client.models.get_image_generation_model("grok-imagine-image")
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="get_image_generation_model grok-2-image",
+        name="get_image_generation_model grok-imagine-image",
         kind=SpanKind.CLIENT,
-        attributes={"gen_ai.request.model": "grok-2-image"},
+        attributes={"gen_ai.request.model": "grok-imagine-image"},
     )

@@ -18,7 +18,7 @@ def function_calling(client: Client) -> None:
         return f"The weather in {city} is sunny at a temperature of {temperature} {units}."
 
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         messages=[system("You are a helpful assistant that can answer questions and help with tasks.")],
         tools=[
             tool(
@@ -82,7 +82,7 @@ def function_calling_streaming(client: Client) -> None:
         return f"The weather in {request.city} is sunny at a temperature of {temperature} {request.units}."
 
     conversation = client.chat.create(
-        model="grok-3",
+        model="grok-4-1-fast-non-reasoning",
         messages=[system("You are a helpful assistant that can answer questions and help with tasks.")],
         tools=[
             tool(

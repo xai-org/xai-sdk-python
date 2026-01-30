@@ -169,7 +169,7 @@ def main() -> None:
     # Trigger web/x search
     agentic_search(
         client,
-        model="grok-4-fast",
+        model="grok-4-1-fast-reasoning",
         query=(
             "What was the result of Arsenal's most recent game? Where did they play, who scored and in which minutes?"
         ),
@@ -178,27 +178,27 @@ def main() -> None:
     # Trigger code execution
     # agentic_search(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4-1-fast-reasoning",
     #     query=("What is the 102nd number in the Fibonacci sequence?. show me the code"),
     # )
 
     # Trigger x search/web search
     # agentic_search(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4-1-fast-reasoning",
     #     query="What can you tell me about the X user 0xPromar and his recent activity?",
     # )
 
     # Trigger agentic tools with client-side tools using encrypted content
     # agentic_tools_with_client_side_tools_encrypted_content(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4-1-fast-reasoning",
     # )
 
     # Trigger agentic tools with client-side tools using previous response id
     # agentic_tools_with_client_side_tools_previous_response_id(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4-1-fast-reasoning",
     # )
 
 
