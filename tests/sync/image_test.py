@@ -24,14 +24,16 @@ def image_asset():
 def test_base64(client: Client, image_asset: bytes):
     response = client.image.sample(prompt="foo", model="grok-2-image", image_format="base64")
 
-    assert response.prompt == "foo"
+    with pytest.warns(DeprecationWarning, match="BaseImageResponse.prompt is deprecated"):
+        assert response.prompt == ""
     assert image_asset == response.image
 
 
 def test_url(client: Client, image_asset: bytes):
     response = client.image.sample(prompt="foo", model="grok-2-image", image_format="url")
 
-    assert response.prompt == "foo"
+    with pytest.warns(DeprecationWarning, match="BaseImageResponse.prompt is deprecated"):
+        assert response.prompt == ""
     assert image_asset == response.image
 
 
@@ -41,7 +43,8 @@ def test_batch(client: Client, image_asset: bytes):
     assert len(responses) == 2
 
     for r in responses:
-        assert r.prompt == "foo"
+        with pytest.warns(DeprecationWarning, match="BaseImageResponse.prompt is deprecated"):
+            assert r.prompt == ""
         assert image_asset == r.image
 
 
@@ -135,7 +138,7 @@ def test_sample_creates_span_with_correct_attributes(
         "gen_ai.usage.cached_prompt_text_tokens": response.usage.cached_prompt_text_tokens,
         "gen_ai.usage.prompt_text_tokens": response.usage.prompt_text_tokens,
         "gen_ai.usage.prompt_image_tokens": response.usage.prompt_image_tokens,
-        "gen_ai.response.0.image.up_sampled_prompt": response.prompt,
+        "gen_ai.response.0.image.up_sampled_prompt": "",
         "gen_ai.response.0.image.respect_moderation": response.respect_moderation,
     }
 
@@ -222,9 +225,9 @@ def test_sample_batch_creates_span_with_correct_attributes(
         "gen_ai.usage.cached_prompt_text_tokens": responses[0].usage.cached_prompt_text_tokens,
         "gen_ai.usage.prompt_text_tokens": responses[0].usage.prompt_text_tokens,
         "gen_ai.usage.prompt_image_tokens": responses[0].usage.prompt_image_tokens,
-        "gen_ai.response.0.image.up_sampled_prompt": responses[0].prompt,
-        "gen_ai.response.1.image.up_sampled_prompt": responses[1].prompt,
-        "gen_ai.response.2.image.up_sampled_prompt": responses[2].prompt,
+        "gen_ai.response.0.image.up_sampled_prompt": "",
+        "gen_ai.response.1.image.up_sampled_prompt": "",
+        "gen_ai.response.2.image.up_sampled_prompt": "",
         "gen_ai.response.0.image.respect_moderation": responses[0].respect_moderation,
         "gen_ai.response.1.image.respect_moderation": responses[1].respect_moderation,
         "gen_ai.response.2.image.respect_moderation": responses[2].respect_moderation,
