@@ -647,16 +647,13 @@ class ImageServicer(image_pb2_grpc.ImageServicer):
         if request.format == image_pb2.ImageFormat.IMG_FORMAT_URL:
             return image_pb2.ImageResponse(
                 model=request.model,
-                images=[
-                    image_pb2.GeneratedImage(up_sampled_prompt=request.prompt, url=self._url) for _ in range(request.n)
-                ],
+                images=[image_pb2.GeneratedImage(url=self._url) for _ in range(request.n)],
             )
         else:
             return image_pb2.ImageResponse(
                 model=request.model,
                 images=[
                     image_pb2.GeneratedImage(
-                        up_sampled_prompt=request.prompt,
                         base64="data:image/jpeg;base64," + base64.b64encode(read_image()).decode(),
                     )
                     for _ in range(request.n)

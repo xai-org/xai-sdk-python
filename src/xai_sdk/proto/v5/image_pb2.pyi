@@ -109,16 +109,14 @@ class ImageResponse(_message.Message):
     def __init__(self, images: _Optional[_Iterable[_Union[GeneratedImage, _Mapping]]] = ..., model: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ...) -> None: ...
 
 class GeneratedImage(_message.Message):
-    __slots__ = ("base64", "url", "up_sampled_prompt", "respect_moderation")
+    __slots__ = ("base64", "url", "respect_moderation")
     BASE64_FIELD_NUMBER: _ClassVar[int]
     URL_FIELD_NUMBER: _ClassVar[int]
-    UP_SAMPLED_PROMPT_FIELD_NUMBER: _ClassVar[int]
     RESPECT_MODERATION_FIELD_NUMBER: _ClassVar[int]
     base64: str
     url: str
-    up_sampled_prompt: str
     respect_moderation: bool
-    def __init__(self, base64: _Optional[str] = ..., url: _Optional[str] = ..., up_sampled_prompt: _Optional[str] = ..., respect_moderation: bool = ...) -> None: ...
+    def __init__(self, base64: _Optional[str] = ..., url: _Optional[str] = ..., respect_moderation: bool = ...) -> None: ...
 
 class ImageUrlContent(_message.Message):
     __slots__ = ("image_url", "detail")
