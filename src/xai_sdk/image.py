@@ -215,5 +215,7 @@ def convert_image_resolution_to_pb(resolution: ImageResolution) -> image_pb2.Ima
     match resolution:
         case "1k":
             return image_pb2.ImageResolution.IMG_RESOLUTION_1K
+        case "2k":
+            return image_pb2.ImageResolution.IMG_RESOLUTION_2K
         case _:
             raise ValueError(f"Invalid image resolution {resolution}.")
