@@ -18,4 +18,4 @@ ImageAspectRatio: TypeAlias = Literal[
     "1:2",
     "2:1",
 ]
-ImageResolution: TypeAlias = Literal["1k"]
+ImageResolution: TypeAlias = Literal["1k", "2k"]

@@ -65,6 +65,7 @@ class Client(BaseClient):
             Only supported for grok-imagine models.
             resolution: The image resolution to generate. One of:
             - `"1k"`: ~1 megapixel total. Dimensions vary by aspect ratio.
+            - `"2k"`: ~4 megapixels total. Dimensions vary by aspect ratio.
             Only supported for grok-imagine models.
 
         Returns:
@@ -142,6 +143,7 @@ class Client(BaseClient):
             Only supported for grok-imagine models.
             resolution: The image resolution to generate. One of:
             - `"1k"`: ~1 megapixel total. Dimensions vary by aspect ratio.
+            - `"2k"`: ~4 megapixels total. Dimensions vary by aspect ratio.
             Only supported for grok-imagine models.
 
         Returns:

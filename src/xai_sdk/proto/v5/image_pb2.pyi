@@ -49,6 +49,7 @@ class ImageResolution(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     IMG_RESOLUTION_INVALID: _ClassVar[ImageResolution]
     IMG_RESOLUTION_1K: _ClassVar[ImageResolution]
+    IMG_RESOLUTION_2K: _ClassVar[ImageResolution]
 DETAIL_INVALID: ImageDetail
 DETAIL_AUTO: ImageDetail
 DETAIL_LOW: ImageDetail
@@ -77,6 +78,7 @@ IMG_ASPECT_RATIO_1_2: ImageAspectRatio
 IMG_ASPECT_RATIO_2_1: ImageAspectRatio
 IMG_RESOLUTION_INVALID: ImageResolution
 IMG_RESOLUTION_1K: ImageResolution
+IMG_RESOLUTION_2K: ImageResolution
 
 class GenerateImageRequest(_message.Message):
     __slots__ = ("prompt", "image", "model", "n", "user", "format", "aspect_ratio", "resolution")
