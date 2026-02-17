@@ -1,3 +1,4 @@
+import datetime
 from typing import Any, Optional, Union
 
 import grpc
@@ -6,6 +7,9 @@ from .meta import ProtoDecorator
 from .proto import image_pb2, usage_pb2, video_pb2, video_pb2_grpc
 from .telemetry import should_disable_sensitive_attributes
 from .types.video import VideoAspectRatio, VideoAspectRatioMap, VideoResolution, VideoResolutionMap
+
+DEFAULT_VIDEO_POLL_INTERVAL = datetime.timedelta(seconds=1)
+DEFAULT_VIDEO_TIMEOUT = datetime.timedelta(minutes=10)
 
 
 class BaseClient:

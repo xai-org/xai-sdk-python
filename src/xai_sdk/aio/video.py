@@ -8,6 +8,8 @@ from ..poll_timer import PollTimer
 from ..proto import deferred_pb2, video_pb2
 from ..telemetry import get_tracer
 from ..video import (
+    DEFAULT_VIDEO_POLL_INTERVAL,
+    DEFAULT_VIDEO_TIMEOUT,
     BaseClient,
     VideoAspectRatio,
     VideoResolution,
@@ -74,7 +76,7 @@ class Client(BaseClient):
 
         This wraps `GenerateVideo` + repeated `GetDeferredVideo` calls until the request is complete.
         """
-        timer = PollTimer(timeout, interval)
+        timer = PollTimer(timeout or DEFAULT_VIDEO_TIMEOUT, interval or DEFAULT_VIDEO_POLL_INTERVAL)
         request_pb = _make_generate_request(
             prompt,
             model,

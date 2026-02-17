@@ -21,7 +21,7 @@ class PollTimer:
         """
         self._start = time.time()
         self._timeout = timeout or datetime.timedelta(minutes=10)
-        self._interval = interval or datetime.timedelta(milliseconds=100)
+        self._interval = interval or datetime.timedelta(seconds=1)
 
     def sleep_interval_or_raise(self) -> float:
         """Returns the time to sleep until the next poll.
