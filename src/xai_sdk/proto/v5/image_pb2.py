@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from . import usage_pb2 as xai_dot_api_dot_v1_dot_usage__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16xai/api/v1/image.proto\x12\x07xai_api\x1a\x16xai/api/v1/usage.proto\"\xf7\x02\n\x14GenerateImageRequest\x12\x16\n\x06prompt\x18\x01 \x01(\tR\x06prompt\x12.\n\x05image\x18\x05 \x01(\x0b\x32\x18.xai_api.ImageUrlContentR\x05image\x12\x14\n\x05model\x18\x02 \x01(\tR\x05model\x12\x11\n\x01n\x18\x03 \x01(\x05H\x00R\x01n\x88\x01\x01\x12\x12\n\x04user\x18\x04 \x01(\tR\x04user\x12,\n\x06\x66ormat\x18\x0b \x01(\x0e\x32\x14.xai_api.ImageFormatR\x06\x66ormat\x12\x41\n\x0c\x61spect_ratio\x18\x0e \x01(\x0e\x32\x19.xai_api.ImageAspectRatioH\x01R\x0b\x61spectRatio\x88\x01\x01\x12=\n\nresolution\x18\x0f \x01(\x0e\x32\x18.xai_api.ImageResolutionH\x02R\nresolution\x88\x01\x01\x42\x04\n\x02_nB\x0f\n\r_aspect_ratioB\r\n\x0b_resolutionJ\x04\x08\r\x10\x0e\"\x84\x01\n\rImageResponse\x12/\n\x06images\x18\x01 \x03(\x0b\x32\x17.xai_api.GeneratedImageR\x06images\x12\x14\n\x05model\x18\x02 \x01(\tR\x05model\x12,\n\x05usage\x18\x03 \x01(\x0b\x32\x16.xai_api.SamplingUsageR\x05usage\"|\n\x0eGeneratedImage\x12\x18\n\x06\x62\x61se64\x18\x01 \x01(\tH\x00R\x06\x62\x61se64\x12\x12\n\x03url\x18\x03 \x01(\tH\x00R\x03url\x12-\n\x12respect_moderation\x18\x04 \x01(\x08R\x11respectModerationB\x07\n\x05imageJ\x04\x08\x02\x10\x03\"\\\n\x0fImageUrlContent\x12\x1b\n\timage_url\x18\x01 \x01(\tR\x08imageUrl\x12,\n\x06\x64\x65tail\x18\x02 \x01(\x0e\x32\x14.xai_api.ImageDetailR\x06\x64\x65tail*S\n\x0bImageDetail\x12\x12\n\x0e\x44\x45TAIL_INVALID\x10\x00\x12\x0f\n\x0b\x44\x45TAIL_AUTO\x10\x01\x12\x0e\n\nDETAIL_LOW\x10\x02\x12\x0f\n\x0b\x44\x45TAIL_HIGH\x10\x03*P\n\x0bImageFormat\x12\x16\n\x12IMG_FORMAT_INVALID\x10\x00\x12\x15\n\x11IMG_FORMAT_BASE64\x10\x01\x12\x12\n\x0eIMG_FORMAT_URL\x10\x02*j\n\x0cImageQuality\x12\x17\n\x13IMG_QUALITY_INVALID\x10\x00\x12\x13\n\x0fIMG_QUALITY_LOW\x10\x01\x12\x16\n\x12IMG_QUALITY_MEDIUM\x10\x02\x12\x14\n\x10IMG_QUALITY_HIGH\x10\x03*\xa7\x03\n\x10ImageAspectRatio\x12\x1c\n\x18IMG_ASPECT_RATIO_INVALID\x10\x00\x12\x18\n\x14IMG_ASPECT_RATIO_1_1\x10\x01\x12\x18\n\x14IMG_ASPECT_RATIO_3_4\x10\x02\x12\x18\n\x14IMG_ASPECT_RATIO_4_3\x10\x03\x12\x19\n\x15IMG_ASPECT_RATIO_9_16\x10\x04\x12\x19\n\x15IMG_ASPECT_RATIO_16_9\x10\x05\x12\x18\n\x14IMG_ASPECT_RATIO_2_3\x10\x06\x12\x18\n\x14IMG_ASPECT_RATIO_3_2\x10\x07\x12\x19\n\x15IMG_ASPECT_RATIO_AUTO\x10\x08\x12\x1b\n\x17IMG_ASPECT_RATIO_9_19_5\x10\t\x12\x1b\n\x17IMG_ASPECT_RATIO_19_5_9\x10\n\x12\x19\n\x15IMG_ASPECT_RATIO_9_20\x10\x0b\x12\x19\n\x15IMG_ASPECT_RATIO_20_9\x10\x0c\x12\x18\n\x14IMG_ASPECT_RATIO_1_2\x10\r\x12\x18\n\x14IMG_ASPECT_RATIO_2_1\x10\x0e*[\n\x0fImageResolution\x12\x1a\n\x16IMG_RESOLUTION_INVALID\x10\x00\x12\x15\n\x11IMG_RESOLUTION_1K\x10\x01\x12\x15\n\x11IMG_RESOLUTION_2K\x10\x02\x32Q\n\x05Image\x12H\n\rGenerateImage\x12\x1d.xai_api.GenerateImageRequest\x1a\x16.xai_api.ImageResponse\"\x00\x42Q\n\x0b\x63om.xai_apiB\nImageProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16xai/api/v1/image.proto\x12\x07xai_api\x1a\x16xai/api/v1/usage.proto\"\xa9\x03\n\x14GenerateImageRequest\x12\x16\n\x06prompt\x18\x01 \x01(\tR\x06prompt\x12.\n\x05image\x18\x05 \x01(\x0b\x32\x18.xai_api.ImageUrlContentR\x05image\x12\x14\n\x05model\x18\x02 \x01(\tR\x05model\x12\x11\n\x01n\x18\x03 \x01(\x05H\x00R\x01n\x88\x01\x01\x12\x12\n\x04user\x18\x04 \x01(\tR\x04user\x12,\n\x06\x66ormat\x18\x0b \x01(\x0e\x32\x14.xai_api.ImageFormatR\x06\x66ormat\x12\x41\n\x0c\x61spect_ratio\x18\x0e \x01(\x0e\x32\x19.xai_api.ImageAspectRatioH\x01R\x0b\x61spectRatio\x88\x01\x01\x12=\n\nresolution\x18\x0f \x01(\x0e\x32\x18.xai_api.ImageResolutionH\x02R\nresolution\x88\x01\x01\x12\x30\n\x06images\x18\x11 \x03(\x0b\x32\x18.xai_api.ImageUrlContentR\x06imagesB\x04\n\x02_nB\x0f\n\r_aspect_ratioB\r\n\x0b_resolutionJ\x04\x08\r\x10\x0e\"\x84\x01\n\rImageResponse\x12/\n\x06images\x18\x01 \x03(\x0b\x32\x17.xai_api.GeneratedImageR\x06images\x12\x14\n\x05model\x18\x02 \x01(\tR\x05model\x12,\n\x05usage\x18\x03 \x01(\x0b\x32\x16.xai_api.SamplingUsageR\x05usage\"|\n\x0eGeneratedImage\x12\x18\n\x06\x62\x61se64\x18\x01 \x01(\tH\x00R\x06\x62\x61se64\x12\x12\n\x03url\x18\x03 \x01(\tH\x00R\x03url\x12-\n\x12respect_moderation\x18\x04 \x01(\x08R\x11respectModerationB\x07\n\x05imageJ\x04\x08\x02\x10\x03\"\\\n\x0fImageUrlContent\x12\x1b\n\timage_url\x18\x01 \x01(\tR\x08imageUrl\x12,\n\x06\x64\x65tail\x18\x02 \x01(\x0e\x32\x14.xai_api.ImageDetailR\x06\x64\x65tail*S\n\x0bImageDetail\x12\x12\n\x0e\x44\x45TAIL_INVALID\x10\x00\x12\x0f\n\x0b\x44\x45TAIL_AUTO\x10\x01\x12\x0e\n\nDETAIL_LOW\x10\x02\x12\x0f\n\x0b\x44\x45TAIL_HIGH\x10\x03*P\n\x0bImageFormat\x12\x16\n\x12IMG_FORMAT_INVALID\x10\x00\x12\x15\n\x11IMG_FORMAT_BASE64\x10\x01\x12\x12\n\x0eIMG_FORMAT_URL\x10\x02*j\n\x0cImageQuality\x12\x17\n\x13IMG_QUALITY_INVALID\x10\x00\x12\x13\n\x0fIMG_QUALITY_LOW\x10\x01\x12\x16\n\x12IMG_QUALITY_MEDIUM\x10\x02\x12\x14\n\x10IMG_QUALITY_HIGH\x10\x03*\xa7\x03\n\x10ImageAspectRatio\x12\x1c\n\x18IMG_ASPECT_RATIO_INVALID\x10\x00\x12\x18\n\x14IMG_ASPECT_RATIO_1_1\x10\x01\x12\x18\n\x14IMG_ASPECT_RATIO_3_4\x10\x02\x12\x18\n\x14IMG_ASPECT_RATIO_4_3\x10\x03\x12\x19\n\x15IMG_ASPECT_RATIO_9_16\x10\x04\x12\x19\n\x15IMG_ASPECT_RATIO_16_9\x10\x05\x12\x18\n\x14IMG_ASPECT_RATIO_2_3\x10\x06\x12\x18\n\x14IMG_ASPECT_RATIO_3_2\x10\x07\x12\x19\n\x15IMG_ASPECT_RATIO_AUTO\x10\x08\x12\x1b\n\x17IMG_ASPECT_RATIO_9_19_5\x10\t\x12\x1b\n\x17IMG_ASPECT_RATIO_19_5_9\x10\n\x12\x19\n\x15IMG_ASPECT_RATIO_9_20\x10\x0b\x12\x19\n\x15IMG_ASPECT_RATIO_20_9\x10\x0c\x12\x18\n\x14IMG_ASPECT_RATIO_1_2\x10\r\x12\x18\n\x14IMG_ASPECT_RATIO_2_1\x10\x0e*[\n\x0fImageResolution\x12\x1a\n\x16IMG_RESOLUTION_INVALID\x10\x00\x12\x15\n\x11IMG_RESOLUTION_1K\x10\x01\x12\x15\n\x11IMG_RESOLUTION_2K\x10\x02\x32Q\n\x05Image\x12H\n\rGenerateImage\x12\x1d.xai_api.GenerateImageRequest\x1a\x16.xai_api.ImageResponse\"\x00\x42Q\n\x0b\x63om.xai_apiB\nImageProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,24 +33,24 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'xai.api.v1.image_pb2', _glo
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\013com.xai_apiB\nImageProtoP\001\242\002\003XXX\252\002\006XaiApi\312\002\006XaiApi\342\002\022XaiApi\\GPBMetadata\352\002\006XaiApi'
-  _globals['_IMAGEDETAIL']._serialized_start=792
-  _globals['_IMAGEDETAIL']._serialized_end=875
-  _globals['_IMAGEFORMAT']._serialized_start=877
-  _globals['_IMAGEFORMAT']._serialized_end=957
-  _globals['_IMAGEQUALITY']._serialized_start=959
-  _globals['_IMAGEQUALITY']._serialized_end=1065
-  _globals['_IMAGEASPECTRATIO']._serialized_start=1068
-  _globals['_IMAGEASPECTRATIO']._serialized_end=1491
-  _globals['_IMAGERESOLUTION']._serialized_start=1493
-  _globals['_IMAGERESOLUTION']._serialized_end=1584
+  _globals['_IMAGEDETAIL']._serialized_start=842
+  _globals['_IMAGEDETAIL']._serialized_end=925
+  _globals['_IMAGEFORMAT']._serialized_start=927
+  _globals['_IMAGEFORMAT']._serialized_end=1007
+  _globals['_IMAGEQUALITY']._serialized_start=1009
+  _globals['_IMAGEQUALITY']._serialized_end=1115
+  _globals['_IMAGEASPECTRATIO']._serialized_start=1118
+  _globals['_IMAGEASPECTRATIO']._serialized_end=1541
+  _globals['_IMAGERESOLUTION']._serialized_start=1543
+  _globals['_IMAGERESOLUTION']._serialized_end=1634
   _globals['_GENERATEIMAGEREQUEST']._serialized_start=60
-  _globals['_GENERATEIMAGEREQUEST']._serialized_end=435
-  _globals['_IMAGERESPONSE']._serialized_start=438
-  _globals['_IMAGERESPONSE']._serialized_end=570
-  _globals['_GENERATEDIMAGE']._serialized_start=572
-  _globals['_GENERATEDIMAGE']._serialized_end=696
-  _globals['_IMAGEURLCONTENT']._serialized_start=698
-  _globals['_IMAGEURLCONTENT']._serialized_end=790
-  _globals['_IMAGE']._serialized_start=1586
-  _globals['_IMAGE']._serialized_end=1667
+  _globals['_GENERATEIMAGEREQUEST']._serialized_end=485
+  _globals['_IMAGERESPONSE']._serialized_start=488
+  _globals['_IMAGERESPONSE']._serialized_end=620
+  _globals['_GENERATEDIMAGE']._serialized_start=622
+  _globals['_GENERATEDIMAGE']._serialized_end=746
+  _globals['_IMAGEURLCONTENT']._serialized_start=748
+  _globals['_IMAGEURLCONTENT']._serialized_end=840
+  _globals['_IMAGE']._serialized_start=1636
+  _globals['_IMAGE']._serialized_end=1717
 # @@protoc_insertion_point(module_scope)

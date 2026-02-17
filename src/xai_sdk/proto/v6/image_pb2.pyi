@@ -82,7 +82,7 @@ IMG_RESOLUTION_1K: ImageResolution
 IMG_RESOLUTION_2K: ImageResolution
 
 class GenerateImageRequest(_message.Message):
-    __slots__ = ("prompt", "image", "model", "n", "user", "format", "aspect_ratio", "resolution")
+    __slots__ = ("prompt", "image", "model", "n", "user", "format", "aspect_ratio", "resolution", "images")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -91,6 +91,7 @@ class GenerateImageRequest(_message.Message):
     FORMAT_FIELD_NUMBER: _ClassVar[int]
     ASPECT_RATIO_FIELD_NUMBER: _ClassVar[int]
     RESOLUTION_FIELD_NUMBER: _ClassVar[int]
+    IMAGES_FIELD_NUMBER: _ClassVar[int]
     prompt: str
     image: ImageUrlContent
     model: str
@@ -99,7 +100,8 @@ class GenerateImageRequest(_message.Message):
     format: ImageFormat
     aspect_ratio: ImageAspectRatio
     resolution: ImageResolution
-    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., user: _Optional[str] = ..., format: _Optional[_Union[ImageFormat, str]] = ..., aspect_ratio: _Optional[_Union[ImageAspectRatio, str]] = ..., resolution: _Optional[_Union[ImageResolution, str]] = ...) -> None: ...
+    images: _containers.RepeatedCompositeFieldContainer[ImageUrlContent]
+    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., user: _Optional[str] = ..., format: _Optional[_Union[ImageFormat, str]] = ..., aspect_ratio: _Optional[_Union[ImageAspectRatio, str]] = ..., resolution: _Optional[_Union[ImageResolution, str]] = ..., images: _Optional[_Iterable[_Union[ImageUrlContent, _Mapping]]] = ...) -> None: ...
 
 class ImageResponse(_message.Message):
     __slots__ = ("images", "model", "usage")
