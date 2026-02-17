@@ -31,17 +31,23 @@ class Client(BaseClient):
         model: str,
         *,
         image_url: Optional[str] = None,
+        image_urls: Optional[Sequence[str]] = None,
         user: Optional[str] = None,
         image_format: Optional[ImageFormat] = None,
         aspect_ratio: Optional[ImageAspectRatio] = None,
         resolution: Optional[ImageResolution] = None,
     ) -> "ImageResponse":
-        """Samples a single image asynchronously based  on the provided prompt.
+        """Samples a single image asynchronously based on the provided prompt.
 
         Args:
             prompt: The prompt to generate an image from.
             model: The model to use for image generation.
             image_url: The URL or base64-encoded string of an input image to use as a starting point for generation.
+            This field cannot be set together with `image_urls`.
+            Only supported for grok-imagine models.
+            image_urls: Optional list of input images for multi-reference image editing.
+            Each image is a URL or base64-encoded string, matching the `image_url` format.
+            This field cannot be set together with `image_url`.
             Only supported for grok-imagine models.
             user: A unique identifier representing your end-user, which can help xAI to monitor and detect abuse.
             image_format: The format of the image to return. One of:
@@ -71,6 +77,9 @@ class Client(BaseClient):
         Returns:
             An `ImageResponse` object allowing access to the generated image.
         """
+        if image_url is not None and image_urls is not None:
+            raise ValueError("Only one of image_url or image_urls can be set for a request.")
+
         image_format = image_format or "url"
         request = image_pb2.GenerateImageRequest(
             prompt=prompt,
@@ -85,6 +94,16 @@ class Client(BaseClient):
                     image_url=image_url,
                     detail=image_pb2.ImageDetail.DETAIL_AUTO,
                 )
+            )
+        if image_urls is not None:
+            request.images.extend(
+                [
+                    image_pb2.ImageUrlContent(
+                        image_url=url,
+                        detail=image_pb2.ImageDetail.DETAIL_AUTO,
+                    )
+                    for url in image_urls
+                ]
             )
         if aspect_ratio is not None:
             request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)
@@ -108,6 +127,7 @@ class Client(BaseClient):
         n: int,
         *,
         image_url: Optional[str] = None,
+        image_urls: Optional[Sequence[str]] = None,
         user: Optional[str] = None,
         image_format: Optional[ImageFormat] = None,
         aspect_ratio: Optional[ImageAspectRatio] = None,
@@ -120,6 +140,11 @@ class Client(BaseClient):
             model: The model to use for image generation.
             n: The number of images to generate.
             image_url: The URL or base64-encoded string of an input image to use as a starting point for generation.
+            This field cannot be set together with `image_urls`.
+            Only supported for grok-imagine models.
+            image_urls: Optional list of input images for multi-reference image editing.
+            Each image is a URL or base64-encoded string, matching the `image_url` format.
+            This field cannot be set together with `image_url`.
             Only supported for grok-imagine models.
             user: A unique identifier representing your end-user, which can help xAI to monitor and detect abuse.
             image_format: The format of the image to return. One of:
@@ -149,6 +174,9 @@ class Client(BaseClient):
         Returns:
             A sequence of `ImageResponse` objects, one for each image generated.
         """
+        if image_url is not None and image_urls is not None:
+            raise ValueError("Only one of image_url or image_urls can be set for a request.")
+
         image_format = image_format or "url"
         request = image_pb2.GenerateImageRequest(
             prompt=prompt,
@@ -163,6 +191,16 @@ class Client(BaseClient):
                     image_url=image_url,
                     detail=image_pb2.ImageDetail.DETAIL_AUTO,
                 )
+            )
+        if image_urls is not None:
+            request.images.extend(
+                [
+                    image_pb2.ImageUrlContent(
+                        image_url=url,
+                        detail=image_pb2.ImageDetail.DETAIL_AUTO,
+                    )
+                    for url in image_urls
+                ]
             )
         if aspect_ratio is not None:
             request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)

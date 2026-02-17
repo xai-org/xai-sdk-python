@@ -105,6 +105,72 @@ async def test_sample_passes_image_url(client: AsyncClient):
     assert request.image.detail == image_pb2.ImageDetail.DETAIL_AUTO
 
 
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_image_urls(client: AsyncClient):
+    server.clear_last_image_request()
+
+    input_image_urls = [
+        "https://example.com/image1.jpg",
+        "data:image/jpeg;base64,/9j/4AAQSkZJRg==",
+    ]
+    await client.image.sample(prompt="foo", model="grok-imagine-image", image_urls=input_image_urls)
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert [image.image_url for image in request.images] == input_image_urls
+    assert all(image.detail == image_pb2.ImageDetail.DETAIL_AUTO for image in request.images)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_batch_passes_image_urls(client: AsyncClient):
+    server.clear_last_image_request()
+
+    input_image_urls = [
+        "https://example.com/image1.jpg",
+        "data:image/jpeg;base64,/9j/4AAQSkZJRg==",
+    ]
+    await client.image.sample_batch(
+        prompt="foo",
+        model="grok-imagine-image",
+        n=2,
+        image_urls=input_image_urls,
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert [image.image_url for image in request.images] == input_image_urls
+    assert all(image.detail == image_pb2.ImageDetail.DETAIL_AUTO for image in request.images)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_rejects_both_image_fields(client: AsyncClient):
+    input_image_url = "https://example.com/image.jpg"
+    input_image_urls = ["https://example.com/image1.jpg"]
+
+    with pytest.raises(ValueError, match="Only one of image_url or image_urls can be set"):
+        await client.image.sample(
+            prompt="foo",
+            model="grok-imagine-image",
+            image_url=input_image_url,
+            image_urls=input_image_urls,
+        )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_batch_rejects_both_image_fields(client: AsyncClient):
+    input_image_url = "https://example.com/image.jpg"
+    input_image_urls = ["https://example.com/image1.jpg"]
+
+    with pytest.raises(ValueError, match="Only one of image_url or image_urls can be set"):
+        await client.image.sample_batch(
+            prompt="foo",
+            model="grok-imagine-image",
+            n=2,
+            image_url=input_image_url,
+            image_urls=input_image_urls,
+        )
+
+
 @mock.patch("xai_sdk.aio.image.tracer")
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.parametrize("image_format", ["url", "base64"])
