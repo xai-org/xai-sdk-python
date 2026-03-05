@@ -13,6 +13,8 @@ from .proto import chat_pb2, chat_pb2_grpc, image_pb2, sample_pb2, usage_pb2
 from .search import SearchParameters
 from .telemetry import should_disable_sensitive_attributes
 from .types import (
+    AgentCount,
+    AgentCountMap,
     ChatModel,
     Content,
     ImageDetail,
@@ -62,6 +64,7 @@ class BaseClient(abc.ABC, Generic[T]):
         use_encrypted_content: Optional[bool] = None,
         max_turns: Optional[int] = None,
         include: Optional[Sequence[Union[IncludeOption, "chat_pb2.IncludeOption"]]] = None,
+        agent_count: Optional[Union[AgentCount, "chat_pb2.AgentCount"]] = None,
         batch_request_id: Optional[str] = None,
     ) -> T:
         """Creates a new chat conversation.
@@ -165,6 +168,8 @@ class BaseClient(abc.ABC, Generic[T]):
             include: A list of output options to include in the response.
                 Check the `IncludeOption` enum for all possible values.
                 Defaults to None.
+            agent_count: The number of agents to use for multi-agent models.
+                Possible values are `4` and `16`. Defaults to None (server-side default).
             batch_request_id: An optional user-provided identifier for the batch request. **If provided, it must be
               unique within the batch.**Used to identify the corresponding result when the response is returned to the
               user.
@@ -208,6 +213,12 @@ class BaseClient(abc.ABC, Generic[T]):
                 for include_option in include
             ]
 
+        agent_count_pb: Optional[chat_pb2.AgentCount] = None
+        if isinstance(agent_count, int):
+            agent_count_pb = _agent_count_to_proto(agent_count)
+        else:
+            agent_count_pb = agent_count
+
         return self._make_chat(
             conversation_id=conversation_id,
             batch_request_id=batch_request_id,
@@ -234,6 +245,7 @@ class BaseClient(abc.ABC, Generic[T]):
             use_encrypted_content=use_encrypted_content,
             max_turns=max_turns,
             include=include_pb,
+            agent_count=agent_count_pb,
         )
 
     @abc.abstractmethod
@@ -825,6 +837,13 @@ def _include_option_to_proto(include_option: IncludeOption) -> chat_pb2.IncludeO
     if include_option in IncludeOptionMap:
         return IncludeOptionMap[include_option]
     raise ValueError(f"Invalid include option: {include_option}. Must be one of: {IncludeOptionMap.keys()}")
+
+
+def _agent_count_to_proto(agent_count: int) -> chat_pb2.AgentCount:
+    """Converts an `AgentCount` literal to a proto."""
+    if agent_count in AgentCountMap:
+        return AgentCountMap[agent_count]
+    raise ValueError(f"Invalid agent count: {agent_count}. Must be one of: {list(AgentCountMap.keys())}")
 
 
 def _tool_mode_to_proto(mode: ToolMode) -> chat_pb2.ToolMode:

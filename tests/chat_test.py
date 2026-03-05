@@ -1,4 +1,6 @@
-from xai_sdk.chat import Response, developer
+import pytest
+
+from xai_sdk.chat import Response, _agent_count_to_proto, developer
 from xai_sdk.proto import chat_pb2, sample_pb2
 from xai_sdk.tools import get_tool_call_type
 
@@ -657,3 +659,34 @@ def test_developer_message():
     assert len(msg2.content) == 2
     assert msg2.content[0].text == "Part 1"
     assert msg2.content[1].text == "Part 2"
+
+
+def test_agent_count_to_proto_4():
+    """Test that agent_count=4 maps to the correct proto enum."""
+    assert _agent_count_to_proto(4) == chat_pb2.AgentCount.AGENT_COUNT_4
+
+
+def test_agent_count_to_proto_16():
+    """Test that agent_count=16 maps to the correct proto enum."""
+    assert _agent_count_to_proto(16) == chat_pb2.AgentCount.AGENT_COUNT_16
+
+
+def test_agent_count_to_proto_invalid():
+    """Test that an invalid agent_count raises ValueError."""
+    with pytest.raises(ValueError, match="Invalid agent count"):
+        _agent_count_to_proto(8)
+
+
+def test_agent_count_on_request_proto():
+    """Test that agent_count is correctly set on the GetCompletionsRequest proto."""
+    request = chat_pb2.GetCompletionsRequest(
+        model="grok-3",
+        agent_count=chat_pb2.AgentCount.AGENT_COUNT_4,
+    )
+    assert request.agent_count == chat_pb2.AgentCount.AGENT_COUNT_4
+
+    request = chat_pb2.GetCompletionsRequest(
+        model="grok-3",
+        agent_count=chat_pb2.AgentCount.AGENT_COUNT_16,
+    )
+    assert request.agent_count == chat_pb2.AgentCount.AGENT_COUNT_16

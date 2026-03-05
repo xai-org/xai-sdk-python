@@ -3,6 +3,8 @@ from typing import Literal, TypeAlias, Union
 from ..proto import chat_pb2
 
 __all__ = [
+    "AgentCount",
+    "AgentCountMap",
     "Content",
     "ImageDetail",
     "IncludeOption",
@@ -12,6 +14,7 @@ __all__ = [
     "ToolMode",
 ]
 
+AgentCount: TypeAlias = Literal[4, 16]
 ReasoningEffort: TypeAlias = Literal["low", "high"]
 ImageDetail: TypeAlias = Literal["auto", "low", "high"]
 Content: TypeAlias = Union[str, chat_pb2.Content]
@@ -41,4 +44,9 @@ IncludeOptionMap: dict[IncludeOption, "chat_pb2.IncludeOption"] = {
     "mcp_call_output": chat_pb2.IncludeOption.INCLUDE_OPTION_MCP_CALL_OUTPUT,
     "inline_citations": chat_pb2.IncludeOption.INCLUDE_OPTION_INLINE_CITATIONS,
     "verbose_streaming": chat_pb2.IncludeOption.INCLUDE_OPTION_VERBOSE_STREAMING,
+}
+
+AgentCountMap: dict[AgentCount, "chat_pb2.AgentCount"] = {
+    4: chat_pb2.AgentCount.AGENT_COUNT_4,
+    16: chat_pb2.AgentCount.AGENT_COUNT_16,
 }
