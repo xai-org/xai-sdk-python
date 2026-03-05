@@ -1,4 +1,6 @@
 from .chat import (
+    AgentCount,
+    AgentCountMap,
     Content,
     ImageDetail,
     IncludeOption,
@@ -12,6 +14,8 @@ from .model import AllModels, ChatModel, ImageGenerationModel, VideoGenerationMo
 from .video import VideoAspectRatio, VideoResolution
 
 __all__ = [
+    "AgentCount",
+    "AgentCountMap",
     "AllModels",
     "ChatModel",
     "Content",
