@@ -299,7 +299,7 @@ For privacy reasons, you may want to disable the collection of sensitive attribu
 
 ## Timeouts
 
-The xAI SDK allows you to set a timeout for API requests during client initialization. This timeout applies to all RPCs and methods used with that client instance. The default timeout is 15 minutes (900 seconds).
+The xAI SDK allows you to set a timeout for API requests during client initialization. This timeout applies to all RPCs and methods used with that client instance. The default timeout is 27 minutes (1620 seconds).
 
 It is not currently possible to specify timeouts for an individual RPC/client method.
 
@@ -445,7 +445,7 @@ Below is a table of common gRPC status codes you might encounter when using the 
 |---------------------------|------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
 | `UNKNOWN`                 | An unknown error occurred.                                             | An unexpected issue occurred on the server side, not specifically related to the request.               |
 | `INVALID_ARGUMENT`        | The client specified an invalid argument.                              | An invalid argument was provided to the model/endpoint, such as incorrect parameters or malformed input.|
-| `DEADLINE_EXCEEDED`       | The deadline for the request expired before the operation completed.   | Raised if the request exceeds the timeout specified by the client (default is 900 seconds, configurable during client instantiation). |
+| `DEADLINE_EXCEEDED`       | The deadline for the request expired before the operation completed.   | Raised if the request exceeds the timeout specified by the client (default is 1620 seconds, configurable during client instantiation). |
 | `NOT_FOUND`               | A specified resource was not found.                                    | A requested model or resource does not exist.                                                           |
 | `PERMISSION_DENIED`       | The caller does not have permission to execute the specified operation.| The API key is disabled, blocked, or lacks sufficient permissions to access a specific model or feature. |
 | `UNAUTHENTICATED`         | The request does not have valid authentication credentials.            | The API key is missing, invalid, or expired.                                                            |
@@ -476,12 +476,12 @@ You can easily check the version of the xAI SDK installed in your environment us
   ```bash
   pip show xai-sdk
   ```
-  or 
+  or
 
   ```bash
   uv pip show xai-sdk
   ```
-  
+
   This will display detailed information about the package, including the version number.
 
 - **Programmatically in Python**: You can access the version information directly in your code by importing the SDK and checking the `__version__` attribute:
