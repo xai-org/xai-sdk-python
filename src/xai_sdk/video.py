@@ -12,6 +12,21 @@ DEFAULT_VIDEO_POLL_INTERVAL = datetime.timedelta(seconds=1)
 DEFAULT_VIDEO_TIMEOUT = datetime.timedelta(minutes=10)
 
 
+class VideoGenerationError(Exception):
+    """Raised when video generation fails."""
+
+    def __init__(self, code: str, message: str) -> None:
+        """Initializes a new instance of `VideoGenerationError`.
+
+        Args:
+            code: The error code from the video generation failure.
+            message: The error message describing the failure.
+        """
+        super().__init__(f"Video generation failed [{code}]: {message}")
+        self.code = code
+        self.message = message
+
+
 class BaseClient:
     """Base Client for interacting with the `Video` API."""
 

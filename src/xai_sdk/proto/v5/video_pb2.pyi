@@ -1,5 +1,5 @@
-from . import image_pb2 as _image_pb2
 from . import deferred_pb2 as _deferred_pb2
+from . import image_pb2 as _image_pb2
 from . import usage_pb2 as _usage_pb2
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -73,14 +73,16 @@ class GetDeferredVideoRequest(_message.Message):
     def __init__(self, request_id: _Optional[str] = ...) -> None: ...
 
 class VideoResponse(_message.Message):
-    __slots__ = ("video", "model", "usage")
+    __slots__ = ("video", "model", "usage", "error")
     VIDEO_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     USAGE_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
     video: GeneratedVideo
     model: str
     usage: _usage_pb2.SamplingUsage
-    def __init__(self, video: _Optional[_Union[GeneratedVideo, _Mapping]] = ..., model: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ...) -> None: ...
+    error: VideoError
+    def __init__(self, video: _Optional[_Union[GeneratedVideo, _Mapping]] = ..., model: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., error: _Optional[_Union[VideoError, _Mapping]] = ...) -> None: ...
 
 class GeneratedVideo(_message.Message):
     __slots__ = ("url", "duration", "respect_moderation")
@@ -99,3 +101,11 @@ class GetDeferredVideoResponse(_message.Message):
     status: _deferred_pb2.DeferredStatus
     response: VideoResponse
     def __init__(self, status: _Optional[_Union[_deferred_pb2.DeferredStatus, str]] = ..., response: _Optional[_Union[VideoResponse, _Mapping]] = ...) -> None: ...
+
+class VideoError(_message.Message):
+    __slots__ = ("code", "message")
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    code: str
+    message: str
+    def __init__(self, code: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...

@@ -12,6 +12,7 @@ from ..video import (
     DEFAULT_VIDEO_TIMEOUT,
     BaseClient,
     VideoAspectRatio,
+    VideoGenerationError,
     VideoResolution,
     VideoResponse,
     _make_generate_request,
@@ -110,5 +111,10 @@ class Client(BaseClient):
                     case deferred_pb2.DeferredStatus.PENDING:
                         await asyncio.sleep(timer.sleep_interval_or_raise())
                         continue
+                    case deferred_pb2.DeferredStatus.FAILED:
+                        if r.HasField("response") and r.response.HasField("error"):
+                            error = r.response.error
+                            raise VideoGenerationError(error.code, error.message)
+                        raise VideoGenerationError("UNKNOWN", "Video generation failed with no error details.")
                     case unknown_status:
                         raise ValueError(f"Unknown deferred status: {unknown_status}")
