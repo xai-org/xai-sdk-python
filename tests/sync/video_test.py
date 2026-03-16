@@ -4,7 +4,8 @@ import pytest
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
-from xai_sdk.proto import image_pb2, video_pb2
+from xai_sdk.proto import deferred_pb2, image_pb2, video_pb2
+from xai_sdk.video import VideoGenerationError
 
 from .. import server
 
@@ -137,3 +138,41 @@ def test_generate_creates_span_without_sensitive_attributes_when_disabled(mock_t
     }
 
     mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+def test_generate_raises_video_generation_error_on_failure(client: Client):
+    """Test that generate raises VideoGenerationError when the deferred request fails."""
+    # Create a mock response that returns FAILED status with error details
+    failed_response = video_pb2.GetDeferredVideoResponse(
+        status=deferred_pb2.DeferredStatus.FAILED,
+        response=video_pb2.VideoResponse(
+            error=video_pb2.VideoError(
+                code="CONTENT_POLICY_VIOLATION",
+                message="The prompt violates content policy guidelines.",
+            )
+        ),
+    )
+
+    with mock.patch.object(client.video._stub, "GetDeferredVideo", return_value=failed_response):
+        with pytest.raises(VideoGenerationError) as exc_info:
+            client.video.generate(prompt="foo", model="grok-imagine-video")
+
+        assert exc_info.value.code == "CONTENT_POLICY_VIOLATION"
+        assert exc_info.value.message == "The prompt violates content policy guidelines."
+        assert "CONTENT_POLICY_VIOLATION" in str(exc_info.value)
+        assert "The prompt violates content policy guidelines." in str(exc_info.value)
+
+
+def test_generate_raises_video_generation_error_without_details(client: Client):
+    """Test that generate raises VideoGenerationError with UNKNOWN code when no error details are provided."""
+    # Create a mock response that returns FAILED status without error details
+    failed_response = video_pb2.GetDeferredVideoResponse(
+        status=deferred_pb2.DeferredStatus.FAILED,
+    )
+
+    with mock.patch.object(client.video._stub, "GetDeferredVideo", return_value=failed_response):
+        with pytest.raises(VideoGenerationError) as exc_info:
+            client.video.generate(prompt="foo", model="grok-imagine-video")
+
+        assert exc_info.value.code == "UNKNOWN"
+        assert "Video generation failed with no error details." in exc_info.value.message

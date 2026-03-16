@@ -34,11 +34,12 @@ class VideoServicer(object):
 
     def GenerateVideo(self, request, context):
         """Create a video based on a text prompt and optionally an image.
-        If an image is provided, generates video with the image as the first frame (image-to-video).
-        If no image is provided, generates video from text only (text-to-video).
+        If an image is provided, generates video with the image as the first frame
+        (image-to-video). If no image is provided, generates video from text only
+        (text-to-video).
 
-        This is an asynchronous operation. The method returns immediately with a request_id
-        that can be used to poll for the result using GetDeferredVideo.
+        This is an asynchronous operation. The method returns immediately with a
+        request_id that can be used to poll for the result using GetDeferredVideo.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

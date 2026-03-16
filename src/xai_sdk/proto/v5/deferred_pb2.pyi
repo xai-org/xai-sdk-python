@@ -11,10 +11,12 @@ class DeferredStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     DONE: _ClassVar[DeferredStatus]
     EXPIRED: _ClassVar[DeferredStatus]
     PENDING: _ClassVar[DeferredStatus]
+    FAILED: _ClassVar[DeferredStatus]
 INVALID_DEFERRED_STATUS: DeferredStatus
 DONE: DeferredStatus
 EXPIRED: DeferredStatus
 PENDING: DeferredStatus
+FAILED: DeferredStatus
 
 class StartDeferredResponse(_message.Message):
     __slots__ = ("request_id",)
