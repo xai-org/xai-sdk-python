@@ -113,6 +113,53 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
         return base64.b64decode(encoded_buffer)
 
 
+def _make_generate_request(
+    prompt: str,
+    model: str,
+    *,
+    n: int = 1,
+    image_url: str | None = None,
+    image_urls: Sequence[str] | None = None,
+    user: str | None = None,
+    image_format: ImageFormat | None = None,
+    aspect_ratio: ImageAspectRatio | None = None,
+    resolution: ImageResolution | None = None,
+) -> image_pb2.GenerateImageRequest:
+    if image_url is not None and image_urls is not None:
+        raise ValueError("Only one of image_url or image_urls can be set for a request.")
+
+    image_format = image_format or "url"
+    request = image_pb2.GenerateImageRequest(
+        prompt=prompt,
+        model=model,
+        user=user,
+        n=n,
+        format=convert_image_format_to_pb(image_format),
+    )
+    if image_url is not None:
+        request.image.CopyFrom(
+            image_pb2.ImageUrlContent(
+                image_url=image_url,
+                detail=image_pb2.ImageDetail.DETAIL_AUTO,
+            )
+        )
+    if image_urls is not None:
+        request.images.extend(
+            [
+                image_pb2.ImageUrlContent(
+                    image_url=url,
+                    detail=image_pb2.ImageDetail.DETAIL_AUTO,
+                )
+                for url in image_urls
+            ]
+        )
+    if aspect_ratio is not None:
+        request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)
+    if resolution is not None:
+        request.resolution = convert_image_resolution_to_pb(resolution)
+    return request
+
+
 def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> dict[str, str | int]:
     """Creates the image sampling span request attributes."""
     attributes: dict[str, str | int] = {
