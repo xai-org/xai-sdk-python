@@ -14,11 +14,15 @@ class Client(BaseClient):
     def create(
         self,
         batch_name: str,
+        *,
+        input_file_id: Optional[str] = None,
     ) -> batch_pb2.Batch:
         """Create a new batch.
 
         Args:
             batch_name: The name of the batch to create.
+            input_file_id: Optional file ID of an uploaded JSONL file. If provided,
+                requests are loaded from the file and the batch is sealed.
 
         Returns:
             The created `Batch`.
@@ -27,13 +31,19 @@ class Client(BaseClient):
             ```
             from xai_sdk import Client
 
-
             client = Client()
             batch = client.batch.create("my_batch")
+
+            # Or create from a JSONL file
+            file = client.file.create("requests.jsonl")
+            batch = client.batch.create("my_batch", input_file_id=file.id)
             ```
 
         """
-        return self._stub.CreateBatch(batch_pb2.CreateBatchRequest(name=batch_name))
+        req = batch_pb2.CreateBatchRequest(name=batch_name)
+        if input_file_id is not None:
+            req.input_file_id = input_file_id
+        return self._stub.CreateBatch(req)
 
     def add(
         self,

@@ -10,13 +10,11 @@ from ..image import (
     ImageAspectRatio,
     ImageFormat,
     ImageResolution,
+    _make_generate_request,
     _make_span_request_attributes,
     _make_span_response_attributes,
-    convert_image_aspect_ratio_to_pb,
-    convert_image_format_to_pb,
-    convert_image_resolution_to_pb,
 )
-from ..proto import image_pb2
+from ..proto import batch_pb2
 from ..telemetry import get_tracer
 
 tracer = get_tracer(__name__)
@@ -24,6 +22,84 @@ tracer = get_tracer(__name__)
 
 class Client(BaseClient):
     """Asynchronous client for interacting with the `Image` API."""
+
+    def prepare(
+        self,
+        prompt: str,
+        model: str,
+        *,
+        batch_request_id: Optional[str] = None,
+        image_url: Optional[str] = None,
+        image_urls: Optional[Sequence[str]] = None,
+        user: Optional[str] = None,
+        image_format: Optional[ImageFormat] = None,
+        aspect_ratio: Optional[ImageAspectRatio] = None,
+        resolution: Optional[ImageResolution] = None,
+    ) -> batch_pb2.BatchRequest:
+        """Prepares an image generation request for batch processing.
+
+        Use this method to prepare image generation requests that can be added to a batch.
+        This does not execute the generation - use `client.batch.add()` to submit requests.
+
+        Args:
+            prompt: The prompt to generate an image from.
+            model: The model to use for image generation.
+            batch_request_id: An optional user-provided identifier for the batch request.
+                **If provided, it must be unique within the batch.** Used to identify the
+                corresponding result when the response is returned.
+            image_url: The URL or base64-encoded string of an input image to use as a starting point.
+                Cannot be set together with `image_urls`. Only supported for grok-imagine models.
+            image_urls: Optional list of input images for multi-reference image editing.
+                Cannot be set together with `image_url`. Only supported for grok-imagine models.
+            user: A unique identifier representing your end-user.
+            image_format: The format of the image to return ("url" or "base64"). Defaults to "url".
+            aspect_ratio: The aspect ratio of the image to generate.
+            resolution: The image resolution to generate ("1k" or "2k").
+
+        Returns:
+            A `BatchRequest` proto ready to be added to a batch.
+
+        Examples:
+            ```python
+            from xai_sdk import AsyncClient
+
+            client = AsyncClient()
+
+            # Create a batch
+            batch = await client.batch.create("my_image_batch")
+
+            # Prepare batch requests for multiple images
+            requests = [
+                client.image.prepare(
+                    prompt="A sunset over mountains",
+                    model="grok-imagine-image",
+                    batch_request_id="sunset_1",
+                ),
+                client.image.prepare(
+                    prompt="A forest in autumn",
+                    model="grok-imagine-image",
+                    batch_request_id="forest_1",
+                ),
+            ]
+
+            # Add requests to batch
+            await client.batch.add(batch.batch_id, requests)
+            ```
+        """
+        request = _make_generate_request(
+            prompt,
+            model,
+            image_url=image_url,
+            image_urls=image_urls,
+            user=user,
+            image_format=image_format,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
+        )
+        return batch_pb2.BatchRequest(
+            image_request=request,
+            batch_request_id=batch_request_id or "",
+        )
 
     async def sample(
         self,
@@ -77,39 +153,16 @@ class Client(BaseClient):
         Returns:
             An `ImageResponse` object allowing access to the generated image.
         """
-        if image_url is not None and image_urls is not None:
-            raise ValueError("Only one of image_url or image_urls can be set for a request.")
-
-        image_format = image_format or "url"
-        request = image_pb2.GenerateImageRequest(
-            prompt=prompt,
-            model=model,
+        request = _make_generate_request(
+            prompt,
+            model,
+            image_url=image_url,
+            image_urls=image_urls,
             user=user,
-            n=1,
-            format=convert_image_format_to_pb(image_format),
+            image_format=image_format,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
         )
-        if image_url is not None:
-            request.image.CopyFrom(
-                image_pb2.ImageUrlContent(
-                    image_url=image_url,
-                    detail=image_pb2.ImageDetail.DETAIL_AUTO,
-                )
-            )
-        if image_urls is not None:
-            request.images.extend(
-                [
-                    image_pb2.ImageUrlContent(
-                        image_url=url,
-                        detail=image_pb2.ImageDetail.DETAIL_AUTO,
-                    )
-                    for url in image_urls
-                ]
-            )
-        if aspect_ratio is not None:
-            request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)
-        if resolution is not None:
-            request.resolution = convert_image_resolution_to_pb(resolution)
-
         with tracer.start_as_current_span(
             name=f"image.sample {model}",
             kind=SpanKind.CLIENT,
@@ -174,39 +227,17 @@ class Client(BaseClient):
         Returns:
             A sequence of `ImageResponse` objects, one for each image generated.
         """
-        if image_url is not None and image_urls is not None:
-            raise ValueError("Only one of image_url or image_urls can be set for a request.")
-
-        image_format = image_format or "url"
-        request = image_pb2.GenerateImageRequest(
-            prompt=prompt,
-            model=model,
-            user=user,
+        request = _make_generate_request(
+            prompt,
+            model,
             n=n,
-            format=convert_image_format_to_pb(image_format),
+            image_url=image_url,
+            image_urls=image_urls,
+            user=user,
+            image_format=image_format,
+            aspect_ratio=aspect_ratio,
+            resolution=resolution,
         )
-        if image_url is not None:
-            request.image.CopyFrom(
-                image_pb2.ImageUrlContent(
-                    image_url=image_url,
-                    detail=image_pb2.ImageDetail.DETAIL_AUTO,
-                )
-            )
-        if image_urls is not None:
-            request.images.extend(
-                [
-                    image_pb2.ImageUrlContent(
-                        image_url=url,
-                        detail=image_pb2.ImageDetail.DETAIL_AUTO,
-                    )
-                    for url in image_urls
-                ]
-            )
-        if aspect_ratio is not None:
-            request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)
-        if resolution is not None:
-            request.resolution = convert_image_resolution_to_pb(resolution)
-
         with tracer.start_as_current_span(
             name=f"image.sample_batch {model}",
             kind=SpanKind.CLIENT,

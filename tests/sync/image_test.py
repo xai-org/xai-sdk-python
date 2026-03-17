@@ -5,7 +5,7 @@ from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
 from xai_sdk.image import ImageFormat
-from xai_sdk.proto import image_pb2
+from xai_sdk.proto import batch_pb2, image_pb2
 
 from .. import server
 
@@ -300,3 +300,71 @@ def test_sample_batch_creates_span_with_correct_attributes(
         expected_response_attributes["gen_ai.response.2.image.base64"] = responses[2].base64
 
     mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+# Tests for image.prepare() batch request method
+
+
+def test_create_returns_batch_request(client: Client):
+    """Test that create() returns a BatchRequest proto."""
+    batch_req = client.image.prepare(
+        prompt="A sunset over mountains",
+        model="grok-imagine-image",
+        batch_request_id="test_image_1",
+    )
+
+    assert isinstance(batch_req, batch_pb2.BatchRequest)
+    assert batch_req.batch_request_id == "test_image_1"
+    assert batch_req.HasField("image_request")
+    assert batch_req.image_request.prompt == "A sunset over mountains"
+    assert batch_req.image_request.model == "grok-imagine-image"
+
+
+def test_create_without_batch_request_id(client: Client):
+    """Test that create() works without batch_request_id."""
+    batch_req = client.image.prepare(
+        prompt="A forest",
+        model="grok-imagine-image",
+    )
+
+    assert isinstance(batch_req, batch_pb2.BatchRequest)
+    assert batch_req.batch_request_id == ""
+    assert batch_req.image_request.prompt == "A forest"
+
+
+def test_create_with_aspect_ratio_and_resolution(client: Client):
+    """Test that create() passes aspect_ratio and resolution."""
+    batch_req = client.image.prepare(
+        prompt="A beach",
+        model="grok-imagine-image",
+        batch_request_id="beach_1",
+        aspect_ratio="16:9",
+        resolution="2k",
+    )
+
+    assert batch_req.image_request.aspect_ratio == image_pb2.ImageAspectRatio.IMG_ASPECT_RATIO_16_9
+    assert batch_req.image_request.resolution == image_pb2.ImageResolution.IMG_RESOLUTION_2K
+
+
+def test_create_with_image_url(client: Client):
+    """Test that create() passes image_url."""
+    input_image_url = "https://example.com/input.jpg"
+    batch_req = client.image.prepare(
+        prompt="Edit this image",
+        model="grok-imagine-image",
+        image_url=input_image_url,
+    )
+
+    assert batch_req.image_request.HasField("image")
+    assert batch_req.image_request.image.image_url == input_image_url
+
+
+def test_create_rejects_both_image_fields(client: Client):
+    """Test that create() rejects both image_url and image_urls."""
+    with pytest.raises(ValueError, match="Only one of image_url or image_urls can be set"):
+        client.image.prepare(
+            prompt="foo",
+            model="grok-imagine-image",
+            image_url="https://example.com/image.jpg",
+            image_urls=["https://example.com/image1.jpg"],
+        )

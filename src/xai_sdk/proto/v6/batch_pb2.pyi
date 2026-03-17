@@ -2,6 +2,8 @@ from google.protobuf import empty_pb2 as _empty_pb2
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from google.rpc import status_pb2 as _status_pb2
 from . import chat_pb2 as _chat_pb2
+from . import image_pb2 as _image_pb2
+from . import video_pb2 as _video_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -12,7 +14,7 @@ from typing import ClassVar as _ClassVar, Optional as _Optional, Union as _Union
 DESCRIPTOR: _descriptor.FileDescriptor
 
 class Batch(_message.Message):
-    __slots__ = ("batch_id", "name", "create_time", "expire_time", "create_api_key_id", "cancel_time", "cancel_by_xai_message", "state", "cost_breakdown")
+    __slots__ = ("batch_id", "name", "create_time", "expire_time", "create_api_key_id", "cancel_time", "cancel_by_xai_message", "state", "cost_breakdown", "input_file_id")
     BATCH_ID_FIELD_NUMBER: _ClassVar[int]
     NAME_FIELD_NUMBER: _ClassVar[int]
     CREATE_TIME_FIELD_NUMBER: _ClassVar[int]
@@ -22,6 +24,7 @@ class Batch(_message.Message):
     CANCEL_BY_XAI_MESSAGE_FIELD_NUMBER: _ClassVar[int]
     STATE_FIELD_NUMBER: _ClassVar[int]
     COST_BREAKDOWN_FIELD_NUMBER: _ClassVar[int]
+    INPUT_FILE_ID_FIELD_NUMBER: _ClassVar[int]
     batch_id: str
     name: str
     create_time: _timestamp_pb2.Timestamp
@@ -31,7 +34,8 @@ class Batch(_message.Message):
     cancel_by_xai_message: str
     state: BatchState
     cost_breakdown: BatchCostBreakdown
-    def __init__(self, batch_id: _Optional[str] = ..., name: _Optional[str] = ..., create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., expire_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., create_api_key_id: _Optional[str] = ..., cancel_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., cancel_by_xai_message: _Optional[str] = ..., state: _Optional[_Union[BatchState, _Mapping]] = ..., cost_breakdown: _Optional[_Union[BatchCostBreakdown, _Mapping]] = ...) -> None: ...
+    input_file_id: str
+    def __init__(self, batch_id: _Optional[str] = ..., name: _Optional[str] = ..., create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., expire_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., create_api_key_id: _Optional[str] = ..., cancel_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., cancel_by_xai_message: _Optional[str] = ..., state: _Optional[_Union[BatchState, _Mapping]] = ..., cost_breakdown: _Optional[_Union[BatchCostBreakdown, _Mapping]] = ..., input_file_id: _Optional[str] = ...) -> None: ...
 
 class BatchState(_message.Message):
     __slots__ = ("num_requests", "num_pending", "num_success", "num_error", "num_cancelled")
@@ -68,18 +72,26 @@ class EndpointCost(_message.Message):
     def __init__(self, endpoint: _Optional[str] = ..., cost_usd_ticks: _Optional[int] = ..., request_count: _Optional[int] = ...) -> None: ...
 
 class BatchRequest(_message.Message):
-    __slots__ = ("batch_request_id", "completion_request")
+    __slots__ = ("batch_request_id", "completion_request", "image_request", "video_request")
     BATCH_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     COMPLETION_REQUEST_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_REQUEST_FIELD_NUMBER: _ClassVar[int]
+    VIDEO_REQUEST_FIELD_NUMBER: _ClassVar[int]
     batch_request_id: str
     completion_request: _chat_pb2.GetCompletionsRequest
-    def __init__(self, batch_request_id: _Optional[str] = ..., completion_request: _Optional[_Union[_chat_pb2.GetCompletionsRequest, _Mapping]] = ...) -> None: ...
+    image_request: _image_pb2.GenerateImageRequest
+    video_request: _video_pb2.GenerateVideoRequest
+    def __init__(self, batch_request_id: _Optional[str] = ..., completion_request: _Optional[_Union[_chat_pb2.GetCompletionsRequest, _Mapping]] = ..., image_request: _Optional[_Union[_image_pb2.GenerateImageRequest, _Mapping]] = ..., video_request: _Optional[_Union[_video_pb2.GenerateVideoRequest, _Mapping]] = ...) -> None: ...
 
 class BatchResultData(_message.Message):
-    __slots__ = ("completion_response",)
+    __slots__ = ("completion_response", "image_response", "video_response")
     COMPLETION_RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_RESPONSE_FIELD_NUMBER: _ClassVar[int]
+    VIDEO_RESPONSE_FIELD_NUMBER: _ClassVar[int]
     completion_response: _chat_pb2.GetChatCompletionResponse
-    def __init__(self, completion_response: _Optional[_Union[_chat_pb2.GetChatCompletionResponse, _Mapping]] = ...) -> None: ...
+    image_response: _image_pb2.ImageResponse
+    video_response: _video_pb2.VideoResponse
+    def __init__(self, completion_response: _Optional[_Union[_chat_pb2.GetChatCompletionResponse, _Mapping]] = ..., image_response: _Optional[_Union[_image_pb2.ImageResponse, _Mapping]] = ..., video_response: _Optional[_Union[_video_pb2.VideoResponse, _Mapping]] = ...) -> None: ...
 
 class BatchResult(_message.Message):
     __slots__ = ("batch_request_id", "response", "error")
@@ -120,10 +132,12 @@ class BatchRequestMetadata(_message.Message):
     def __init__(self, batch_request_id: _Optional[str] = ..., endpoint: _Optional[str] = ..., model: _Optional[str] = ..., state: _Optional[_Union[BatchRequestMetadata.State, str]] = ..., create_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., finish_time: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class CreateBatchRequest(_message.Message):
-    __slots__ = ("name",)
+    __slots__ = ("name", "input_file_id")
     NAME_FIELD_NUMBER: _ClassVar[int]
+    INPUT_FILE_ID_FIELD_NUMBER: _ClassVar[int]
     name: str
-    def __init__(self, name: _Optional[str] = ...) -> None: ...
+    input_file_id: str
+    def __init__(self, name: _Optional[str] = ..., input_file_id: _Optional[str] = ...) -> None: ...
 
 class AddBatchRequestsRequest(_message.Message):
     __slots__ = ("batch_id", "batch_requests")
@@ -196,3 +210,19 @@ class ListBatchResultsResponse(_message.Message):
     results: _containers.RepeatedCompositeFieldContainer[BatchResult]
     pagination_token: str
     def __init__(self, results: _Optional[_Iterable[_Union[BatchResult, _Mapping]]] = ..., pagination_token: _Optional[str] = ...) -> None: ...
+
+class GetBatchRequestResultRequest(_message.Message):
+    __slots__ = ("batch_id", "batch_request_id")
+    BATCH_ID_FIELD_NUMBER: _ClassVar[int]
+    BATCH_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    batch_id: str
+    batch_request_id: str
+    def __init__(self, batch_id: _Optional[str] = ..., batch_request_id: _Optional[str] = ...) -> None: ...
+
+class GetBatchRequestResultResponse(_message.Message):
+    __slots__ = ("request", "result")
+    REQUEST_FIELD_NUMBER: _ClassVar[int]
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    request: BatchRequest
+    result: BatchResult
+    def __init__(self, request: _Optional[_Union[BatchRequest, _Mapping]] = ..., result: _Optional[_Union[BatchResult, _Mapping]] = ...) -> None: ...
