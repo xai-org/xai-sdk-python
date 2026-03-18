@@ -1,3 +1,4 @@
+import warnings
 from unittest import mock
 
 import pytest
@@ -242,3 +243,31 @@ async def test_create_with_image_url(client: AsyncClient):
 
     assert batch_req.video_request.HasField("image")
     assert batch_req.video_request.image.image_url == input_image_url
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_generate_warns_on_unknown_status_then_resolves(client: AsyncClient):
+    """Test that generate emits a warning on unknown deferred status and continues polling."""
+    # First poll returns an unknown status (999), second poll returns DONE.
+    responses = [
+        video_pb2.GetDeferredVideoResponse(status=999),  # type: ignore[arg-type]
+        video_pb2.GetDeferredVideoResponse(
+            status=deferred_pb2.DeferredStatus.DONE,
+            response=video_pb2.VideoResponse(
+                model="grok-imagine-video",
+                video=video_pb2.GeneratedVideo(url="https://example.com/video.mp4", duration=5),
+            ),
+        ),
+    ]
+
+    async def mock_get_deferred_video(_request):
+        return responses.pop(0)
+
+    with mock.patch.object(client.video._stub, "GetDeferredVideo", side_effect=mock_get_deferred_video):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            response = await client.video.generate(prompt="foo", model="grok-imagine-video")
+
+    assert response.url == "https://example.com/video.mp4"
+    assert len(w) == 1
+    assert "Encountered unknown status: 999 whilst waiting for video generation." in str(w[0].message)

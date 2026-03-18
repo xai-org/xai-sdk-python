@@ -1,5 +1,6 @@
 import datetime
 import time
+import warnings
 from typing import Optional
 
 from opentelemetry.trace import SpanKind
@@ -151,7 +152,11 @@ class Client(BaseClient):
 
         This wraps `GenerateVideo` + repeated `GetDeferredVideo` calls until the request is complete.
         """
-        timer = PollTimer(timeout or DEFAULT_VIDEO_TIMEOUT, interval or DEFAULT_VIDEO_POLL_INTERVAL)
+        timer = PollTimer(
+            timeout or DEFAULT_VIDEO_TIMEOUT,
+            interval or DEFAULT_VIDEO_POLL_INTERVAL,
+            context="waiting for video to be generated",
+        )
         request_pb = _make_generate_request(
             prompt,
             model,
@@ -191,4 +196,8 @@ class Client(BaseClient):
                             raise VideoGenerationError(error.code, error.message)
                         raise VideoGenerationError("UNKNOWN", "Video generation failed with no error details.")
                     case unknown_status:
-                        raise ValueError(f"Unknown deferred status: {unknown_status}")
+                        warnings.warn(
+                            f"Encountered unknown status: {unknown_status} whilst waiting for video generation.",
+                            stacklevel=2,
+                        )
+                        time.sleep(timer.sleep_interval_or_raise())
