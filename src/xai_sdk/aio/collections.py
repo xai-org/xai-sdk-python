@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import warnings
 from typing import Optional, Sequence, Union
 
 from opentelemetry.trace import SpanKind
@@ -375,10 +376,9 @@ class Client(BaseClient):
 
         Raises:
             ValueError: If the document indexing fails.
-            ValueError: If the document status is unknown.
             TimeoutError: If polling times out before document is processed.
         """
-        timer = PollTimer(timeout, poll_interval)
+        timer = PollTimer(timeout, poll_interval, context="waiting for document to be indexed")
         while True:
             document_metadata = await self.get_document(
                 file_id,
@@ -392,7 +392,11 @@ class Client(BaseClient):
                 case collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED:
                     raise ValueError(f"Document indexing failed: {document_metadata.error_message}")
                 case unknown_status:
-                    raise ValueError(f"Unknown document status: {unknown_status}")
+                    warnings.warn(
+                        f"Encountered unknown status: {unknown_status} whilst waiting for document indexing.",
+                        stacklevel=2,
+                    )
+                    await asyncio.sleep(timer.sleep_interval_or_raise())
 
     async def add_existing_document(
         self,

@@ -1,3 +1,4 @@
+import warnings
 from unittest import mock
 
 import pytest
@@ -246,3 +247,27 @@ def test_create_with_video_url(client: Client):
 
     assert batch_req.video_request.HasField("video")
     assert batch_req.video_request.video.url == input_video_url
+
+
+def test_generate_warns_on_unknown_status_then_resolves(client: Client):
+    """Test that generate emits a warning on unknown deferred status and continues polling."""
+    # First poll returns an unknown status (999), second poll returns DONE.
+    responses = [
+        video_pb2.GetDeferredVideoResponse(status=999),  # type: ignore[arg-type]
+        video_pb2.GetDeferredVideoResponse(
+            status=deferred_pb2.DeferredStatus.DONE,
+            response=video_pb2.VideoResponse(
+                model="grok-imagine-video",
+                video=video_pb2.GeneratedVideo(url="https://example.com/video.mp4", duration=5),
+            ),
+        ),
+    ]
+
+    with mock.patch.object(client.video._stub, "GetDeferredVideo", side_effect=responses):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            response = client.video.generate(prompt="foo", model="grok-imagine-video")
+
+    assert response.url == "https://example.com/video.mp4"
+    assert len(w) == 1
+    assert "Encountered unknown status: 999 whilst waiting for video generation." in str(w[0].message)
