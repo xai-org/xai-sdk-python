@@ -6,6 +6,7 @@ import grpc
 from .meta import ProtoDecorator
 from .proto import image_pb2, usage_pb2, video_pb2, video_pb2_grpc
 from .telemetry import should_disable_sensitive_attributes
+from .types import VideoGenerationModel
 from .types.video import VideoAspectRatio, VideoAspectRatioMap, VideoResolution, VideoResolutionMap
 
 DEFAULT_VIDEO_POLL_INTERVAL = datetime.timedelta(seconds=1)
@@ -83,7 +84,7 @@ class VideoResponse(ProtoDecorator[video_pb2.VideoResponse]):
 
 def _make_generate_request(
     prompt: str,
-    model: str,
+    model: Union[VideoGenerationModel, str],
     *,
     image_url: Optional[str],
     video_url: Optional[str],

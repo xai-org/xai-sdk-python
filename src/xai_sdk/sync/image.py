@@ -1,4 +1,4 @@
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import requests
 from opentelemetry.trace import SpanKind
@@ -16,6 +16,7 @@ from ..image import (
 )
 from ..proto import batch_pb2
 from ..telemetry import get_tracer
+from ..types import ImageGenerationModel
 
 tracer = get_tracer(__name__)
 
@@ -26,7 +27,7 @@ class Client(BaseClient):
     def prepare(
         self,
         prompt: str,
-        model: str,
+        model: Union[ImageGenerationModel, str],
         *,
         batch_request_id: Optional[str] = None,
         image_url: Optional[str] = None,
@@ -104,7 +105,7 @@ class Client(BaseClient):
     def sample(
         self,
         prompt: str,
-        model: str,
+        model: Union[ImageGenerationModel, str],
         *,
         image_url: Optional[str] = None,
         image_urls: Optional[Sequence[str]] = None,
@@ -176,7 +177,7 @@ class Client(BaseClient):
     def sample_batch(
         self,
         prompt: str,
-        model: str,
+        model: Union[ImageGenerationModel, str],
         n: int,
         *,
         image_url: Optional[str] = None,
