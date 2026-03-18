@@ -1,13 +1,14 @@
 import asyncio
 import datetime
 import warnings
-from typing import Optional
+from typing import Optional, Union
 
 from opentelemetry.trace import SpanKind
 
 from ..poll_timer import PollTimer
 from ..proto import batch_pb2, deferred_pb2, video_pb2
 from ..telemetry import get_tracer
+from ..types import VideoGenerationModel
 from ..video import (
     DEFAULT_VIDEO_POLL_INTERVAL,
     DEFAULT_VIDEO_TIMEOUT,
@@ -30,7 +31,7 @@ class Client(BaseClient):
     def prepare(
         self,
         prompt: str,
-        model: str,
+        model: Union[VideoGenerationModel, str],
         *,
         batch_request_id: Optional[str] = None,
         image_url: Optional[str] = None,
@@ -104,7 +105,7 @@ class Client(BaseClient):
     async def start(
         self,
         prompt: str,
-        model: str,
+        model: Union[VideoGenerationModel, str],
         *,
         image_url: Optional[str] = None,
         video_url: Optional[str] = None,
@@ -138,7 +139,7 @@ class Client(BaseClient):
     async def generate(
         self,
         prompt: str,
-        model: str,
+        model: Union[VideoGenerationModel, str],
         *,
         image_url: Optional[str] = None,
         video_url: Optional[str] = None,

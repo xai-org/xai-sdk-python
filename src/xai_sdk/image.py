@@ -7,7 +7,7 @@ import grpc
 from .meta import ProtoDecorator
 from .proto import image_pb2, image_pb2_grpc, usage_pb2
 from .telemetry import should_disable_sensitive_attributes
-from .types.image import ImageAspectRatio, ImageFormat, ImageResolution
+from .types import ImageAspectRatio, ImageFormat, ImageGenerationModel, ImageResolution
 
 _IMAGE_ASPECT_RATIO_MAP: dict[ImageAspectRatio, image_pb2.ImageAspectRatio] = {
     "1:1": image_pb2.ImageAspectRatio.IMG_ASPECT_RATIO_1_1,
@@ -115,7 +115,7 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
 
 def _make_generate_request(
     prompt: str,
-    model: str,
+    model: Union[ImageGenerationModel, str],
     *,
     n: int = 1,
     image_url: str | None = None,
