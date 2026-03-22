@@ -140,7 +140,7 @@ class Chat(BaseChat):
         """
         warnings.warn(
             "chat.sample_batch will be deprecated in a future version release. Use chat.sample() instead.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
 
@@ -236,7 +236,7 @@ class Chat(BaseChat):
         """
         warnings.warn(
             "chat.stream_batch will be deprecated in a future version release. Use chat.stream() instead.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
 
@@ -423,7 +423,7 @@ class Chat(BaseChat):
         """
         warnings.warn(
             "chat.defer_batch will be deprecated in a future version release. Use chat.defer() instead.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
 
