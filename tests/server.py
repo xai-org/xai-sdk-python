@@ -68,6 +68,16 @@ class _LastVideoRequestState:
 
 _last_video_request_state = _LastVideoRequestState()
 
+_last_extend_video_request_lock = threading.Lock()
+
+
+class _LastExtendVideoRequestState:
+    def __init__(self) -> None:
+        self.value: Optional[video_pb2.ExtendVideoRequest] = None
+
+
+_last_extend_video_request_state = _LastExtendVideoRequestState()
+
 
 def clear_last_image_request() -> None:
     with _last_image_request_lock:
@@ -103,6 +113,23 @@ def get_last_video_request() -> Optional[video_pb2.GenerateVideoRequest]:
 def _record_last_video_request(request: video_pb2.GenerateVideoRequest) -> None:
     with _last_video_request_lock:
         _last_video_request_state.value = video_pb2.GenerateVideoRequest.FromString(request.SerializeToString())
+
+
+def clear_last_extend_video_request() -> None:
+    with _last_extend_video_request_lock:
+        _last_extend_video_request_state.value = None
+
+
+def get_last_extend_video_request() -> Optional[video_pb2.ExtendVideoRequest]:
+    with _last_extend_video_request_lock:
+        if _last_extend_video_request_state.value is None:
+            return None
+        return video_pb2.ExtendVideoRequest.FromString(_last_extend_video_request_state.value.SerializeToString())
+
+
+def _record_last_extend_video_request(request: video_pb2.ExtendVideoRequest) -> None:
+    with _last_extend_video_request_lock:
+        _last_extend_video_request_state.value = video_pb2.ExtendVideoRequest.FromString(request.SerializeToString())
 
 
 def read_image() -> bytes:
@@ -666,7 +693,9 @@ class VideoServicer(video_pb2_grpc.VideoServicer):
 
     def __init__(self, url: str):
         self._url = url
-        self._deferred_requests: dict[str, tuple[video_pb2.GenerateVideoRequest, int]] = {}
+        self._deferred_requests: dict[
+            str, tuple[video_pb2.GenerateVideoRequest | video_pb2.ExtendVideoRequest, int]
+        ] = {}
 
     def GenerateVideo(self, request: video_pb2.GenerateVideoRequest, context: grpc.ServicerContext):
         _check_auth(context)
@@ -676,6 +705,17 @@ class VideoServicer(video_pb2_grpc.VideoServicer):
         # Store a defensive copy + poll count.
         self._deferred_requests[key] = (
             video_pb2.GenerateVideoRequest.FromString(request.SerializeToString()),
+            0,
+        )
+        return deferred_pb2.StartDeferredResponse(request_id=key)
+
+    def ExtendVideo(self, request: video_pb2.ExtendVideoRequest, context: grpc.ServicerContext):
+        _check_auth(context)
+        _record_last_extend_video_request(request)
+
+        key = f"video-ext-{len(self._deferred_requests)}"
+        self._deferred_requests[key] = (
+            video_pb2.ExtendVideoRequest.FromString(request.SerializeToString()),
             0,
         )
         return deferred_pb2.StartDeferredResponse(request_id=key)

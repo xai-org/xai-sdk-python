@@ -24,6 +24,11 @@ ASPECT_RATIO = flags.DEFINE_string(
     'Optional aspect ratio. One of: "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3".',
 )
 RESOLUTION = flags.DEFINE_string("resolution", "", 'Optional resolution. One of: "480p", "720p".')
+REFERENCE_IMAGE_URLS = flags.DEFINE_multi_string(
+    "reference-image-url",
+    [],
+    "Optional reference image URLs for reference-to-video (R2V) generation. Can be specified multiple times.",
+)
 TIMEOUT = flags.DEFINE_integer("timeout", 600, "Timeout in seconds for polling.")
 INTERVAL = flags.DEFINE_integer("interval", 1, "Polling interval in seconds.")
 
@@ -39,6 +44,7 @@ def main(argv: Sequence[str]) -> None:
     video_url = VIDEO_URL.value or None
     aspect_ratio = cast(VideoAspectRatio, ASPECT_RATIO.value) if ASPECT_RATIO.value else None
     resolution = cast(VideoResolution, RESOLUTION.value) if RESOLUTION.value else None
+    reference_image_urls = REFERENCE_IMAGE_URLS.value or None
 
     previous_video_url: str | None = video_url
     first_turn = True
@@ -57,6 +63,7 @@ def main(argv: Sequence[str]) -> None:
                 duration=duration,
                 aspect_ratio=aspect_ratio,
                 resolution=resolution,
+                reference_image_urls=reference_image_urls if first_turn else None,
                 timeout=timedelta(seconds=TIMEOUT.value),
                 interval=timedelta(seconds=INTERVAL.value),
             )
@@ -75,7 +82,7 @@ def main(argv: Sequence[str]) -> None:
             # request expired
             print(e)
         except ValueError as e:
-            # unknown deferred status
+            # video URL missing from response
             print(e)
 
 
