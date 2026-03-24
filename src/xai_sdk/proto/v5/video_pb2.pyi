@@ -1,10 +1,11 @@
 from . import deferred_pb2 as _deferred_pb2
 from . import image_pb2 as _image_pb2
 from . import usage_pb2 as _usage_pb2
+from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
-from typing import ClassVar as _ClassVar, Mapping as _Mapping, Optional as _Optional, Union as _Union
+from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Mapping, Optional as _Optional, Union as _Union
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -42,14 +43,8 @@ class VideoUrlContent(_message.Message):
     url: str
     def __init__(self, url: _Optional[str] = ...) -> None: ...
 
-class VideoOutput(_message.Message):
-    __slots__ = ("upload_url",)
-    UPLOAD_URL_FIELD_NUMBER: _ClassVar[int]
-    upload_url: str
-    def __init__(self, upload_url: _Optional[str] = ...) -> None: ...
-
 class GenerateVideoRequest(_message.Message):
-    __slots__ = ("prompt", "image", "model", "duration", "video", "aspect_ratio", "resolution")
+    __slots__ = ("prompt", "image", "model", "duration", "video", "aspect_ratio", "resolution", "reference_images")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -57,6 +52,7 @@ class GenerateVideoRequest(_message.Message):
     VIDEO_FIELD_NUMBER: _ClassVar[int]
     ASPECT_RATIO_FIELD_NUMBER: _ClassVar[int]
     RESOLUTION_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_IMAGES_FIELD_NUMBER: _ClassVar[int]
     prompt: str
     image: _image_pb2.ImageUrlContent
     model: str
@@ -64,7 +60,8 @@ class GenerateVideoRequest(_message.Message):
     video: VideoUrlContent
     aspect_ratio: VideoAspectRatio
     resolution: VideoResolution
-    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., duration: _Optional[int] = ..., video: _Optional[_Union[VideoUrlContent, _Mapping]] = ..., aspect_ratio: _Optional[_Union[VideoAspectRatio, str]] = ..., resolution: _Optional[_Union[VideoResolution, str]] = ...) -> None: ...
+    reference_images: _containers.RepeatedCompositeFieldContainer[_image_pb2.ImageUrlContent]
+    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., duration: _Optional[int] = ..., video: _Optional[_Union[VideoUrlContent, _Mapping]] = ..., aspect_ratio: _Optional[_Union[VideoAspectRatio, str]] = ..., resolution: _Optional[_Union[VideoResolution, str]] = ..., reference_images: _Optional[_Iterable[_Union[_image_pb2.ImageUrlContent, _Mapping]]] = ...) -> None: ...
 
 class GetDeferredVideoRequest(_message.Message):
     __slots__ = ("request_id",)
@@ -73,16 +70,18 @@ class GetDeferredVideoRequest(_message.Message):
     def __init__(self, request_id: _Optional[str] = ...) -> None: ...
 
 class VideoResponse(_message.Message):
-    __slots__ = ("video", "model", "usage", "error")
+    __slots__ = ("video", "model", "usage", "error", "progress")
     VIDEO_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     USAGE_FIELD_NUMBER: _ClassVar[int]
     ERROR_FIELD_NUMBER: _ClassVar[int]
+    PROGRESS_FIELD_NUMBER: _ClassVar[int]
     video: GeneratedVideo
     model: str
     usage: _usage_pb2.SamplingUsage
     error: VideoError
-    def __init__(self, video: _Optional[_Union[GeneratedVideo, _Mapping]] = ..., model: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., error: _Optional[_Union[VideoError, _Mapping]] = ...) -> None: ...
+    progress: int
+    def __init__(self, video: _Optional[_Union[GeneratedVideo, _Mapping]] = ..., model: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., error: _Optional[_Union[VideoError, _Mapping]] = ..., progress: _Optional[int] = ...) -> None: ...
 
 class GeneratedVideo(_message.Message):
     __slots__ = ("url", "duration", "respect_moderation")
@@ -109,3 +108,15 @@ class VideoError(_message.Message):
     code: str
     message: str
     def __init__(self, code: _Optional[str] = ..., message: _Optional[str] = ...) -> None: ...
+
+class ExtendVideoRequest(_message.Message):
+    __slots__ = ("prompt", "video", "model", "duration")
+    PROMPT_FIELD_NUMBER: _ClassVar[int]
+    VIDEO_FIELD_NUMBER: _ClassVar[int]
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    DURATION_FIELD_NUMBER: _ClassVar[int]
+    prompt: str
+    video: VideoUrlContent
+    model: str
+    duration: int
+    def __init__(self, prompt: _Optional[str] = ..., video: _Optional[_Union[VideoUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., duration: _Optional[int] = ...) -> None: ...

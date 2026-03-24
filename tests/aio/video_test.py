@@ -78,6 +78,36 @@ async def test_generate_passes_video_url(client: AsyncClient):
     assert request.video.url == input_video_url
 
 
+@pytest.mark.asyncio(loop_scope="session")
+async def test_generate_passes_reference_image_urls(client: AsyncClient):
+    server.clear_last_video_request()
+
+    ref_urls = ["https://example.com/ref1.jpg", "https://example.com/ref2.jpg"]
+    await client.video.generate(prompt="foo", model="grok-imagine-video", reference_image_urls=ref_urls)
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert len(request.reference_images) == 2
+    assert request.reference_images[0].image_url == ref_urls[0]
+    assert request.reference_images[0].detail == image_pb2.ImageDetail.DETAIL_AUTO
+    assert request.reference_images[1].image_url == ref_urls[1]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_prepare_with_reference_image_urls(client: AsyncClient):
+    """Test that prepare() passes reference_image_urls."""
+    ref_urls = ["https://example.com/ref1.jpg", "https://example.com/ref2.jpg"]
+    batch_req = client.video.prepare(
+        prompt="Generate from references",
+        model="grok-imagine-video",
+        reference_image_urls=ref_urls,
+    )
+
+    assert len(batch_req.video_request.reference_images) == 2
+    assert batch_req.video_request.reference_images[0].image_url == ref_urls[0]
+    assert batch_req.video_request.reference_images[1].image_url == ref_urls[1]
+
+
 @mock.patch("xai_sdk.aio.video.tracer")
 @pytest.mark.asyncio(loop_scope="session")
 async def test_generate_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
@@ -271,3 +301,222 @@ async def test_generate_warns_on_unknown_status_then_resolves(client: AsyncClien
     assert response.url == "https://example.com/video.mp4"
     assert len(w) == 1
     assert "Encountered unknown status: 999 whilst waiting for video generation." in str(w[0].message)
+
+
+# Tests for video.extend()
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_returns_video_url(client: AsyncClient):
+    """Test that extend() returns a video response with a URL."""
+    response = await client.video.extend(
+        prompt="The camera zooms out",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+    )
+
+    assert response.model == "grok-imagine-video"
+    assert response.url
+    assert response.duration > 0
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_passes_video_url_and_duration(client: AsyncClient):
+    """Test that extend() correctly passes video_url and duration to the request."""
+    server.clear_last_extend_video_request()
+
+    response = await client.video.extend(
+        prompt="Continue the scene",
+        model="grok-imagine-video",
+        video_url="https://example.com/source.mp4",
+        duration=8,
+    )
+
+    assert response.duration == 8
+
+    request = server.get_last_extend_video_request()
+    assert request is not None
+    assert request.prompt == "Continue the scene"
+    assert request.model == "grok-imagine-video"
+    assert request.HasField("video")
+    assert request.video.url == "https://example.com/source.mp4"
+    assert request.HasField("duration")
+    assert request.duration == 8
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_without_duration(client: AsyncClient):
+    """Test that extend() works without specifying duration."""
+    server.clear_last_extend_video_request()
+
+    await client.video.extend(
+        prompt="A bird flies across the sky",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+    )
+
+    request = server.get_last_extend_video_request()
+    assert request is not None
+    assert not request.HasField("duration")
+
+
+@mock.patch("xai_sdk.aio.video.tracer")
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    response = await client.video.extend(
+        prompt="The scene continues",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+    )
+
+    expected_request_attributes = {
+        "gen_ai.prompt": "The scene continues",
+        "gen_ai.operation.name": "extend_video",
+        "gen_ai.provider.name": "xai",
+        "gen_ai.output.type": "video",
+        "server.address": "api.x.ai",
+        "gen_ai.request.model": "grok-imagine-video",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="video.extend grok-imagine-video",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.model": "grok-imagine-video",
+        "gen_ai.usage.input_tokens": response.usage.prompt_tokens,
+        "gen_ai.usage.output_tokens": response.usage.completion_tokens,
+        "gen_ai.usage.total_tokens": response.usage.total_tokens,
+        "gen_ai.usage.reasoning_tokens": response.usage.reasoning_tokens,
+        "gen_ai.usage.cached_prompt_text_tokens": response.usage.cached_prompt_text_tokens,
+        "gen_ai.usage.prompt_text_tokens": response.usage.prompt_text_tokens,
+        "gen_ai.usage.prompt_image_tokens": response.usage.prompt_image_tokens,
+        "gen_ai.response.0.video.respect_moderation": response.respect_moderation,
+        "gen_ai.response.0.video.url": response.url,
+        "gen_ai.response.0.video.duration": response.duration,
+    }
+
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@mock.patch("xai_sdk.aio.video.tracer")
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_creates_span_without_sensitive_attributes_when_disabled(
+    mock_tracer: mock.MagicMock, client: AsyncClient
+):
+    """Test that sensitive attributes are not included when XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES is set."""
+    mock_span = mock.MagicMock()
+    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+
+    with mock.patch.dict("os.environ", {"XAI_SDK_DISABLE_SENSITIVE_TELEMETRY_ATTRIBUTES": "1"}):
+        await client.video.extend(
+            prompt="The scene continues",
+            model="grok-imagine-video",
+            video_url="https://example.com/input.mp4",
+        )
+
+    expected_request_attributes = {
+        "gen_ai.operation.name": "extend_video",
+        "gen_ai.provider.name": "xai",
+        "server.address": "api.x.ai",
+        "gen_ai.request.model": "grok-imagine-video",
+        "gen_ai.output.type": "video",
+    }
+
+    mock_tracer.start_as_current_span.assert_called_once_with(
+        name="video.extend grok-imagine-video",
+        kind=SpanKind.CLIENT,
+        attributes=expected_request_attributes,
+    )
+
+    expected_response_attributes = {
+        "gen_ai.response.model": "grok-imagine-video",
+    }
+
+    mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_raises_video_generation_error_on_failure(client: AsyncClient):
+    """Test that extend raises VideoGenerationError when the deferred request fails."""
+    failed_response = video_pb2.GetDeferredVideoResponse(
+        status=deferred_pb2.DeferredStatus.FAILED,
+        response=video_pb2.VideoResponse(
+            error=video_pb2.VideoError(
+                code="CONTENT_POLICY_VIOLATION",
+                message="The prompt violates content policy guidelines.",
+            )
+        ),
+    )
+
+    async def mock_get_deferred_video(_request):
+        return failed_response
+
+    with mock.patch.object(client.video._stub, "GetDeferredVideo", side_effect=mock_get_deferred_video):
+        with pytest.raises(VideoGenerationError) as exc_info:
+            await client.video.extend(
+                prompt="foo",
+                model="grok-imagine-video",
+                video_url="https://example.com/input.mp4",
+            )
+
+        assert exc_info.value.code == "CONTENT_POLICY_VIOLATION"
+        assert exc_info.value.message == "The prompt violates content policy guidelines."
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_raises_video_generation_error_without_details(client: AsyncClient):
+    """Test that extend raises VideoGenerationError with UNKNOWN code when no error details are provided."""
+    failed_response = video_pb2.GetDeferredVideoResponse(
+        status=deferred_pb2.DeferredStatus.FAILED,
+    )
+
+    async def mock_get_deferred_video(_request):
+        return failed_response
+
+    with mock.patch.object(client.video._stub, "GetDeferredVideo", side_effect=mock_get_deferred_video):
+        with pytest.raises(VideoGenerationError) as exc_info:
+            await client.video.extend(
+                prompt="foo",
+                model="grok-imagine-video",
+                video_url="https://example.com/input.mp4",
+            )
+
+        assert exc_info.value.code == "UNKNOWN"
+        assert "Video extension failed with no error details." in exc_info.value.message
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_extend_warns_on_unknown_status_then_resolves(client: AsyncClient):
+    """Test that extend emits a warning on unknown deferred status and continues polling."""
+    responses = [
+        video_pb2.GetDeferredVideoResponse(status=999),  # type: ignore[arg-type]
+        video_pb2.GetDeferredVideoResponse(
+            status=deferred_pb2.DeferredStatus.DONE,
+            response=video_pb2.VideoResponse(
+                model="grok-imagine-video",
+                video=video_pb2.GeneratedVideo(url="https://example.com/extended.mp4", duration=6),
+            ),
+        ),
+    ]
+
+    async def mock_get_deferred_video(_request):
+        return responses.pop(0)
+
+    with mock.patch.object(client.video._stub, "GetDeferredVideo", side_effect=mock_get_deferred_video):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            response = await client.video.extend(
+                prompt="foo",
+                model="grok-imagine-video",
+                video_url="https://example.com/input.mp4",
+            )
+
+    assert response.url == "https://example.com/extended.mp4"
+    assert len(w) == 1
+    assert "Encountered unknown status: 999 whilst waiting for video extension." in str(w[0].message)
