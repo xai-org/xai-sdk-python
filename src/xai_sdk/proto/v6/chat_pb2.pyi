@@ -375,10 +375,16 @@ class Content(_message.Message):
     def __init__(self, text: _Optional[str] = ..., image_url: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ..., file: _Optional[_Union[FileContent, _Mapping]] = ...) -> None: ...
 
 class FileContent(_message.Message):
-    __slots__ = ("file_id",)
+    __slots__ = ("file_id", "data", "filename", "mime_type")
     FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    DATA_FIELD_NUMBER: _ClassVar[int]
+    FILENAME_FIELD_NUMBER: _ClassVar[int]
+    MIME_TYPE_FIELD_NUMBER: _ClassVar[int]
     file_id: str
-    def __init__(self, file_id: _Optional[str] = ...) -> None: ...
+    data: bytes
+    filename: str
+    mime_type: str
+    def __init__(self, file_id: _Optional[str] = ..., data: _Optional[bytes] = ..., filename: _Optional[str] = ..., mime_type: _Optional[str] = ...) -> None: ...
 
 class Message(_message.Message):
     __slots__ = ("content", "reasoning_content", "role", "name", "tool_calls", "encrypted_content", "tool_call_id")

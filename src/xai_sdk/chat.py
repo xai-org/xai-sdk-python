@@ -2,7 +2,7 @@ import abc
 import datetime
 import json
 from collections import Counter, defaultdict
-from typing import Any, Generic, Optional, Sequence, TypeVar, Union
+from typing import Any, Generic, Optional, Sequence, TypeVar, Union, overload
 
 import grpc
 from pydantic import BaseModel
@@ -797,20 +797,57 @@ def image(image_url: str, *, detail: Optional[ImageDetail] = "auto") -> chat_pb2
     return chat_pb2.Content(image_url=image_pb2.ImageUrlContent(image_url=image_url, detail=pb_detail))
 
 
-def file(file_id: str) -> chat_pb2.Content:
+@overload
+def file(file_id: str) -> chat_pb2.Content: ...
+
+
+@overload
+def file(
+    *,
+    data: bytes,
+    filename: Optional[str] = ...,
+    mime_type: Optional[str] = ...,
+) -> chat_pb2.Content: ...
+
+
+def file(
+    file_id: Optional[str] = None,
+    *,
+    data: Optional[bytes] = None,
+    filename: Optional[str] = None,
+    mime_type: Optional[str] = None,
+) -> chat_pb2.Content:
     """Creates a new content object of type file for use in chat messages.
 
-    This allows you to reference previously uploaded files in chat conversations.
-    The model can read and analyze the file content.
+    This supports two modes:
+    - Referencing a previously uploaded file via the Files API (`file_id`)
+    - Providing inline file bytes directly in the chat request (`data`)
+
+    Exactly one of `file_id` or `data` must be provided.
 
     Args:
-        file_id: The ID of a previously uploaded file. You can obtain this ID by
-            uploading a file using the Files API (`client.files.upload(...)`).
+        file_id: The ID of a previously uploaded file. You can obtain this ID by uploading a file using the Files API
+            (`client.files.upload(...)`).
+        data: Inline file bytes to attach directly in the chat request (no Files API upload required).
+        filename: Recommended when `data` is set. Used for display and may help downstream type inference.
+        mime_type: Optional MIME type for inline uploads (e.g. "application/pdf").
 
     Returns:
-        A `chat_pb2.Content` object representing the file reference.
+        A `chat_pb2.Content` object representing a file attachment.
     """
-    return chat_pb2.Content(file=chat_pb2.FileContent(file_id=file_id))
+    if (file_id is None) == (data is None):
+        raise ValueError("Exactly one of `file_id` or `data` must be set.")
+    if file_id is not None:
+        if filename is not None or mime_type is not None:
+            raise ValueError("`filename`/`mime_type` are only supported for inline uploads (`data`).")
+        return chat_pb2.Content(file=chat_pb2.FileContent(file_id=file_id))
+
+    file_content = chat_pb2.FileContent(data=data)
+    if filename is not None:
+        file_content.filename = filename
+    if mime_type is not None:
+        file_content.mime_type = mime_type
+    return chat_pb2.Content(file=file_content)
 
 
 def _process_content(content: Content) -> chat_pb2.Content:
