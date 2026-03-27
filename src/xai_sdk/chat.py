@@ -810,39 +810,55 @@ def file(
 ) -> chat_pb2.Content: ...
 
 
+@overload
+def file(
+    *,
+    url: str,
+    filename: Optional[str] = ...,
+    mime_type: Optional[str] = ...,
+) -> chat_pb2.Content: ...
+
+
 def file(
     file_id: Optional[str] = None,
     *,
     data: Optional[bytes] = None,
+    url: Optional[str] = None,
     filename: Optional[str] = None,
     mime_type: Optional[str] = None,
 ) -> chat_pb2.Content:
     """Creates a new content object of type file for use in chat messages.
 
-    This supports two modes:
+    This supports three modes:
     - Referencing a previously uploaded file via the Files API (`file_id`)
     - Providing inline file bytes directly in the chat request (`data`)
+    - Providing a public URL to a file attachment (`url`)
 
-    Exactly one of `file_id` or `data` must be provided.
+    Exactly one of `file_id`, `data`, or `url` must be provided.
 
     Args:
         file_id: The ID of a previously uploaded file. You can obtain this ID by uploading a file using the Files API
             (`client.files.upload(...)`).
         data: Inline file bytes to attach directly in the chat request (no Files API upload required).
-        filename: Recommended when `data` is set. Used for display and may help downstream type inference.
-        mime_type: Optional MIME type for inline uploads (e.g. "application/pdf").
+        url: A public URL pointing to a file attachment. The file will be fetched from this URL by the server.
+        filename: Recommended when `data` or `url` is set. Used for display and may help downstream type inference.
+        mime_type: Optional MIME type (e.g. "application/pdf"). Supported for `data` and `url` modes.
 
     Returns:
         A `chat_pb2.Content` object representing a file attachment.
     """
-    if (file_id is None) == (data is None):
-        raise ValueError("Exactly one of `file_id` or `data` must be set.")
+    provided = sum(x is not None for x in (file_id, data, url))
+    if provided != 1:
+        raise ValueError("Exactly one of `file_id`, `data`, or `url` must be set.")
     if file_id is not None:
         if filename is not None or mime_type is not None:
-            raise ValueError("`filename`/`mime_type` are only supported for inline uploads (`data`).")
+            raise ValueError("`filename`/`mime_type` are only supported for inline uploads (`data`) or URL (`url`).")
         return chat_pb2.Content(file=chat_pb2.FileContent(file_id=file_id))
 
-    file_content = chat_pb2.FileContent(data=data)
+    if url is not None:
+        file_content = chat_pb2.FileContent(url=url)
+    else:
+        file_content = chat_pb2.FileContent(data=data)
     if filename is not None:
         file_content.filename = filename
     if mime_type is not None:
