@@ -4,6 +4,7 @@ import base64
 import contextlib
 import http.server
 import os.path
+import socket
 import threading
 import time
 import uuid
@@ -13,7 +14,11 @@ from dataclasses import dataclass
 from typing import Generator, Optional
 
 import grpc
-import portpicker
+
+try:
+    import portpicker
+except ModuleNotFoundError:  # pragma: no cover - exercised when optional dev dep is absent
+    portpicker = None
 from google.protobuf import empty_pb2, timestamp_pb2
 from google.rpc import status_pb2
 
@@ -51,6 +56,15 @@ IMAGE_PATH = "test.jpg"
 
 _last_image_request_lock = threading.Lock()
 _last_video_request_lock = threading.Lock()
+
+
+def _pick_unused_port() -> int:
+    if portpicker is not None:
+        return int(portpicker.pick_unused_port())
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
 
 
 class _LastImageRequestState:
@@ -1495,7 +1509,7 @@ class TestServer(threading.Thread):
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
         self._server.add_insecure_port(f"127.0.0.1:{self._port}")
 
-        self._image_port = portpicker.pick_unused_port()
+        self._image_port = _pick_unused_port()
         self._image_server = http.server.HTTPServer(("", self._image_port), ImageHandler)
 
         auth_pb2_grpc.add_AuthServicer_to_server(AuthServicer(initial_failures), self._server)
@@ -1545,7 +1559,7 @@ def run_test_server(
     in_memory_store: Optional[InMemoryStore] = None,
 ) -> Generator[int, None, None]:
     """Runs the test server in a dedicated thread and yields the port that the server runs on."""
-    port = portpicker.pick_unused_port()
+    port = _pick_unused_port()
     server = TestServer(port, initial_failures, response_delay_seconds, model_library, in_memory_store)
     try:
         server.start()
@@ -1560,7 +1574,7 @@ def run_test_management_server(
     in_memory_store: Optional[InMemoryStore] = None,
 ) -> Generator[int, None, None]:
     """Runs the test management server in a dedicated thread and yields the port that the server runs on."""
-    port = portpicker.pick_unused_port()
+    port = _pick_unused_port()
     server = TestManagementServer(port, in_memory_store)
     try:
         server.start()
