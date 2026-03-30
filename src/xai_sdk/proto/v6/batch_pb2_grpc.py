@@ -7,8 +7,7 @@ from . import batch_pb2 as xai_dot_api_dot_v1_dot_batch__pb2
 
 
 class BatchMgmtStub(object):
-    """An API service for processing batch requests asynchronously at lower priority
-    than chat service.
+    """An API service for processing batch requests asynchronously at lower priority than chat service.
     """
 
     def __init__(self, channel):
@@ -55,8 +54,7 @@ class BatchMgmtStub(object):
 
 
 class BatchMgmtServicer(object):
-    """An API service for processing batch requests asynchronously at lower priority
-    than chat service.
+    """An API service for processing batch requests asynchronously at lower priority than chat service.
     """
 
     def CreateBatch(self, request, context):
@@ -155,8 +153,7 @@ def add_BatchMgmtServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class BatchMgmt(object):
-    """An API service for processing batch requests asynchronously at lower priority
-    than chat service.
+    """An API service for processing batch requests asynchronously at lower priority than chat service.
     """
 
     @staticmethod
@@ -347,3 +344,5 @@ class BatchMgmt(object):
             timeout,
             metadata,
             _registered_method=True)
+
+

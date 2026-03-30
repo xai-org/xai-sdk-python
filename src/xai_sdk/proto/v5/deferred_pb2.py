@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19xai/api/v1/deferred.proto\x12\x07xai_api\"6\n\x15StartDeferredResponse\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId\"3\n\x12GetDeferredRequest\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId*Q\n\x0e\x44\x65\x66\x65rredStatus\x12\x1b\n\x17INVALID_DEFERRED_STATUS\x10\x00\x12\x08\n\x04\x44ONE\x10\x01\x12\x0b\n\x07\x45XPIRED\x10\x02\x12\x0b\n\x07PENDING\x10\x03\x42T\n\x0b\x63om.xai_apiB\rDeferredProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x19xai/api/v1/deferred.proto\x12\x07xai_api\"6\n\x15StartDeferredResponse\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId\"3\n\x12GetDeferredRequest\x12\x1d\n\nrequest_id\x18\x01 \x01(\tR\trequestId*]\n\x0e\x44\x65\x66\x65rredStatus\x12\x1b\n\x17INVALID_DEFERRED_STATUS\x10\x00\x12\x08\n\x04\x44ONE\x10\x01\x12\x0b\n\x07\x45XPIRED\x10\x02\x12\x0b\n\x07PENDING\x10\x03\x12\n\n\x06\x46\x41ILED\x10\x04\x42T\n\x0b\x63om.xai_apiB\rDeferredProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,7 +33,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\013com.xai_apiB\rDeferredProtoP\001\242\002\003XXX\252\002\006XaiApi\312\002\006XaiApi\342\002\022XaiApi\\GPBMetadata\352\002\006XaiApi'
   _globals['_DEFERREDSTATUS']._serialized_start=147
-  _globals['_DEFERREDSTATUS']._serialized_end=228
+  _globals['_DEFERREDSTATUS']._serialized_end=240
   _globals['_STARTDEFERREDRESPONSE']._serialized_start=38
   _globals['_STARTDEFERREDRESPONSE']._serialized_end=92
   _globals['_GETDEFERREDREQUEST']._serialized_start=94

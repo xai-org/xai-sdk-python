@@ -3,8 +3,10 @@ from typing import Optional, Sequence, Union
 import grpc
 
 from .chat import Response
+from .image import BaseImageResponse
 from .meta import ProtoDecorator
 from .proto import batch_pb2, batch_pb2_grpc
+from .video import VideoResponse
 
 
 class BaseClient:
@@ -56,12 +58,18 @@ class BatchResult(ProtoDecorator[batch_pb2.BatchResult]):
 
     @property
     def response(self) -> Response:
-        """The completion response from processing this batch request.
-
-        Returns:
-            The `Response` object.
-        """
+        """The chat completion response from processing this batch request."""
         return Response(self.proto.response.completion_response, 0)
+
+    @property
+    def image_response(self) -> BaseImageResponse:
+        """The image generation response from processing this batch request."""
+        return BaseImageResponse(self.proto.response.image_response, 0)
+
+    @property
+    def video_response(self) -> VideoResponse:
+        """The video generation response from processing this batch request."""
+        return VideoResponse(self.proto.response.video_response)
 
     @property
     def has_error(self) -> bool:

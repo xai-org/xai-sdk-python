@@ -582,7 +582,7 @@ def test_upload_document_with_wait_for_indexing_timeout(client: Client):
             timeout=datetime.timedelta(seconds=1),
         )
 
-    assert "Polling timed out" in str(exc_info.value)
+    assert "waiting for document to be indexed" in str(exc_info.value)
 
 
 def test_upload_document_with_wait_for_indexing_failed_status(client: Client):

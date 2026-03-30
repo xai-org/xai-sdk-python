@@ -21,6 +21,11 @@ class VideoStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_video__pb2.GenerateVideoRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_deferred__pb2.StartDeferredResponse.FromString,
                 _registered_method=True)
+        self.ExtendVideo = channel.unary_unary(
+                '/xai_api.Video/ExtendVideo',
+                request_serializer=xai_dot_api_dot_v1_dot_video__pb2.ExtendVideoRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_deferred__pb2.StartDeferredResponse.FromString,
+                _registered_method=True)
         self.GetDeferredVideo = channel.unary_unary(
                 '/xai_api.Video/GetDeferredVideo',
                 request_serializer=xai_dot_api_dot_v1_dot_video__pb2.GetDeferredVideoRequest.SerializeToString,
@@ -34,18 +39,30 @@ class VideoServicer(object):
 
     def GenerateVideo(self, request, context):
         """Create a video based on a text prompt and optionally an image.
-        If an image is provided, generates video with the image as the first frame (image-to-video).
-        If no image is provided, generates video from text only (text-to-video).
+        If an image is provided, generates video with the image as the first frame
+        (image-to-video). If no image is provided, generates video from text only
+        (text-to-video).
 
-        This is an asynchronous operation. The method returns immediately with a request_id
-        that can be used to poll for the result using GetDeferredVideo.
+        This is an asynchronous operation. The method returns immediately with a
+        request_id that can be used to poll for the result using GetDeferredVideo.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ExtendVideo(self, request, context):
+        """Extend an existing video by generating continuation content.
+
+        This is an asynchronous operation. The method returns immediately with a
+        request_id that can be used to poll for the result using GetDeferredVideo.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def GetDeferredVideo(self, request, context):
-        """Gets the result of a video generation started by calling `GenerateVideo`.
+        """Gets the result of a video generation started by calling `GenerateVideo` or
+        `ExtendVideo`.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +74,11 @@ def add_VideoServicer_to_server(servicer, server):
             'GenerateVideo': grpc.unary_unary_rpc_method_handler(
                     servicer.GenerateVideo,
                     request_deserializer=xai_dot_api_dot_v1_dot_video__pb2.GenerateVideoRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_deferred__pb2.StartDeferredResponse.SerializeToString,
+            ),
+            'ExtendVideo': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExtendVideo,
+                    request_deserializer=xai_dot_api_dot_v1_dot_video__pb2.ExtendVideoRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_deferred__pb2.StartDeferredResponse.SerializeToString,
             ),
             'GetDeferredVideo': grpc.unary_unary_rpc_method_handler(
@@ -92,6 +114,33 @@ class Video(object):
             target,
             '/xai_api.Video/GenerateVideo',
             xai_dot_api_dot_v1_dot_video__pb2.GenerateVideoRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_deferred__pb2.StartDeferredResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ExtendVideo(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/xai_api.Video/ExtendVideo',
+            xai_dot_api_dot_v1_dot_video__pb2.ExtendVideoRequest.SerializeToString,
             xai_dot_api_dot_v1_dot_deferred__pb2.StartDeferredResponse.FromString,
             options,
             channel_credentials,

@@ -1,15 +1,31 @@
 import datetime
-from typing import Any, Optional, Union
+from typing import Any, Optional, Sequence, Union
 
 import grpc
 
 from .meta import ProtoDecorator
 from .proto import image_pb2, usage_pb2, video_pb2, video_pb2_grpc
 from .telemetry import should_disable_sensitive_attributes
+from .types import VideoGenerationModel
 from .types.video import VideoAspectRatio, VideoAspectRatioMap, VideoResolution, VideoResolutionMap
 
 DEFAULT_VIDEO_POLL_INTERVAL = datetime.timedelta(seconds=1)
 DEFAULT_VIDEO_TIMEOUT = datetime.timedelta(minutes=10)
+
+
+class VideoGenerationError(Exception):
+    """Raised when video generation fails."""
+
+    def __init__(self, code: str, message: str) -> None:
+        """Initializes a new instance of `VideoGenerationError`.
+
+        Args:
+            code: The error code from the video generation failure.
+            message: The error message describing the failure.
+        """
+        super().__init__(f"Video generation failed [{code}]: {message}")
+        self.code = code
+        self.message = message
 
 
 class BaseClient:
@@ -68,13 +84,14 @@ class VideoResponse(ProtoDecorator[video_pb2.VideoResponse]):
 
 def _make_generate_request(
     prompt: str,
-    model: str,
+    model: Union[VideoGenerationModel, str],
     *,
     image_url: Optional[str],
     video_url: Optional[str],
     duration: Optional[int],
     aspect_ratio: Optional[VideoAspectRatio],
     resolution: Optional[VideoResolution],
+    reference_image_urls: Optional[Sequence[str]],
 ) -> video_pb2.GenerateVideoRequest:
     request = video_pb2.GenerateVideoRequest(prompt=prompt, model=model)
 
@@ -93,6 +110,16 @@ def _make_generate_request(
         request.aspect_ratio = convert_video_aspect_ratio_to_pb(aspect_ratio)
     if resolution is not None:
         request.resolution = convert_video_resolution_to_pb(resolution)
+    if reference_image_urls is not None:
+        request.reference_images.extend(
+            [
+                image_pb2.ImageUrlContent(
+                    image_url=url,
+                    detail=image_pb2.ImageDetail.DETAIL_AUTO,
+                )
+                for url in reference_image_urls
+            ]
+        )
 
     return request
 
@@ -128,6 +155,73 @@ def _make_span_request_attributes(request: video_pb2.GenerateVideoRequest) -> di
 
 def _make_span_response_attributes(request: video_pb2.GenerateVideoRequest, response: VideoResponse) -> dict[str, Any]:
     """Creates the video generation span response attributes."""
+    attributes: dict[str, Any] = {
+        "gen_ai.response.model": request.model,
+    }
+
+    if should_disable_sensitive_attributes():
+        return attributes
+
+    usage = response.usage
+    attributes["gen_ai.usage.input_tokens"] = usage.prompt_tokens
+    attributes["gen_ai.usage.output_tokens"] = usage.completion_tokens
+    attributes["gen_ai.usage.total_tokens"] = usage.total_tokens
+    attributes["gen_ai.usage.reasoning_tokens"] = usage.reasoning_tokens
+    attributes["gen_ai.usage.cached_prompt_text_tokens"] = usage.cached_prompt_text_tokens
+    attributes["gen_ai.usage.prompt_text_tokens"] = usage.prompt_text_tokens
+    attributes["gen_ai.usage.prompt_image_tokens"] = usage.prompt_image_tokens
+
+    attributes["gen_ai.response.0.video.respect_moderation"] = response.respect_moderation
+    if response._video.url:
+        attributes["gen_ai.response.0.video.url"] = response._video.url
+    attributes["gen_ai.response.0.video.duration"] = response.duration
+
+    return attributes
+
+
+def _make_extend_request(
+    prompt: str,
+    model: Union[VideoGenerationModel, str],
+    video_url: str,
+    *,
+    duration: Optional[int],
+) -> video_pb2.ExtendVideoRequest:
+    request = video_pb2.ExtendVideoRequest(
+        prompt=prompt,
+        model=model,
+        video=video_pb2.VideoUrlContent(url=video_url),
+    )
+
+    if duration is not None:
+        request.duration = duration
+    return request
+
+
+def _make_extend_span_request_attributes(request: video_pb2.ExtendVideoRequest) -> dict[str, Any]:
+    """Creates the video extension span request attributes."""
+    attributes: dict[str, Any] = {
+        "gen_ai.operation.name": "extend_video",
+        "gen_ai.request.model": request.model,
+        "gen_ai.provider.name": "xai",
+        "server.address": "api.x.ai",
+        "gen_ai.output.type": "video",
+    }
+
+    if should_disable_sensitive_attributes():
+        return attributes
+
+    attributes["gen_ai.prompt"] = request.prompt
+
+    if request.HasField("duration"):
+        attributes["gen_ai.request.video.duration"] = request.duration
+
+    return attributes
+
+
+def _make_extend_span_response_attributes(
+    request: video_pb2.ExtendVideoRequest, response: VideoResponse
+) -> dict[str, Any]:
+    """Creates the video extension span response attributes."""
     attributes: dict[str, Any] = {
         "gen_ai.response.model": request.model,
     }

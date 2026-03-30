@@ -338,7 +338,7 @@ class Chat(BaseChat):
             RuntimeError: If the deferred request expires.
             ValueError: If an unknown deferred status is received.
         """
-        timer = PollTimer(timeout, interval)
+        timer = PollTimer(timeout, interval, context="waiting for deferred chat completion")
         operation = "chat.defer" if n == 1 else "chat.defer_batch"
 
         with tracer.start_as_current_span(
