@@ -221,7 +221,43 @@ response = client.video.generate(
 print(f"Video URL: {response.url}")
 ```
 
-For extending or editing existing videos, see the [video extension examples](/examples/sync/video_extension.py).
+#### Video Editing
+
+Edit an existing video based on a text prompt by passing `video_url` to `generate()`:
+
+```python
+response = client.video.generate(
+    prompt="Add a rainbow in the sky",
+    model="grok-imagine-video",
+    video_url="https://example.com/my-video.mp4",
+)
+print(f"Video URL: {response.url}")
+```
+
+#### Video Extension
+
+Extend an existing video by appending new generated content using `client.video.extend()`:
+
+```python
+response = client.video.extend(
+    prompt="The camera slowly zooms out to reveal the city skyline",
+    model="grok-imagine-video",
+    video_url="https://example.com/my-video.mp4",
+    duration=6,
+)
+print(f"Video URL: {response.url}")
+```
+
+Extensions can be chained — feed the returned URL back as input:
+
+```python
+response = client.video.extend(
+    prompt="A bird flies across the sky",
+    model="grok-imagine-video",
+    video_url=response.url,
+)
+print(f"Extended Video URL: {response.url}")
+```
 
 ## Advanced Features
 
