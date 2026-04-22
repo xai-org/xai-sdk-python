@@ -17,7 +17,7 @@
 
 The xAI Python SDK is a gRPC-based Python library for interacting with xAI's APIs. Built for Python 3.10 and above, it offers both **synchronous** and **asynchronous** clients.
 
-Whether you're generating text, images, or structured outputs, the xAI SDK is designed to be intuitive, robust, and developer-friendly.
+Whether you're generating text, images, videos, or structured outputs, the xAI SDK is designed to be intuitive, robust, and developer-friendly.
 
 ## Documentation
 
@@ -42,7 +42,7 @@ Python 3.10 or higher is required to use the xAI SDK.
 
 ## Usage
 
-The xAI SDK supports both synchronous (`xai_sdk.Client`) and asynchronous (`xai_sdk.AsyncClient`) clients. For a complete set of examples demonstrating the SDK's capabilities, including authentication, chat, image generation, function calling, and more, refer to the [examples folder](/examples).
+The xAI SDK supports both synchronous (`xai_sdk.Client`) and asynchronous (`xai_sdk.AsyncClient`) clients. For a complete set of examples demonstrating the SDK's capabilities, including authentication, chat, image generation, video generation, function calling, and more, refer to the [examples folder](/examples).
 
 ### Client Instantiation
 
@@ -174,6 +174,91 @@ response = chat.sample()
 print(f"Grok: {response.content}")
 ```
 
+### Video Generation
+
+Generate videos from text prompts using the `grok-imagine-video` model. The SDK handles the asynchronous polling workflow automatically — you submit a prompt and receive the completed video response.
+
+```python
+from xai_sdk import Client
+
+client = Client()
+response = client.video.generate(
+    prompt="A serene lake at sunrise with mist rolling over the water",
+    model="grok-imagine-video",
+    duration=5,
+    aspect_ratio="16:9",
+    resolution="720p",
+)
+print(f"Video URL: {response.url}")
+print(f"Duration: {response.duration}s")
+```
+
+You can also generate videos from an input image (image-to-video):
+
+```python
+response = client.video.generate(
+    prompt="The camera slowly zooms in as the scene comes to life",
+    model="grok-imagine-video",
+    image_url="https://example.com/landscape.jpg",
+    duration=5,
+)
+print(f"Video URL: {response.url}")
+```
+
+Or use reference images to guide the style and content of the generated video:
+
+```python
+response = client.video.generate(
+    prompt="A person walking through a futuristic city",
+    model="grok-imagine-video",
+    reference_image_urls=[
+        "https://example.com/style-ref1.jpg",
+        "https://example.com/style-ref2.jpg",
+    ],
+    duration=10,
+    aspect_ratio="16:9",
+)
+print(f"Video URL: {response.url}")
+```
+
+#### Video Editing
+
+Edit an existing video based on a text prompt by passing `video_url` to `generate()`:
+
+```python
+response = client.video.generate(
+    prompt="Add a rainbow in the sky",
+    model="grok-imagine-video",
+    video_url="https://example.com/my-video.mp4",
+)
+print(f"Video URL: {response.url}")
+```
+
+#### Video Extension
+
+Extend an existing video by appending new generated content using `client.video.extend()`:
+
+```python
+response = client.video.extend(
+    prompt="The camera slowly zooms out to reveal the city skyline",
+    model="grok-imagine-video",
+    video_url="https://example.com/my-video.mp4",
+    duration=6,
+)
+print(f"Video URL: {response.url}")
+```
+
+Extensions can be chained — feed the returned URL back as input:
+
+```python
+response = client.video.extend(
+    prompt="A bird flies across the sky",
+    model="grok-imagine-video",
+    video_url=response.url,
+)
+print(f"Extended Video URL: {response.url}")
+```
+
 ## Advanced Features
 
 The xAI SDK excels in advanced use cases, such as:
@@ -181,6 +266,8 @@ The xAI SDK excels in advanced use cases, such as:
 - **Function Calling**: Define tools and let the model intelligently call them (see sync [function_calling.py](/examples/sync/function_calling.py) and async [function_calling.py](/examples/aio/function_calling.py)).
 - **Image Generation**: Generate images with image generation models (see sync [image_generation.py](/examples/sync/image_generation.py) and async [image_generation.py](/examples/aio/image_generation.py)).
 - **Image Understanding**: Analyze images with vision models (see sync [image_understanding.py](/examples/sync/image_understanding.py) and async [image_understanding.py](/examples/aio/image_understanding.py)).
+- **Video Generation**: Generate videos from text prompts, images, or reference images with the `grok-imagine-video` model (see sync [video_generation.py](/examples/sync/video_generation.py) and async [video_generation.py](/examples/aio/video_generation.py)).
+- **Video Extension**: Extend existing videos with new content based on a prompt (see sync [video_extension.py](/examples/sync/video_extension.py) and async [video_extension.py](/examples/aio/video_extension.py)).
 - **Structured Outputs**: Return model responses as structured objects in the form of Pydantic models (see sync [structured_outputs.py](/examples/sync/structured_outputs.py) and async [structured_outputs.py](/examples/aio/structured_outputs.py)).
 - **Reasoning Models**: Leverage reasoning-focused models with configurable effort levels (see sync [reasoning.py](/examples/sync/reasoning.py) and async [reasoning.py](/examples/aio/reasoning.py)).
 - **Deferred Chat**: Sample a long-running response from a model via polling (see sync [deferred_chat.py](/examples/sync/deferred_chat.py) and async [deferred_chat.py](/examples/aio/deferred_chat.py)).
