@@ -14,12 +14,14 @@ from ..collections import (
     DocumentRetrievalMode,
     DocumentSortBy,
     FieldDefinition,
+    FieldDefinitionUpdate,
     HNSWMetric,
     Order,
     _chunk_configuration_to_pb,
     _collection_sort_by_to_pb,
     _document_sort_by_to_pb,
     _field_definition_to_pb,
+    _field_definition_update_to_pb,
     _hnsw_metric_to_pb,
     _order_to_pb,
 )
@@ -41,6 +43,7 @@ class Client(BaseClient):
         chunk_configuration: Optional[Union[ChunkConfiguration, types_pb2.ChunkConfiguration]] = None,
         metric_space: Optional[Union[HNSWMetric, "types_pb2.HNSWMetric"]] = None,
         field_definitions: Optional[Union[Sequence[FieldDefinition], Sequence[collections_pb2.FieldDefinition]]] = None,
+        description: Optional[str] = None,
     ) -> collections_pb2.CollectionMetadata:
         """Creates a new collection for storing document embeddings.
 
@@ -56,6 +59,7 @@ class Client(BaseClient):
                 documents), `inject_into_chunk` (prepend field value to each chunk for contextual retrieval),
                 `unique` (value must be unique across all documents), and `description` (optional explanation).
                 Example: [{"key": "title", "required": True, "inject_into_chunk": True, "unique": False}]
+            description: Human-friendly description of the collection.
 
         Returns:
             The metadata for the created collection.
@@ -72,7 +76,7 @@ class Client(BaseClient):
         else:
             chunk_configuration_pb = chunk_configuration
 
-        field_definitions_pb: Sequence[collections_pb2.FieldDefinition] = []
+        field_definitions_pb: list[collections_pb2.FieldDefinition] = []
         if field_definitions is not None:
             for field_definition in field_definitions:
                 if isinstance(field_definition, dict):
@@ -95,6 +99,7 @@ class Client(BaseClient):
                     chunk_configuration=chunk_configuration_pb,
                     metric_space=metric_space_pb,
                     field_definitions=field_definitions_pb,
+                    collection_description=description,
                 )
             )
             span.set_attribute("collection.id", collection.collection_id)
@@ -165,6 +170,10 @@ class Client(BaseClient):
         collection_id: str,
         name: Optional[str] = None,
         chunk_configuration: Optional[Union[ChunkConfiguration, types_pb2.ChunkConfiguration]] = None,
+        field_definitions: Optional[
+            Sequence[Union[FieldDefinitionUpdate, collections_pb2.FieldDefinitionUpdate]]
+        ] = None,
+        description: Optional[str] = None,
     ) -> collections_pb2.CollectionMetadata:
         """Updates a collection's configuration.
 
@@ -172,18 +181,38 @@ class Client(BaseClient):
             collection_id: The ID of the collection to update.
             name: The new name of the collection.
             chunk_configuration: The new chunk configuration for the collection.
+            field_definitions: Field definition updates to apply. Each entry is either an
+                add or a delete:
+                - Add: {"field_definition": {"key": "isbn", "required": True,
+                    "inject_into_chunk": False, "unique": True}, "operation": "add"}
+                - Delete: {"key": "isbn", "operation": "delete"}
+                Deleting a field definition also removes the field's value from all
+                documents in the collection.
+            description: Updated description of the collection.
 
         Returns:
             The updated metadata for the collection.
         """
-        if name is None and chunk_configuration is None:
-            raise ValueError("At least one of name or chunk_configuration must be provided to update a collection")
+        if name is None and chunk_configuration is None and field_definitions is None and description is None:
+            raise ValueError(
+                "At least one of name, chunk_configuration, field_definitions, "
+                "or description must be provided to update a collection"
+            )
 
         chunk_configuration_pb: Optional[types_pb2.ChunkConfiguration] = None
         if isinstance(chunk_configuration, dict):
             chunk_configuration_pb = _chunk_configuration_to_pb(chunk_configuration)
         else:
             chunk_configuration_pb = chunk_configuration
+
+        field_definitions_pb: list[collections_pb2.FieldDefinitionUpdate] = []
+        if field_definitions is not None:
+            for fd in field_definitions:
+                if isinstance(fd, dict):
+                    field_definitions_pb.append(_field_definition_update_to_pb(fd))
+                else:
+                    field_definitions_pb.append(fd)
+
         with tracer.start_as_current_span(
             name="collections.update_collection",
             kind=SpanKind.CLIENT,
@@ -197,6 +226,8 @@ class Client(BaseClient):
                     collection_id=collection_id,
                     collection_name=name,
                     chunk_configuration=chunk_configuration_pb,
+                    field_definition_updates=field_definitions_pb,
+                    collection_description=description,
                 )
             )
             span.set_attribute("collection.id", collection.collection_id)
@@ -216,8 +247,9 @@ class Client(BaseClient):
                 "operation.name": "delete_collection",
                 "provider.name": "xai",
             },
-        ) as _span:
-            return await self._collections_stub.DeleteCollection(
+        ) as span:
+            span.set_attribute("collection.id", collection_id)
+            await self._collections_stub.DeleteCollection(
                 collections_pb2.DeleteCollectionRequest(collection_id=collection_id)
             )
 
@@ -387,7 +419,12 @@ class Client(BaseClient):
             match document_metadata.status:
                 case collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED:
                     return document_metadata
-                case collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSING:
+                case (
+                    collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSING
+                    | collections_pb2.DocumentStatus.DOCUMENT_STATUS_CHUNKED
+                    | collections_pb2.DocumentStatus.DOCUMENT_STATUS_EMBEDDING
+                    | collections_pb2.DocumentStatus.DOCUMENT_STATUS_WRITING
+                ):
                     await asyncio.sleep(timer.sleep_interval_or_raise())
                 case collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED:
                     raise ValueError(f"Document indexing failed: {document_metadata.error_message}")
@@ -418,7 +455,9 @@ class Client(BaseClient):
                 "operation.name": "add_existing_document",
                 "provider.name": "xai",
             },
-        ) as _span:
+        ) as span:
+            span.set_attribute("collection.id", collection_id)
+            span.set_attribute("file.id", file_id)
             await self._collections_stub.AddDocumentToCollection(
                 collections_pb2.AddDocumentToCollectionRequest(
                     collection_id=collection_id,
@@ -434,6 +473,7 @@ class Client(BaseClient):
         order: Optional[Union[Order, "shared_pb2.Ordering"]] = None,
         sort_by: Optional[Union[DocumentSortBy, "collections_pb2.DocumentsSortBy"]] = None,
         pagination_token: Optional[str] = None,
+        filter: Optional[str] = None,  # noqa: A002
     ) -> collections_pb2.ListDocumentsResponse:
         """Lists all documents in a collection.
 
@@ -443,6 +483,11 @@ class Client(BaseClient):
             order: The order in which to return the documents.
             sort_by: The field to sort the documents by.
             pagination_token: The token to use for pagination.
+            filter: Filter expression to narrow down results. Supports filtering on file metadata
+                and document fields. Examples:
+                - 'status:DOCUMENT_STATUS_PROCESSED'
+                - 'name:"quarterly" AND status:!DOCUMENT_STATUS_FAILED'
+                - 'fields.isbn:"978-1-234567-89-0"'
 
         Returns:
             A list of documents.
@@ -466,6 +511,7 @@ class Client(BaseClient):
                 order=order_pb,
                 sort_by=sort_by_pb,
                 pagination_token=pagination_token,
+                filter=filter,
             )
         )
 
@@ -518,8 +564,10 @@ class Client(BaseClient):
                 "operation.name": "remove_document",
                 "provider.name": "xai",
             },
-        ) as _span:
-            return await self._collections_stub.RemoveDocumentFromCollection(
+        ) as span:
+            span.set_attribute("collection.id", collection_id)
+            span.set_attribute("file.id", file_id)
+            await self._collections_stub.RemoveDocumentFromCollection(
                 collections_pb2.RemoveDocumentFromCollectionRequest(collection_id=collection_id, file_id=file_id)
             )
 
@@ -577,9 +625,45 @@ class Client(BaseClient):
             collection_id: The ID of the collection containing the document.
             file_id: The ID of the document to reindex.
         """
-        return await self._collections_stub.ReIndexDocument(
-            collections_pb2.ReIndexDocumentRequest(
-                collection_id=collection_id,
-                file_id=file_id,
+        with tracer.start_as_current_span(
+            name="collections.reindex_document",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "reindex_document",
+                "provider.name": "xai",
+            },
+        ) as span:
+            span.set_attribute("collection.id", collection_id)
+            span.set_attribute("file.id", file_id)
+            await self._collections_stub.ReIndexDocument(
+                collections_pb2.ReIndexDocumentRequest(
+                    collection_id=collection_id,
+                    file_id=file_id,
+                )
             )
-        )
+
+    async def generate_description(self, collection_id: str) -> str:
+        """Generates a description for a collection based on its document contents.
+
+        Uses an LLM to sample chunks from the collection and produce a summary description.
+
+        Args:
+            collection_id: The ID of the collection to generate a description for.
+
+        Returns:
+            The generated description string, or empty string if generation failed
+            or the collection has no processed files.
+        """
+        with tracer.start_as_current_span(
+            name="collections.generate_collection_description",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "generate_collection_description",
+                "provider.name": "xai",
+            },
+        ) as span:
+            span.set_attribute("collection.id", collection_id)
+            response = await self._collections_stub.GenerateCollectionDescription(
+                collections_pb2.GenerateCollectionDescriptionRequest(collection_id=collection_id)
+            )
+            return response.collection_description

@@ -1000,6 +1000,15 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
             context.abort(grpc.StatusCode.NOT_FOUND, "Collection not found")
 
         current_collection = self._store.collections[request.collection_id]
+
+        # Apply field definition updates.
+        existing_defs = {fd.key: fd for fd in current_collection.field_definitions}
+        for update in request.field_definition_updates:
+            if update.operation == collections_pb2.FieldDefinitionOperation.FIELD_DEFINITION_ADD:
+                existing_defs[update.field_definition.key] = update.field_definition
+            elif update.operation == collections_pb2.FieldDefinitionOperation.FIELD_DEFINITION_DELETE:
+                existing_defs.pop(update.field_definition.key, None)
+
         self._store.collections[request.collection_id] = collections_pb2.CollectionMetadata(
             collection_id=request.collection_id,
             collection_name=request.collection_name or current_collection.collection_name,
@@ -1007,6 +1016,8 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
             chunk_configuration=request.chunk_configuration or current_collection.chunk_configuration,
             index_configuration=current_collection.index_configuration,
             documents_count=current_collection.documents_count,
+            field_definitions=list(existing_defs.values()),
+            collection_description=request.collection_description or current_collection.collection_description,
         )
 
         return self._store.collections[request.collection_id]
@@ -1020,44 +1031,6 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
             context.abort(grpc.StatusCode.NOT_FOUND, "Collection not found")
 
         return self._store.collections[request.collection_id]
-
-    def UploadDocument(self, request: collections_pb2.UploadDocumentRequest, context: grpc.ServicerContext):
-        _check_management_auth(context)
-
-        document_id = str(uuid.uuid4())
-
-        # Support simulating processing delay for testing
-        # Use a special name pattern: "test-processing-{seconds}"
-        status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSED
-        if request.name.startswith("test-processing-"):
-            try:
-                duration = float(request.name.split("-")[-1])
-                status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_PROCESSING
-                self._store.processing_documents[document_id] = (time.time(), duration)
-            except (ValueError, IndexError):
-                pass  # Use default PROCESSED status if parsing fails
-
-        # Support simulating failed processing
-        if request.name == "test-failed":
-            status = collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED
-
-        error_message = "Processing failed" if status == collections_pb2.DocumentStatus.DOCUMENT_STATUS_FAILED else ""
-
-        self._store.documents[document_id] = collections_pb2.DocumentMetadata(
-            file_metadata=collections_pb2.FileMetadata(
-                file_id=document_id,
-                name=request.name,
-                size_bytes=len(request.data),
-                content_type=request.content_type,
-            ),
-            fields=request.fields,
-            status=status,
-            error_message=error_message,
-        )
-
-        self._store.collection_documents[request.collection_id].append(document_id)
-
-        return self._store.documents[document_id]
 
     def ListDocuments(self, request: collections_pb2.ListDocumentsRequest, context: grpc.ServicerContext):
         _check_management_auth(context)
@@ -1220,6 +1193,22 @@ class CollectionsServicer(collections_pb2_grpc.CollectionsServicer):
             context.abort(grpc.StatusCode.NOT_FOUND, "Document not found")
 
         return empty_pb2.Empty()
+
+    def GenerateCollectionDescription(
+        self, request: collections_pb2.GenerateCollectionDescriptionRequest, context: grpc.ServicerContext
+    ):
+        _check_management_auth(context)
+
+        if request.collection_id not in self._store.collections:
+            context.abort(grpc.StatusCode.NOT_FOUND, "Collection not found")
+
+        doc_ids = self._store.collection_documents.get(request.collection_id, [])
+        if not doc_ids:
+            return collections_pb2.GenerateCollectionDescriptionResponse(collection_description="")
+
+        return collections_pb2.GenerateCollectionDescriptionResponse(
+            collection_description=f"Auto-generated description for collection with {len(doc_ids)} documents."
+        )
 
 
 class DocumentServicer(documents_pb2_grpc.DocumentsServicer):

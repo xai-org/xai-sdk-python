@@ -1,21 +1,23 @@
 import asyncio
-import datetime
 
 import xai_sdk
 
 
-async def create_collection_example(client: xai_sdk.AsyncClient):
-    print("\n=== Create Collection Example ===")
+async def create_collection(client: xai_sdk.AsyncClient):
+    print("\n=== Create Collection ===")
 
     collection = await client.collections.create(
         name="research-papers",
         model_name="grok-embedding-small",
+        description="A collection of research papers",
     )
 
     print(f"Created collection: {collection.collection_name}")
     print(f"Collection ID: {collection.collection_id}")
     print(f"Model: {collection.index_configuration.model_name}")
     print(f"Created at: {collection.created_at.ToDatetime()}")
+    print(f"Description: {collection.collection_description}")
+    print(f"Documents Count: {collection.documents_count}")
     return collection.collection_id
 
 
@@ -32,16 +34,47 @@ async def create_collection_with_token_chunking(client: xai_sdk.AsyncClient):
             },
             "strip_whitespace": False,
         },
+        description="A collection of code snippets for search.",
     )
 
     print(f"Created collection: {collection.collection_name}")
     print(f"Collection ID: {collection.collection_id}")
+    print(f"Description: {collection.collection_description}")
     print(f"Collection Chunk Configuration: {collection.chunk_configuration}")
     return collection.collection_id
 
 
-async def list_collections_example(client: xai_sdk.AsyncClient):
-    print("\n=== List Collections Example ===")
+async def create_collection_with_bytes_chunking(client: xai_sdk.AsyncClient):
+    print("\n=== Create Collection with Byte-Based Chunking ===")
+
+    collection = await client.collections.create(
+        name="binary-data",
+        chunk_configuration={
+            "bytes_configuration": {
+                "max_chunk_size_bytes": 4096,
+                "chunk_overlap_bytes": 512,
+            },
+        },
+        field_definitions=[
+            {
+                "key": "category",
+                "required": True,
+                "inject_into_chunk": True,
+                "unique": False,
+                "description": "The category of the binary data",
+            },
+        ],
+    )
+
+    print(f"Created collection: {collection.collection_name}")
+    print(f"Collection ID: {collection.collection_id}")
+    print(f"Chunk Configuration: {collection.chunk_configuration}")
+    print(f"Field definitions: {[fd.key for fd in collection.field_definitions]}")
+    return collection.collection_id
+
+
+async def list_collections(client: xai_sdk.AsyncClient):
+    print("\n=== List Collections ===")
 
     response = await client.collections.list(
         limit=10,
@@ -58,8 +91,18 @@ async def list_collections_example(client: xai_sdk.AsyncClient):
         print("\nPagination token available for next page")
 
 
-async def get_collection_example(client: xai_sdk.AsyncClient, collection_id: str):
-    print("\n=== Get Collection Metadata Example ===")
+async def list_collections_with_filter(client: xai_sdk.AsyncClient):
+    print("\n=== List Collections with Filter ===")
+
+    response = await client.collections.list(filter='collection_name:"research"')
+
+    print(f"Found {len(response.collections)} matching collections:")
+    for collection in response.collections:
+        print(f"  - {collection.collection_name}")
+
+
+async def get_collection(client: xai_sdk.AsyncClient, collection_id: str):
+    print("\n=== Get Collection Metadata ===")
 
     collection = await client.collections.get(collection_id)
     print(f"Collection: {collection.collection_name}")
@@ -75,8 +118,8 @@ async def get_collection_example(client: xai_sdk.AsyncClient, collection_id: str
             print(f"  - {field.key}: required={field.required}, unique={field.unique}")
 
 
-async def update_collection_example(client: xai_sdk.AsyncClient, collection_id: str):
-    print("\n=== Update Collection Example ===")
+async def update_collection(client: xai_sdk.AsyncClient, collection_id: str):
+    print("\n=== Update Collection ===")
 
     updated = await client.collections.update(
         collection_id,
@@ -88,25 +131,48 @@ async def update_collection_example(client: xai_sdk.AsyncClient, collection_id: 
             },
             "strip_whitespace": True,
         },
+        description="Updated research papers collection.",
     )
 
     print(f"Updated collection: {updated.collection_name}")
     print(f"New chunk size: {updated.chunk_configuration.chars_configuration.max_chunk_size_chars}")
 
+    # Add a field definition using dict syntax.
+    updated = await client.collections.update(
+        collection_id,
+        field_definitions=[
+            {
+                "field_definition": {
+                    "key": "author",
+                    "required": False,
+                    "inject_into_chunk": True,
+                    "unique": False,
+                },
+                "operation": "add",
+            },
+        ],
+    )
 
-async def upload_document_example(client: xai_sdk.AsyncClient, collection_id: str):
-    print("\n=== Upload Document Example ===")
+    print(f"Added field definition: {[fd.key for fd in updated.field_definitions]}")
 
-    document_content = b"""Machine Learning Fundamentals
+    # Delete a field definition using dict syntax.
+    updated = await client.collections.update(
+        collection_id,
+        field_definitions=[{"key": "author", "operation": "delete"}],
+    )
 
-Machine learning is a subset of artificial intelligence that focuses on building
-systems that can learn from data and improve their performance over time without
-being explicitly programmed."""
+    print(f"Deleted field definition, remaining: {[fd.key for fd in updated.field_definitions]}")
+
+
+async def upload_document(client: xai_sdk.AsyncClient, collection_id: str, name: str, data: bytes, **kwargs):
+    print(f"\n=== Upload Document: {name} ===")
 
     document = await client.collections.upload_document(
         collection_id,
-        name="ml-fundamentals.txt",
-        data=document_content,
+        name=name,
+        data=data,
+        wait_for_indexing=True,
+        **kwargs,
     )
 
     print(f"Uploaded document: {document.file_metadata.name}")
@@ -116,35 +182,8 @@ being explicitly programmed."""
     return document.file_metadata.file_id
 
 
-async def upload_document_with_wait_example(client: xai_sdk.AsyncClient, collection_id: str):
-    print("\n=== Upload Document with Wait for Indexing Example ===")
-
-    document_content = b"""Deep Learning Neural Networks
-
-Deep learning is a subset of machine learning that uses neural networks with
-multiple layers. These networks can learn hierarchical representations of data,
-making them particularly effective for tasks like image recognition and natural
-language processing."""
-
-    print("Uploading document and waiting for indexing to complete...")
-
-    document = await client.collections.upload_document(
-        collection_id,
-        name="deep-learning.txt",
-        data=document_content,
-        wait_for_indexing=True,
-        poll_interval=datetime.timedelta(seconds=1),
-        timeout=datetime.timedelta(seconds=60),
-    )
-
-    print(f"Document uploaded and indexed: {document.file_metadata.name}")
-    print(f"File ID: {document.file_metadata.file_id}")
-    print("✓ Document is ready to be searched immediately!")
-    return document.file_metadata.file_id
-
-
-async def add_existing_document_example(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
-    print("\n=== Add Existing Document Example ===")
+async def add_existing_document(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
+    print("\n=== Add Existing Document ===")
 
     await client.collections.add_existing_document(
         collection_id,
@@ -154,8 +193,8 @@ async def add_existing_document_example(client: xai_sdk.AsyncClient, collection_
     print(f"Added existing document (file_id: {file_id}) to collection")
 
 
-async def list_documents_example(client: xai_sdk.AsyncClient, collection_id: str):
-    print("\n=== List Documents Example ===")
+async def list_documents(client: xai_sdk.AsyncClient, collection_id: str):
+    print("\n=== List Documents ===")
 
     response = await client.collections.list_documents(
         collection_id,
@@ -174,8 +213,21 @@ async def list_documents_example(client: xai_sdk.AsyncClient, collection_id: str
             print(f"    Fields: {dict(doc.fields)}")
 
 
-async def get_document_example(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
-    print("\n=== Get Document Metadata Example ===")
+async def list_documents_with_filter(client: xai_sdk.AsyncClient, collection_id: str):
+    print("\n=== List Documents with Filter ===")
+
+    response = await client.collections.list_documents(
+        collection_id,
+        filter="status:DOCUMENT_STATUS_PROCESSED",
+    )
+
+    print(f"Found {len(response.documents)} processed documents:")
+    for doc in response.documents:
+        print(f"  - {doc.file_metadata.name} (status: {doc.status})")
+
+
+async def get_document(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
+    print("\n=== Get Document Metadata ===")
 
     document = await client.collections.get_document(file_id, collection_id)
     print(f"Document: {document.file_metadata.name}")
@@ -186,8 +238,8 @@ async def get_document_example(client: xai_sdk.AsyncClient, collection_id: str, 
     print(f"Fields: {dict(document.fields)}")
 
 
-async def batch_get_documents_example(client: xai_sdk.AsyncClient, collection_id: str, file_ids: list[str]):
-    print("\n=== Batch Get Documents Example ===")
+async def batch_get_documents(client: xai_sdk.AsyncClient, collection_id: str, file_ids: list[str]):
+    print("\n=== Batch Get Documents ===")
 
     response = await client.collections.batch_get_documents(collection_id, file_ids)
 
@@ -196,8 +248,8 @@ async def batch_get_documents_example(client: xai_sdk.AsyncClient, collection_id
         print(f"  - {doc.file_metadata.name} ({doc.file_metadata.file_id})")
 
 
-async def update_document_example(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
-    print("\n=== Update Document Example ===")
+async def update_document(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
+    print("\n=== Update Document ===")
 
     new_content = b"Updated content for the document with additional information."
 
@@ -213,8 +265,8 @@ async def update_document_example(client: xai_sdk.AsyncClient, collection_id: st
     print(f"New size: {updated.file_metadata.size_bytes} bytes")
 
 
-async def search_example(client: xai_sdk.AsyncClient, collection_id: str):
-    print("\n=== Hybrid Search Example ===")
+async def search(client: xai_sdk.AsyncClient, collection_id: str):
+    print("\n=== Hybrid Search ===")
 
     results = await client.collections.search(
         query="What is machine learning?",
@@ -232,22 +284,29 @@ async def search_example(client: xai_sdk.AsyncClient, collection_id: str):
         print(f"    Chunk: {match.chunk_content[:100]}...")
 
 
-async def reindex_document_example(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
-    print("\n=== Reindex Document Example ===")
+async def reindex_document(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
+    print("\n=== Reindex Document ===")
 
     await client.collections.reindex_document(collection_id, file_id)
     print(f"Reindexed document (file_id: {file_id})")
 
 
-async def remove_document_example(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
-    print("\n=== Remove Document Example ===")
+async def remove_document(client: xai_sdk.AsyncClient, collection_id: str, file_id: str):
+    print("\n=== Remove Document ===")
 
     await client.collections.remove_document(collection_id, file_id)
     print(f"Removed document (file_id: {file_id}) from collection")
 
 
-async def delete_collection_example(client: xai_sdk.AsyncClient, collection_id: str):
-    print("\n=== Delete Collection Example ===")
+async def generate_description(client: xai_sdk.AsyncClient, collection_id: str):
+    print("\n=== Generate Collection Description ===")
+
+    description = await client.collections.generate_description(collection_id)
+    print(f"Generated description: {description}")
+
+
+async def delete_collection(client: xai_sdk.AsyncClient, collection_id: str):
+    print("\n=== Delete Collection ===")
 
     await client.collections.delete(collection_id)
     print(f"Deleted collection (ID: {collection_id})")
@@ -255,57 +314,75 @@ async def delete_collection_example(client: xai_sdk.AsyncClient, collection_id: 
 
 async def run_examples():
     async with xai_sdk.AsyncClient() as client:
-        # Create collections
-        collection_id = await create_collection_example(client)
+        # Create collections with different chunking strategies
+        collection_id = await create_collection(client)
         collection_id_2 = await create_collection_with_token_chunking(client)
+        collection_id_3 = await create_collection_with_bytes_chunking(client)
 
-        # List collections
-        await list_collections_example(client)
+        # List collections (with and without filter)
+        await list_collections(client)
+        await list_collections_with_filter(client)
 
         # Get collection metadata
-        await get_collection_example(client, collection_id)
+        await get_collection(client, collection_id)
 
-        # Update collection
-        await update_collection_example(client, collection_id)
+        # Update collection (name, chunk config, description, and field definitions)
+        await update_collection(client, collection_id)
 
-        # Upload a document
-        file_id = await upload_document_example(client, collection_id)
+        # Upload documents
+        file_id = await upload_document(
+            client,
+            collection_id,
+            "ml-fundamentals.txt",
+            b"Machine learning is a subset of artificial intelligence that focuses on building "
+            b"systems that can learn from data and improve their performance over time without "
+            b"being explicitly programmed.",
+            fields={"topic": "machine-learning", "level": "beginner"},
+        )
 
-        # Upload a document with wait for indexing
-        file_id_wait = await upload_document_with_wait_example(client, collection_id)
-
-        # Upload another document for batch operations
-        file_id_2 = await upload_document_example(client, collection_id)
+        file_id_2 = await upload_document(
+            client,
+            collection_id,
+            "deep-learning.txt",
+            b"Deep learning is a subset of machine learning that uses neural networks with "
+            b"multiple layers. These networks can learn hierarchical representations of data, "
+            b"making them particularly effective for tasks like image recognition and natural "
+            b"language processing.",
+        )
 
         # Add an existing document to another collection
-        await add_existing_document_example(client, collection_id_2, file_id)
+        await add_existing_document(client, collection_id_2, file_id)
 
-        # List documents
-        await list_documents_example(client, collection_id)
+        # List documents (with and without filter)
+        await list_documents(client, collection_id)
+        await list_documents_with_filter(client, collection_id)
 
         # Get document metadata
-        await get_document_example(client, collection_id, file_id)
+        await get_document(client, collection_id, file_id)
 
         # Batch get documents
-        await batch_get_documents_example(client, collection_id, [file_id, file_id_2])
+        await batch_get_documents(client, collection_id, [file_id, file_id_2])
 
-        # Update document
-        await update_document_example(client, collection_id, file_id)
+        # Update a document
+        await update_document(client, collection_id, file_id)
 
         # Search documents
-        await search_example(client, collection_id)
+        await search(client, collection_id)
+
+        # Generate a description from collection contents
+        await generate_description(client, collection_id)
 
         # Reindex document (useful after updating collection configuration)
-        await reindex_document_example(client, collection_id, file_id)
+        await reindex_document(client, collection_id, file_id)
 
         # Remove documents from collection
-        await remove_document_example(client, collection_id, file_id)
-        await remove_document_example(client, collection_id, file_id_2)
-        await remove_document_example(client, collection_id, file_id_wait)
+        await remove_document(client, collection_id, file_id)
+        await remove_document(client, collection_id, file_id_2)
 
         # Delete collections (cleanup)
-        await delete_collection_example(client, collection_id)
-        await delete_collection_example(client, collection_id_2)
+        await delete_collection(client, collection_id)
+        await delete_collection(client, collection_id_2)
+        await delete_collection(client, collection_id_3)
 
         print("\n=== All examples completed successfully! ===")
 

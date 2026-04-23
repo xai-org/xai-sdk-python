@@ -1,6 +1,20 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **Collections API Enhancements**:
+    - Added `description` parameter to `collections.create()` and `collections.update()` for human-friendly collection descriptions
+    - Added `collections.generate_description()` method that asks the API to summarize a collection based on its document contents
+    - Added `field_definitions` parameter to `collections.update()` for adding or deleting field definitions on existing collections. Each entry is either an add (`{"field_definition": {...}, "operation": "add"}`) or a delete (`{"key": "...", "operation": "delete"}`); typed via `FieldDefinitionAdd` / `FieldDefinitionDelete` (re-exported as the union `FieldDefinitionUpdate`)
+    - Added `BytesConfiguration` as a third chunking strategy (alongside `chars_configuration` and `tokens_configuration`) on `ChunkConfiguration`
+    - Added `filter` parameter to `collections.list_documents()` for filtering on file metadata and document fields (e.g., `'status:DOCUMENT_STATUS_PROCESSED'`, `'fields.isbn:"978-1-234567-89-0"'`)
+    - `wait_for_indexing` polling now treats the new `DOCUMENT_STATUS_CHUNKED`, `DOCUMENT_STATUS_EMBEDDING`, and `DOCUMENT_STATUS_WRITING` statuses as in-progress instead of unknown
+- **Telemetry Improvements**:
+    - Added tracing span around `collections.reindex_document`
+    - Added `collection.id` and `file.id` span attributes to `delete_collection`, `add_existing_document`, `remove_document`, `reindex_document`, and `generate_description`
+
+### Changed
+- **Breaking Change**: `chunk_configuration` validation is now stricter. When `chunk_configuration` is provided, it must specify exactly one of `chars_configuration`, `tokens_configuration`, or `bytes_configuration`. Previously, calls that omitted all three (e.g., to update only `strip_whitespace`) silently succeeded; they now raise `ValueError`. Callers updating only top-level chunk flags must now also include their existing chunking strategy.
 
 ## [v1.6.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.6.0) - 2026-01-27
 ### Added

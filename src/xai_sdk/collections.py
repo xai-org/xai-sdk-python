@@ -46,14 +46,44 @@ class FieldDefinition(TypedDict):
     description: NotRequired[str]
 
 
+class FieldDefinitionAdd(TypedDict):
+    """Add a field definition to a collection.
+
+    - field_definition: The full field definition to add.
+    - operation: Must be "add".
+    """
+
+    field_definition: FieldDefinition
+    operation: Literal["add"]
+
+
+class FieldDefinitionDelete(TypedDict):
+    """Delete a field definition from a collection by key.
+
+    Removes the field definition and the field's value from every document
+    in the collection. Only the field's `key` is needed.
+
+    - key: The key of the field definition to delete.
+    - operation: Must be "delete".
+    """
+
+    key: str
+    operation: Literal["delete"]
+
+
+FieldDefinitionUpdate = Union[FieldDefinitionAdd, FieldDefinitionDelete]
+
+
 class ChunkConfiguration(TypedDict, total=False):
     """Configuration for chunking documents.
 
-    Note: You must specify either `chars_configuration` or `tokens_configuration`, but not both.
+    Note: You must specify exactly one of `chars_configuration`, `tokens_configuration`,
+    or `bytes_configuration`.
     """
 
     chars_configuration: "CharsConfiguration"
     tokens_configuration: "TokensConfiguration"
+    bytes_configuration: "BytesConfiguration"
     strip_whitespace: bool
     inject_name_into_chunks: bool
 
@@ -73,10 +103,17 @@ class TokensConfiguration(TypedDict):
     encoding_name: str
 
 
+class BytesConfiguration(TypedDict):
+    """Configuration for byte-based chunking."""
+
+    max_chunk_size_bytes: int
+    chunk_overlap_bytes: int
+
+
 # Create TypeAdapter instances for validation
 FieldDefinitionValidator = TypeAdapter(FieldDefinition)
-CharsConfigurationValidator = TypeAdapter(CharsConfiguration)
-TokensConfigurationValidator = TypeAdapter(TokensConfiguration)
+FieldDefinitionAddValidator = TypeAdapter(FieldDefinitionAdd)
+FieldDefinitionDeleteValidator = TypeAdapter(FieldDefinitionDelete)
 ChunkConfigurationValidator = TypeAdapter(ChunkConfiguration)
 
 
@@ -143,6 +180,25 @@ def _field_definition_to_pb(field_definition: FieldDefinition) -> collections_pb
     return collections_pb2.FieldDefinition(**validated)
 
 
+def _field_definition_update_to_pb(
+    update: FieldDefinitionUpdate,
+) -> collections_pb2.FieldDefinitionUpdate:
+    op = update.get("operation")
+    if op == "add":
+        validated_add = FieldDefinitionAddValidator.validate_python(update)
+        return collections_pb2.FieldDefinitionUpdate(
+            field_definition=_field_definition_to_pb(validated_add["field_definition"]),
+            operation=collections_pb2.FieldDefinitionOperation.FIELD_DEFINITION_ADD,
+        )
+    if op == "delete":
+        validated_del = FieldDefinitionDeleteValidator.validate_python(update)
+        return collections_pb2.FieldDefinitionUpdate(
+            field_definition=collections_pb2.FieldDefinition(key=validated_del["key"]),
+            operation=collections_pb2.FieldDefinitionOperation.FIELD_DEFINITION_DELETE,
+        )
+    raise ValueError(f"Unknown field definition operation: {op!r}. Expected 'add' or 'delete'.")
+
+
 def _hnsw_metric_to_pb(metric: HNSWMetric) -> types_pb2.HNSWMetric:
     match metric:
         case "cosine":
@@ -156,34 +212,29 @@ def _hnsw_metric_to_pb(metric: HNSWMetric) -> types_pb2.HNSWMetric:
 
 
 def _validate_chunk_configuration(chunk_config: ChunkConfiguration) -> None:
-    """Validate that only one of chars_configuration or tokens_configuration is set.
+    """Validate that exactly one of chars_configuration, tokens_configuration, or bytes_configuration is set.
 
     Args:
         chunk_config: The chunk configuration dict to validate.
 
     Raises:
-        ValueError: If both chars_configuration and tokens_configuration are specified.
+        ValueError: If zero or more than one chunking strategy is specified.
     """
-    has_chars = chunk_config.get("chars_configuration")
-    has_tokens = chunk_config.get("tokens_configuration")
+    strategies = [
+        key for key in ("chars_configuration", "tokens_configuration", "bytes_configuration") if chunk_config.get(key)
+    ]
 
-    if has_chars and has_tokens:
+    if len(strategies) == 0:
         raise ValueError(
-            "Cannot specify both 'chars_configuration' and 'tokens_configuration'. "
-            "Please specify only one chunking strategy."
+            "Must specify exactly one chunking strategy "
+            "('chars_configuration', 'tokens_configuration', or 'bytes_configuration')."
         )
 
-
-def _chars_configuration_to_pb(chars_config: CharsConfiguration) -> types_pb2.CharsConfiguration:
-    """Convert CharsConfiguration to protobuf."""
-    validated = CharsConfigurationValidator.validate_python(chars_config)
-    return types_pb2.CharsConfiguration(**validated)
-
-
-def _tokens_configuration_to_pb(tokens_config: TokensConfiguration) -> types_pb2.TokensConfiguration:
-    """Convert TokensConfiguration to protobuf."""
-    validated = TokensConfigurationValidator.validate_python(tokens_config)
-    return types_pb2.TokensConfiguration(**validated)
+    if len(strategies) > 1:
+        raise ValueError(
+            f"Cannot specify multiple chunking strategies ({', '.join(repr(s) for s in strategies)}). "
+            "Please specify only one chunking strategy."
+        )
 
 
 def _chunk_configuration_to_pb(chunk_config: ChunkConfiguration) -> types_pb2.ChunkConfiguration:
@@ -196,8 +247,7 @@ def _chunk_configuration_to_pb(chunk_config: ChunkConfiguration) -> types_pb2.Ch
         A protobuf ChunkConfiguration.
 
     Raises:
-        ValueError: If both chars_configuration and tokens_configuration are specified,
-                   or if validation fails for any other reason.
+        ValueError: If zero or multiple chunking strategies are specified.
         pydantic.ValidationError: If the provided dict doesn't match the expected schema.
     """
     validated = ChunkConfigurationValidator.validate_python(chunk_config)

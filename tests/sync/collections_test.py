@@ -179,7 +179,18 @@ def test_create_collection_with_both_configurations_raises_error(client: Client)
             },
         )
 
-    assert "Cannot specify both 'chars_configuration' and 'tokens_configuration'" in str(e.value)
+    assert "Cannot specify multiple chunking strategies" in str(e.value)
+
+
+def test_create_collection_with_no_chunking_strategy_raises_error(client: Client):
+    """Test that passing chunk_configuration with no strategy raises ValueError."""
+    with pytest.raises(ValueError) as e:
+        client.collections.create(
+            f"test-collection-{uuid.uuid4()}",
+            chunk_configuration={"strip_whitespace": True},  # type: ignore [reportArgumentType]
+        )
+
+    assert "Must specify exactly one chunking strategy" in str(e.value)
 
 
 def test_update_collection_with_dict_chunk_configuration(client: Client):
@@ -227,7 +238,7 @@ def test_update_collection_with_both_configurations_raises_error(client: Client)
             },
         )
 
-    assert "Cannot specify both 'chars_configuration' and 'tokens_configuration'" in str(e.value)
+    assert "Cannot specify multiple chunking strategies" in str(e.value)
 
 
 @pytest.mark.parametrize(
@@ -452,7 +463,109 @@ def test_update_collection_with_no_changes(client: Client):
     with pytest.raises(ValueError) as e:
         client.collections.update(collection_metadata.collection_id)
 
-    assert str(e.value) == "At least one of name or chunk_configuration must be provided to update a collection"
+    assert str(e.value) == (
+        "At least one of name, chunk_configuration, field_definitions, "
+        "or description must be provided to update a collection"
+    )
+
+
+def test_update_collection_field_definitions_with_dicts(client: Client):
+    """Test updating field definitions using dict syntax."""
+    collection_metadata = client.collections.create(
+        f"test-collection-{uuid.uuid4()}",
+        field_definitions=[
+            {"key": "title", "required": True, "inject_into_chunk": True, "unique": False},
+        ],
+    )
+
+    # Add a new field and verify.
+    client.collections.update(
+        collection_metadata.collection_id,
+        field_definitions=[
+            {
+                "field_definition": {
+                    "key": "isbn",
+                    "required": True,
+                    "inject_into_chunk": False,
+                    "unique": True,
+                },
+                "operation": "add",
+            },
+        ],
+    )
+
+    response = client.collections.get(collection_metadata.collection_id)
+    keys = {fd.key for fd in response.field_definitions}
+    assert "title" in keys
+    assert "isbn" in keys
+    isbn_fd = next(fd for fd in response.field_definitions if fd.key == "isbn")
+    assert isbn_fd.required is True
+    assert isbn_fd.unique is True
+
+    # Delete the field and verify.
+    client.collections.update(
+        collection_metadata.collection_id,
+        field_definitions=[{"key": "isbn", "operation": "delete"}],
+    )
+
+    response = client.collections.get(collection_metadata.collection_id)
+    keys = {fd.key for fd in response.field_definitions}
+    assert "title" in keys
+    assert "isbn" not in keys
+
+
+def test_update_collection_field_definitions_mixed_add_delete(client: Client):
+    """Test combining add and delete operations in a single update call."""
+    collection_metadata = client.collections.create(
+        f"test-collection-{uuid.uuid4()}",
+        field_definitions=[
+            {"key": "old_field", "required": False, "inject_into_chunk": False, "unique": False},
+        ],
+    )
+
+    client.collections.update(
+        collection_metadata.collection_id,
+        field_definitions=[
+            {
+                "field_definition": {
+                    "key": "new_field",
+                    "required": True,
+                    "inject_into_chunk": True,
+                    "unique": False,
+                },
+                "operation": "add",
+            },
+            {"key": "old_field", "operation": "delete"},
+        ],
+    )
+
+    response = client.collections.get(collection_metadata.collection_id)
+    keys = {fd.key for fd in response.field_definitions}
+    assert keys == {"new_field"}
+
+
+@pytest.mark.parametrize(
+    "update,expected_error",
+    [
+        # Add operation missing field_definition
+        ({"operation": "add"}, "field_definition"),
+        # Delete operation missing key
+        ({"operation": "delete"}, "key"),
+        # Unknown operation
+        ({"operation": "modify", "key": "x"}, "Expected 'add' or 'delete'"),
+    ],
+)
+def test_update_collection_field_definition_invalid_shape(client: Client, update: dict, expected_error: str):
+    """Test that invalid field definition update shapes raise an error."""
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+
+    with pytest.raises((ValidationError, ValueError)) as e:
+        client.collections.update(
+            collection_metadata.collection_id,
+            field_definitions=[update],  # type: ignore [list-item]
+        )
+
+    assert expected_error in str(e.value)
 
 
 def test_search(client: Client):
@@ -890,6 +1003,77 @@ def test_update_document(client: Client):
     assert response.file_metadata.size_bytes == len(new_data)
     assert response.file_metadata.content_type == new_content_type
     assert response.fields == new_fields
+
+
+def test_create_collection_with_dict_bytes_configuration(client: Client):
+    """Test creating a collection with byte-based chunk configuration using dict syntax."""
+    collection_name = f"test-collection-{uuid.uuid4()}"
+    collection_metadata = client.collections.create(
+        collection_name,
+        chunk_configuration={
+            "bytes_configuration": {
+                "max_chunk_size_bytes": 4096,
+                "chunk_overlap_bytes": 512,
+            },
+            "strip_whitespace": True,
+        },
+    )
+
+    assert collection_metadata.collection_id is not None
+    assert collection_metadata.collection_name == collection_name
+
+    response = client.collections.get(collection_metadata.collection_id)
+    assert response.chunk_configuration.bytes_configuration.max_chunk_size_bytes == 4096
+    assert response.chunk_configuration.bytes_configuration.chunk_overlap_bytes == 512
+    assert response.chunk_configuration.strip_whitespace is True
+
+
+def test_create_collection_with_bytes_and_chars_raises_error(client: Client):
+    """Test that specifying both bytes and chars configurations raises ValueError."""
+    with pytest.raises(ValueError) as e:
+        client.collections.create(
+            f"test-collection-{uuid.uuid4()}",
+            chunk_configuration={
+                "bytes_configuration": {
+                    "max_chunk_size_bytes": 4096,
+                    "chunk_overlap_bytes": 512,
+                },
+                "chars_configuration": {
+                    "max_chunk_size_chars": 1000,
+                    "chunk_overlap_chars": 100,
+                },
+            },
+        )
+
+    assert "Cannot specify multiple chunking strategies" in str(e.value)
+
+
+def test_create_collection_with_invalid_bytes_configuration(client: Client):
+    """Test that creating a collection with invalid bytes configuration raises ValidationError."""
+    with pytest.raises(ValidationError) as e:
+        client.collections.create(
+            f"test-collection-{uuid.uuid4()}",
+            chunk_configuration={
+                "bytes_configuration": {"max_chunk_size_bytes": 4096},  # type: ignore [reportArgumentType]
+            },
+        )
+
+    assert "chunk_overlap_bytes" in str(e.value)
+    assert "Field required" in str(e.value)
+
+
+def test_generate_description(client: Client):
+    """Test generating a description for a collection with documents."""
+    description = client.collections.generate_description("test-collection-1")
+    assert description.startswith("Auto-generated description for collection with ")
+    assert description.endswith(" documents.")
+
+
+def test_generate_description_empty_collection(client: Client):
+    """Test generating a description for a collection with no documents."""
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+    description = client.collections.generate_description(collection_metadata.collection_id)
+    assert description == ""
 
 
 @mock.patch("xai_sdk.sync.collections.tracer")
