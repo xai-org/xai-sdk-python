@@ -36,21 +36,6 @@ class CollectionsStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.GetCollectionMetadataRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.CollectionMetadata.FromString,
                 _registered_method=True)
-        self.ListAvailableEmbeddingModels = channel.unary_unary(
-                '/collections.Collections/ListAvailableEmbeddingModels',
-                request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableEmbeddingModelsRequest.SerializeToString,
-                response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableEmbeddingModelsResponse.FromString,
-                _registered_method=True)
-        self.ListAvailableTokenEncodings = channel.unary_unary(
-                '/collections.Collections/ListAvailableTokenEncodings',
-                request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableTokenEncodingsRequest.SerializeToString,
-                response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableTokenEncodingsResponse.FromString,
-                _registered_method=True)
-        self.UploadDocument = channel.unary_unary(
-                '/collections.Collections/UploadDocument',
-                request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.UploadDocumentRequest.SerializeToString,
-                response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.FromString,
-                _registered_method=True)
         self.UpdateDocument = channel.unary_unary(
                 '/collections.Collections/UpdateDocument',
                 request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.UpdateDocumentRequest.SerializeToString,
@@ -91,6 +76,11 @@ class CollectionsStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.BatchGetDocumentsRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.BatchGetDocumentsResponse.FromString,
                 _registered_method=True)
+        self.GenerateCollectionDescription = channel.unary_unary(
+                '/collections.Collections/GenerateCollectionDescription',
+                request_serializer=xai_dot_api_dot_v1_dot_collections__pb2.GenerateCollectionDescriptionRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.GenerateCollectionDescriptionResponse.FromString,
+                _registered_method=True)
 
 
 class CollectionsServicer(object):
@@ -125,27 +115,6 @@ class CollectionsServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def ListAvailableEmbeddingModels(self, request, context):
-        """List available embeddings models for a given team.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def ListAvailableTokenEncodings(self, request, context):
-        """List available token encodings for a given team.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def UploadDocument(self, request, context):
-        """Upload a document to a collection.
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
     def UpdateDocument(self, request, context):
         """Update a document's data and metadata.
         """
@@ -175,11 +144,7 @@ class CollectionsServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def RemoveDocumentFromCollection(self, request, context):
-        """Add document batch to collection.
-        rpc BatchAddDocumentToCollection(BatchAddDocumentToCollectionRequest)
-        returns (google.protobuf.Empty) {}
-
-        Remove document from collection.
+        """Remove document from collection.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -201,6 +166,13 @@ class CollectionsServicer(object):
 
     def BatchGetDocuments(self, request, context):
         """Get documents metadata in a batch request.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GenerateCollectionDescription(self, request, context):
+        """Generate a description for a collection based on its document contents.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -228,21 +200,6 @@ def add_CollectionsServicer_to_server(servicer, server):
                     servicer.GetCollectionMetadata,
                     request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.GetCollectionMetadataRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.CollectionMetadata.SerializeToString,
-            ),
-            'ListAvailableEmbeddingModels': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListAvailableEmbeddingModels,
-                    request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableEmbeddingModelsRequest.FromString,
-                    response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableEmbeddingModelsResponse.SerializeToString,
-            ),
-            'ListAvailableTokenEncodings': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListAvailableTokenEncodings,
-                    request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableTokenEncodingsRequest.FromString,
-                    response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableTokenEncodingsResponse.SerializeToString,
-            ),
-            'UploadDocument': grpc.unary_unary_rpc_method_handler(
-                    servicer.UploadDocument,
-                    request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.UploadDocumentRequest.FromString,
-                    response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.SerializeToString,
             ),
             'UpdateDocument': grpc.unary_unary_rpc_method_handler(
                     servicer.UpdateDocument,
@@ -283,6 +240,11 @@ def add_CollectionsServicer_to_server(servicer, server):
                     servicer.BatchGetDocuments,
                     request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.BatchGetDocumentsRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.BatchGetDocumentsResponse.SerializeToString,
+            ),
+            'GenerateCollectionDescription': grpc.unary_unary_rpc_method_handler(
+                    servicer.GenerateCollectionDescription,
+                    request_deserializer=xai_dot_api_dot_v1_dot_collections__pb2.GenerateCollectionDescriptionRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_collections__pb2.GenerateCollectionDescriptionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -394,87 +356,6 @@ class Collections(object):
             '/collections.Collections/GetCollectionMetadata',
             xai_dot_api_dot_v1_dot_collections__pb2.GetCollectionMetadataRequest.SerializeToString,
             xai_dot_api_dot_v1_dot_collections__pb2.CollectionMetadata.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def ListAvailableEmbeddingModels(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/collections.Collections/ListAvailableEmbeddingModels',
-            xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableEmbeddingModelsRequest.SerializeToString,
-            xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableEmbeddingModelsResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def ListAvailableTokenEncodings(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/collections.Collections/ListAvailableTokenEncodings',
-            xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableTokenEncodingsRequest.SerializeToString,
-            xai_dot_api_dot_v1_dot_collections__pb2.ListAvailableTokenEncodingsResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def UploadDocument(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/collections.Collections/UploadDocument',
-            xai_dot_api_dot_v1_dot_collections__pb2.UploadDocumentRequest.SerializeToString,
-            xai_dot_api_dot_v1_dot_collections__pb2.DocumentMetadata.FromString,
             options,
             channel_credentials,
             insecure,
@@ -691,6 +572,33 @@ class Collections(object):
             '/collections.Collections/BatchGetDocuments',
             xai_dot_api_dot_v1_dot_collections__pb2.BatchGetDocumentsRequest.SerializeToString,
             xai_dot_api_dot_v1_dot_collections__pb2.BatchGetDocumentsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GenerateCollectionDescription(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/collections.Collections/GenerateCollectionDescription',
+            xai_dot_api_dot_v1_dot_collections__pb2.GenerateCollectionDescriptionRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_collections__pb2.GenerateCollectionDescriptionResponse.FromString,
             options,
             channel_credentials,
             insecure,
