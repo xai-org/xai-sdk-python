@@ -1,6 +1,7 @@
 import asyncio
+import datetime
 import os
-from typing import Any, AsyncIterator, BinaryIO, Callable, Iterator, Literal, Protocol, Union
+from typing import Any, AsyncIterator, BinaryIO, Callable, Iterator, Literal, Optional, Protocol, Union
 
 import grpc
 
@@ -11,6 +12,15 @@ _CHUNK_SIZE = 3 << 20
 
 Order = Literal["asc", "desc"]
 SortBy = Literal["created_at", "filename", "size"]
+
+
+def _expires_after_to_seconds(expires_after: Optional[Union[datetime.timedelta, int]]) -> Optional[int]:
+    """Convert an `expires_after` argument (timedelta or int seconds) to integer seconds, or None."""
+    if expires_after is None:
+        return None
+    if isinstance(expires_after, datetime.timedelta):
+        return int(expires_after.total_seconds())
+    return expires_after
 
 
 class ProgressBarLike(Protocol):
@@ -91,7 +101,10 @@ def _sort_by_to_pb(sort_by: SortBy | None) -> files_pb2.FilesSortBy:
 
 
 def _chunk_file_data(
-    filename: str, data: bytes, progress: ProgressCallback = None
+    filename: str,
+    data: bytes,
+    progress: ProgressCallback = None,
+    expires_after: Optional[Union[datetime.timedelta, int]] = None,
 ) -> Iterator[files_pb2.UploadFileChunk]:
     """Generator that yields file upload chunks.
 
@@ -101,6 +114,7 @@ def _chunk_file_data(
         filename: Name of the file being uploaded.
         data: The file data as bytes.
         progress: Optional progress callback or tqdm-like object.
+        expires_after: Optional expiration for the file (timedelta or int seconds).
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
@@ -109,7 +123,7 @@ def _chunk_file_data(
     yield files_pb2.UploadFileChunk(
         init=files_pb2.UploadFileInit(
             name=filename,
-            purpose="",  # Purpose is unused by backend
+            expires_after=_expires_after_to_seconds(expires_after),
         )
     )
 
@@ -127,7 +141,11 @@ def _chunk_file_data(
         _invoke_progress(progress, chunk_size, bytes_uploaded, total_bytes)
 
 
-def _chunk_file_from_path(file_path: str, progress: ProgressCallback = None) -> Iterator[files_pb2.UploadFileChunk]:
+def _chunk_file_from_path(
+    file_path: str,
+    progress: ProgressCallback = None,
+    expires_after: Optional[Union[datetime.timedelta, int]] = None,
+) -> Iterator[files_pb2.UploadFileChunk]:
     """Generator that yields file upload chunks by streaming from disk.
 
     This method reads the file in chunks rather than loading it entirely into memory,
@@ -136,6 +154,7 @@ def _chunk_file_from_path(file_path: str, progress: ProgressCallback = None) -> 
     Args:
         file_path: Path to the file to upload.
         progress: Optional progress callback or tqdm-like object.
+        expires_after: Optional expiration for the file (timedelta or int seconds).
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
@@ -148,7 +167,7 @@ def _chunk_file_from_path(file_path: str, progress: ProgressCallback = None) -> 
     yield files_pb2.UploadFileChunk(
         init=files_pb2.UploadFileInit(
             name=filename,
-            purpose="",  # Purpose is unused by backend
+            expires_after=_expires_after_to_seconds(expires_after),
         )
     )
 
@@ -164,7 +183,10 @@ def _chunk_file_from_path(file_path: str, progress: ProgressCallback = None) -> 
 
 
 def _chunk_file_from_fileobj(
-    file_obj: BinaryIO, filename: str, progress: ProgressCallback = None
+    file_obj: BinaryIO,
+    filename: str,
+    progress: ProgressCallback = None,
+    expires_after: Optional[Union[datetime.timedelta, int]] = None,
 ) -> Iterator[files_pb2.UploadFileChunk]:
     """Generator that yields file upload chunks from a file-like object.
 
@@ -172,6 +194,7 @@ def _chunk_file_from_fileobj(
         file_obj: Binary file-like object to read from.
         filename: Name to use for the uploaded file.
         progress: Optional progress callback or tqdm-like object.
+        expires_after: Optional expiration for the file (timedelta or int seconds).
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
@@ -192,7 +215,7 @@ def _chunk_file_from_fileobj(
     yield files_pb2.UploadFileChunk(
         init=files_pb2.UploadFileInit(
             name=filename,
-            purpose="",  # Purpose is unused by backend
+            expires_after=_expires_after_to_seconds(expires_after),
         )
     )
 
@@ -210,7 +233,10 @@ def _chunk_file_from_fileobj(
 
 
 async def _async_chunk_file_data(
-    filename: str, data: bytes, progress: ProgressCallback = None
+    filename: str,
+    data: bytes,
+    progress: ProgressCallback = None,
+    expires_after: Optional[Union[datetime.timedelta, int]] = None,
 ) -> AsyncIterator[files_pb2.UploadFileChunk]:
     """Async generator that yields file upload chunks.
 
@@ -220,6 +246,7 @@ async def _async_chunk_file_data(
         filename: Name of the file being uploaded.
         data: The file data as bytes.
         progress: Optional progress callback or tqdm-like object.
+        expires_after: Optional expiration for the file (timedelta or int seconds).
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
@@ -228,7 +255,7 @@ async def _async_chunk_file_data(
     yield files_pb2.UploadFileChunk(
         init=files_pb2.UploadFileInit(
             name=filename,
-            purpose="",  # Purpose is unused by backend
+            expires_after=_expires_after_to_seconds(expires_after),
         )
     )
 
@@ -247,7 +274,9 @@ async def _async_chunk_file_data(
 
 
 async def _async_chunk_file_from_path(
-    file_path: str, progress: ProgressCallback = None
+    file_path: str,
+    progress: ProgressCallback = None,
+    expires_after: Optional[Union[datetime.timedelta, int]] = None,
 ) -> AsyncIterator[files_pb2.UploadFileChunk]:
     """Async generator that yields file upload chunks by streaming from disk.
 
@@ -257,6 +286,7 @@ async def _async_chunk_file_from_path(
     Args:
         file_path: Path to the file to upload.
         progress: Optional progress callback or tqdm-like object.
+        expires_after: Optional expiration for the file (timedelta or int seconds).
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
@@ -269,7 +299,7 @@ async def _async_chunk_file_from_path(
     yield files_pb2.UploadFileChunk(
         init=files_pb2.UploadFileInit(
             name=filename,
-            purpose="",  # Purpose is unused by backend
+            expires_after=_expires_after_to_seconds(expires_after),
         )
     )
 
@@ -295,7 +325,10 @@ async def _async_chunk_file_from_path(
 
 
 async def _async_chunk_file_from_fileobj(
-    file_obj: BinaryIO, filename: str, progress: ProgressCallback = None
+    file_obj: BinaryIO,
+    filename: str,
+    progress: ProgressCallback = None,
+    expires_after: Optional[Union[datetime.timedelta, int]] = None,
 ) -> AsyncIterator[files_pb2.UploadFileChunk]:
     """Async generator that yields file upload chunks from a file-like object.
 
@@ -303,6 +336,7 @@ async def _async_chunk_file_from_fileobj(
         file_obj: Binary file-like object to read from.
         filename: Name to use for the uploaded file.
         progress: Optional progress callback or tqdm-like object.
+        expires_after: Optional expiration for the file (timedelta or int seconds).
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
@@ -323,7 +357,7 @@ async def _async_chunk_file_from_fileobj(
     yield files_pb2.UploadFileChunk(
         init=files_pb2.UploadFileInit(
             name=filename,
-            purpose="",  # Purpose is unused by backend
+            expires_after=_expires_after_to_seconds(expires_after),
         )
     )
 

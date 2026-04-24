@@ -1,3 +1,4 @@
+import datetime
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import BinaryIO, Optional, Sequence, Union
@@ -32,6 +33,7 @@ class Client(BaseClient):
         *,
         filename: Optional[str] = None,
         on_progress: Optional[ProgressCallback] = None,
+        expires_after: Optional[Union[datetime.timedelta, int]] = None,
     ) -> files_pb2.File:
         """Upload a file to xAI's servers.
 
@@ -54,6 +56,12 @@ class Client(BaseClient):
                   Called with the size of the chunk just uploaded (e.g., tqdm.update).
                 - An object with an `update(n: int)` method (e.g., tqdm progress bar).
                   The update method is called with the chunk size after each upload.
+            expires_after: Optional time-to-live for the file, measured from the moment of upload (creation).
+                After this duration the file is automatically deleted.
+                Can be:
+                - datetime.timedelta: Duration after upload (e.g., timedelta(hours=24)).
+                - int: Number of seconds after upload.
+                If not provided, the file does not expire.
 
         Returns:
             A File proto containing metadata about the uploaded file.
@@ -92,13 +100,22 @@ class Client(BaseClient):
         if isinstance(file, str):
             if not os.path.exists(file):
                 raise FileNotFoundError(f"File not found: {file}")
-            chunks = _chunk_file_from_path(file_path=file, progress=on_progress)
+            chunks = _chunk_file_from_path(
+                file_path=file,
+                progress=on_progress,
+                expires_after=expires_after,
+            )
 
         # Handle bytes
         elif isinstance(file, bytes | bytearray):
             if not filename:
                 raise ValueError("filename is required when uploading bytes")
-            chunks = _chunk_file_data(filename=filename, data=bytes(file), progress=on_progress)
+            chunks = _chunk_file_data(
+                filename=filename,
+                data=bytes(file),
+                progress=on_progress,
+                expires_after=expires_after,
+            )
 
         # Handle file-like object (BinaryIO)
         elif hasattr(file, "read"):
@@ -108,7 +125,12 @@ class Client(BaseClient):
                     filename = os.path.basename(file.name)
                 else:
                     raise ValueError("filename is required when uploading a file-like object without a .name attribute")
-            chunks = _chunk_file_from_fileobj(file_obj=file, filename=filename, progress=on_progress)
+            chunks = _chunk_file_from_fileobj(
+                file_obj=file,
+                filename=filename,
+                progress=on_progress,
+                expires_after=expires_after,
+            )
         else:
             raise ValueError(f"Unsupported file type: {type(file)}")
         with tracer.start_as_current_span(

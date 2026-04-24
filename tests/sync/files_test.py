@@ -1,5 +1,6 @@
 """Unit tests for synchronous Files API client."""
 
+import datetime
 import io
 import os
 import tempfile
@@ -11,7 +12,12 @@ from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
-from xai_sdk.files import _chunk_file_data, _chunk_file_from_path, _order_to_pb, _sort_by_to_pb
+from xai_sdk.files import (
+    _chunk_file_data,
+    _chunk_file_from_path,
+    _order_to_pb,
+    _sort_by_to_pb,
+)
 from xai_sdk.proto import files_pb2
 
 
@@ -54,7 +60,6 @@ def create_mock_upload_handler(
             id=f"file-{idx}",
             filename=f"batch_{idx}.txt",
             size=100,
-            team_id="team-456",
         )
 
     return mock_upload
@@ -89,7 +94,6 @@ def test_upload_file(client_with_mock_stub: Client, mock_stub):
             id="file-123",
             filename="test.txt",
             size=12,
-            team_id="team-456",
         )
         mock_stub.UploadFile.return_value = mock_response
 
@@ -103,7 +107,6 @@ def test_upload_file(client_with_mock_stub: Client, mock_stub):
         assert result.id == "file-123"
         assert result.filename == "test.txt"
         assert result.size == 12
-        assert result.team_id == "team-456"
     finally:
         os.unlink(temp_file_path)
 
@@ -124,7 +127,6 @@ def test_upload_bytes(client_with_mock_stub: Client, mock_stub):
         id="file-123",
         filename=filename,
         size=len(data),
-        team_id="team-456",
     )
     mock_stub.UploadFile.return_value = mock_response
 
@@ -146,7 +148,6 @@ def test_upload_file_object(client_with_mock_stub: Client, mock_stub):
         id="file-789",
         filename="stream.txt",
         size=30,
-        team_id="team-abc",
     )
     mock_stub.UploadFile.return_value = mock_response
 
@@ -180,7 +181,6 @@ def test_upload_with_progress_callback(client_with_mock_stub: Client, mock_stub)
             id="file-123",
             filename="test.txt",
             size=data_size,
-            team_id="team-456",
         )
 
         # Track progress calls
@@ -225,7 +225,6 @@ def test_upload_with_progress_tqdm_like(client_with_mock_stub: Client, mock_stub
         id="file-456",
         filename="test.bin",
         size=len(data),
-        team_id="team-789",
     )
 
     # Create a mock tqdm-like object
@@ -325,7 +324,6 @@ def test_get_file(client_with_mock_stub: Client, mock_stub):
         id="file-123",
         filename="test.txt",
         size=100,
-        team_id="team-456",
         created_at=created_at,
     )
     mock_stub.RetrieveFile.return_value = mock_response
@@ -407,7 +405,6 @@ def test_chunk_file_data():
     # First chunk should be the init chunk
     assert chunks[0].HasField("init")
     assert chunks[0].init.name == filename
-    assert chunks[0].init.purpose == ""  # Purpose is unused by backend
 
     # Subsequent chunks should be data chunks
     assert len(chunks) == 2  # 1 init + 1 data chunk (2 MiB fits in one 5 MiB chunk)
@@ -432,7 +429,6 @@ def test_chunk_file_from_path():
         # First chunk should be the init chunk
         assert chunks[0].HasField("init")
         assert chunks[0].init.name.startswith("tmp")  # basename starts with tmp
-        assert chunks[0].init.purpose == ""  # Purpose is unused by backend
 
         # Subsequent chunks should be data chunks
         assert len(chunks) == 5  # 1 init + 4 data chunks (3 MiB, 3 MiB, 3 MiB, 3 MiB)
@@ -468,7 +464,6 @@ def test_upload_large_file_uses_chunking(client_with_mock_stub: Client, mock_stu
             id="file-large",
             filename="large.bin",
             size=len(data),
-            team_id="team-456",
         )
         mock_stub.UploadFile.return_value = mock_response
 
@@ -516,7 +511,6 @@ def test_batch_upload_success(client_with_mock_stub: Client, mock_stub):
         for idx, result in results.items():
             assert not isinstance(result, BaseException)
             assert result.id == f"file-{idx}"
-            assert result.team_id == "team-456"
 
     finally:
         for temp_file in temp_files:
@@ -678,7 +672,7 @@ def test_upload_creates_span_with_correct_attributes(
     mock_span = mock.MagicMock()
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
-    mock_response = files_pb2.File(id="file-123", filename="test.txt", size=12, team_id="team-456")
+    mock_response = files_pb2.File(id="file-123", filename="test.txt", size=12)
     mock_stub.UploadFile.return_value = mock_response
 
     result = client_with_mock_stub.files.upload(b"data", filename="test.txt")
@@ -719,3 +713,49 @@ def test_delete_creates_span_with_correct_attributes(
 
     mock_span.set_attribute.assert_called_once_with("file.id", result.id)
     assert result.deleted is True
+
+
+def test_upload_with_expires_after_int(client_with_mock_stub: Client, mock_stub):
+    """Test uploading a file with expires_after as int seconds."""
+    data = b"test content"
+    filename = "test.txt"
+
+    mock_response = files_pb2.File(
+        id="file-123",
+        filename=filename,
+        size=len(data),
+    )
+
+    def consume_chunks(chunks):
+        chunk_list = list(chunks)
+        assert chunk_list[0].HasField("init")
+        assert chunk_list[0].init.expires_after == 7200
+        return mock_response
+
+    mock_stub.UploadFile.side_effect = consume_chunks
+
+    result = client_with_mock_stub.files.upload(data, filename=filename, expires_after=7200)
+    assert result.id == "file-123"
+
+
+def test_upload_with_expires_after_timedelta(client_with_mock_stub: Client, mock_stub):
+    """Test uploading a file with expires_after as timedelta."""
+    data = b"test content"
+    filename = "test.txt"
+
+    mock_response = files_pb2.File(
+        id="file-123",
+        filename=filename,
+        size=len(data),
+    )
+
+    def consume_chunks(chunks):
+        chunk_list = list(chunks)
+        assert chunk_list[0].HasField("init")
+        assert chunk_list[0].init.expires_after == 86400
+        return mock_response
+
+    mock_stub.UploadFile.side_effect = consume_chunks
+
+    result = client_with_mock_stub.files.upload(data, filename=filename, expires_after=datetime.timedelta(days=1))
+    assert result.id == "file-123"

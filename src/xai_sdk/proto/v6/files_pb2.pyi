@@ -18,19 +18,28 @@ class FilesSortBy(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     FILES_SORT_BY_CREATED_AT: _ClassVar[FilesSortBy]
     FILES_SORT_BY_FILENAME: _ClassVar[FilesSortBy]
     FILES_SORT_BY_SIZE: _ClassVar[FilesSortBy]
+
+class DownloadFormat(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    DOWNLOAD_FORMAT_UNKNOWN: _ClassVar[DownloadFormat]
+    DOWNLOAD_FORMAT_ORIGINAL: _ClassVar[DownloadFormat]
+    DOWNLOAD_FORMAT_TEXT: _ClassVar[DownloadFormat]
 ASCENDING: Ordering
 DESCENDING: Ordering
 FILES_SORT_BY_CREATED_AT: FilesSortBy
 FILES_SORT_BY_FILENAME: FilesSortBy
 FILES_SORT_BY_SIZE: FilesSortBy
+DOWNLOAD_FORMAT_UNKNOWN: DownloadFormat
+DOWNLOAD_FORMAT_ORIGINAL: DownloadFormat
+DOWNLOAD_FORMAT_TEXT: DownloadFormat
 
 class UploadFileInit(_message.Message):
-    __slots__ = ("name", "purpose")
+    __slots__ = ("name", "expires_after")
     NAME_FIELD_NUMBER: _ClassVar[int]
-    PURPOSE_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AFTER_FIELD_NUMBER: _ClassVar[int]
     name: str
-    purpose: str
-    def __init__(self, name: _Optional[str] = ..., purpose: _Optional[str] = ...) -> None: ...
+    expires_after: int
+    def __init__(self, name: _Optional[str] = ..., expires_after: _Optional[int] = ...) -> None: ...
 
 class UploadFileChunk(_message.Message):
     __slots__ = ("init", "data")
@@ -41,20 +50,18 @@ class UploadFileChunk(_message.Message):
     def __init__(self, init: _Optional[_Union[UploadFileInit, _Mapping]] = ..., data: _Optional[bytes] = ...) -> None: ...
 
 class File(_message.Message):
-    __slots__ = ("size", "created_at", "expires_at", "filename", "id", "team_id")
+    __slots__ = ("size", "created_at", "expires_at", "filename", "id")
     SIZE_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     FILENAME_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
-    TEAM_ID_FIELD_NUMBER: _ClassVar[int]
     size: int
     created_at: _timestamp_pb2.Timestamp
     expires_at: _timestamp_pb2.Timestamp
     filename: str
     id: str
-    team_id: str
-    def __init__(self, size: _Optional[int] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., filename: _Optional[str] = ..., id: _Optional[str] = ..., team_id: _Optional[str] = ...) -> None: ...
+    def __init__(self, size: _Optional[int] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., filename: _Optional[str] = ..., id: _Optional[str] = ...) -> None: ...
 
 class ListFilesRequest(_message.Message):
     __slots__ = ("limit", "order", "pagination_token", "sort_by")
@@ -97,25 +104,15 @@ class DeleteFileResponse(_message.Message):
     def __init__(self, id: _Optional[str] = ..., deleted: bool = ...) -> None: ...
 
 class RetrieveFileContentRequest(_message.Message):
-    __slots__ = ("file_id",)
+    __slots__ = ("file_id", "format")
     FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    FORMAT_FIELD_NUMBER: _ClassVar[int]
     file_id: str
-    def __init__(self, file_id: _Optional[str] = ...) -> None: ...
+    format: DownloadFormat
+    def __init__(self, file_id: _Optional[str] = ..., format: _Optional[_Union[DownloadFormat, str]] = ...) -> None: ...
 
 class FileContentChunk(_message.Message):
     __slots__ = ("data",)
     DATA_FIELD_NUMBER: _ClassVar[int]
     data: bytes
     def __init__(self, data: _Optional[bytes] = ...) -> None: ...
-
-class RetrieveFileURLRequest(_message.Message):
-    __slots__ = ("file_id",)
-    FILE_ID_FIELD_NUMBER: _ClassVar[int]
-    file_id: str
-    def __init__(self, file_id: _Optional[str] = ...) -> None: ...
-
-class RetrieveFileURLResponse(_message.Message):
-    __slots__ = ("url",)
-    URL_FIELD_NUMBER: _ClassVar[int]
-    url: str
-    def __init__(self, url: _Optional[str] = ...) -> None: ...
