@@ -1,5 +1,6 @@
 """Unit tests for asynchronous Files API client."""
 
+import datetime
 import io
 import os
 import tempfile
@@ -44,7 +45,6 @@ async def test_upload_file(client_with_mock_stub: AsyncClient, mock_stub):
             id="file-123",
             filename="test.txt",
             size=12,
-            team_id="team-456",
         )
 
         # Create async mock
@@ -63,7 +63,6 @@ async def test_upload_file(client_with_mock_stub: AsyncClient, mock_stub):
         assert result.id == "file-123"
         assert result.filename == "test.txt"
         assert result.size == 12
-        assert result.team_id == "team-456"
     finally:
         os.unlink(temp_file_path)
 
@@ -86,7 +85,6 @@ async def test_upload_bytes(client_with_mock_stub: AsyncClient, mock_stub):
         id="file-123",
         filename=filename,
         size=len(data),
-        team_id="team-456",
     )
 
     async def async_return():
@@ -113,7 +111,6 @@ async def test_upload_file_object(client_with_mock_stub: AsyncClient, mock_stub)
         id="file-789",
         filename="stream.txt",
         size=30,
-        team_id="team-abc",
     )
 
     async def async_return():
@@ -152,7 +149,6 @@ async def test_upload_with_progress_callback(client_with_mock_stub: AsyncClient,
             id="file-123",
             filename="test.txt",
             size=data_size,
-            team_id="team-456",
         )
 
         # Track progress calls
@@ -198,7 +194,6 @@ async def test_upload_with_progress_tqdm_like(client_with_mock_stub: AsyncClient
         id="file-456",
         filename="test.bin",
         size=len(data),
-        team_id="team-789",
     )
 
     # Create a mock tqdm-like object
@@ -314,7 +309,6 @@ async def test_get_file(client_with_mock_stub: AsyncClient, mock_stub):
         id="file-123",
         filename="test.txt",
         size=100,
-        team_id="team-456",
         created_at=created_at,
     )
 
@@ -398,7 +392,6 @@ def test_chunk_file_from_path():
         # First chunk should be the init chunk
         assert chunks[0].HasField("init")
         assert chunks[0].init.name.startswith("tmp")  # basename starts with tmp
-        assert chunks[0].init.purpose == ""  # Purpose is unused by backend
 
         # Subsequent chunks should be data chunks
         assert len(chunks) == 5  # 1 init + 4 data chunks (3 MiB, 3 MiB, 3 MiB, 3 MiB)
@@ -435,7 +428,6 @@ async def test_upload_large_file_uses_chunking(client_with_mock_stub: AsyncClien
             id="file-large",
             filename="large.bin",
             size=len(data),
-            team_id="team-456",
         )
 
         # Track chunks and return response
@@ -488,7 +480,6 @@ async def test_batch_upload_success(client_with_mock_stub: AsyncClient, mock_stu
                 id=file_id,
                 filename=f"batch_{call_count - 1}.txt",
                 size=100,
-                team_id="team-456",
             )
 
         mock_stub.UploadFile.side_effect = mock_upload
@@ -504,7 +495,6 @@ async def test_batch_upload_success(client_with_mock_stub: AsyncClient, mock_stu
         for idx, result in results.items():
             assert not isinstance(result, BaseException)
             assert result.id == f"file-{idx}"
-            assert result.team_id == "team-456"
 
     finally:
         for temp_file in temp_files:
@@ -539,7 +529,6 @@ async def test_batch_upload_with_partial_failures(client_with_mock_stub: AsyncCl
                 id=f"file-{idx}",
                 filename=f"batch_{idx}.txt",
                 size=100,
-                team_id="team-456",
             )
 
         mock_stub.UploadFile.side_effect = mock_upload
@@ -590,7 +579,6 @@ async def test_batch_upload_with_callback(client_with_mock_stub: AsyncClient, mo
                 id=file_id,
                 filename=f"batch_{call_count - 1}.txt",
                 size=100,
-                team_id="team-456",
             )
 
         mock_stub.UploadFile.side_effect = mock_upload
@@ -650,7 +638,6 @@ async def test_batch_upload_with_callback_and_failures(client_with_mock_stub: As
                 id=f"file-{idx}",
                 filename=f"batch_{idx}.txt",
                 size=100,
-                team_id="team-456",
             )
 
         mock_stub.UploadFile.side_effect = mock_upload
@@ -708,7 +695,6 @@ async def test_batch_upload_custom_batch_size(client_with_mock_stub: AsyncClient
                 id=file_id,
                 filename=f"batch_{call_count - 1}.txt",
                 size=100,
-                team_id="team-456",
             )
 
         mock_stub.UploadFile.side_effect = mock_upload
@@ -740,7 +726,7 @@ async def test_upload_creates_span_with_correct_attributes(
     mock_span = mock.MagicMock()
     mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
 
-    mock_response = files_pb2.File(id="file-123", filename="test.txt", size=12, team_id="team-456")
+    mock_response = files_pb2.File(id="file-123", filename="test.txt", size=12)
 
     async def async_return():
         return mock_response
@@ -790,3 +776,55 @@ async def test_delete_creates_span_with_correct_attributes(
 
     mock_span.set_attribute.assert_called_once_with("file.id", result.id)
     assert result.deleted is True
+
+
+@pytest.mark.asyncio
+async def test_upload_with_expires_after_int(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test uploading a file with expires_after as int seconds."""
+    data = b"test content"
+    filename = "test.txt"
+
+    mock_response = files_pb2.File(
+        id="file-123",
+        filename=filename,
+        size=len(data),
+    )
+
+    async def consume_chunks(chunks):
+        chunk_list = []
+        async for chunk in chunks:
+            chunk_list.append(chunk)
+        assert chunk_list[0].HasField("init")
+        assert chunk_list[0].init.expires_after == 7200
+        return mock_response
+
+    mock_stub.UploadFile.side_effect = consume_chunks
+
+    result = await client_with_mock_stub.files.upload(data, filename=filename, expires_after=7200)
+    assert result.id == "file-123"
+
+
+@pytest.mark.asyncio
+async def test_upload_with_expires_after_timedelta(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test uploading a file with expires_after as timedelta."""
+    data = b"test content"
+    filename = "test.txt"
+
+    mock_response = files_pb2.File(
+        id="file-123",
+        filename=filename,
+        size=len(data),
+    )
+
+    async def consume_chunks(chunks):
+        chunk_list = []
+        async for chunk in chunks:
+            chunk_list.append(chunk)
+        assert chunk_list[0].HasField("init")
+        assert chunk_list[0].init.expires_after == 86400
+        return mock_response
+
+    mock_stub.UploadFile.side_effect = consume_chunks
+
+    result = await client_with_mock_stub.files.upload(data, filename=filename, expires_after=datetime.timedelta(days=1))
+    assert result.id == "file-123"

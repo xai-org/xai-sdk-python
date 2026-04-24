@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- **Files API**: `client.files.upload()` (sync and async) now accepts an optional `expires_after` parameter to set a TTL on uploaded files. Accepts either an `int` (seconds) or a `datetime.timedelta`. After the duration elapses, the file is automatically deleted.
 - **Collections API Enhancements**:
     - Added `description` parameter to `collections.create()` and `collections.update()` for human-friendly collection descriptions
     - Added `collections.generate_description()` method that asks the API to summarize a collection based on its document contents
@@ -15,6 +16,9 @@
 
 ### Changed
 - **Breaking Change**: `chunk_configuration` validation is now stricter. When `chunk_configuration` is provided, it must specify exactly one of `chars_configuration`, `tokens_configuration`, or `bytes_configuration`. Previously, calls that omitted all three (e.g., to update only `strip_whitespace`) silently succeeded; they now raise `ValueError`. Callers updating only top-level chunk flags must now also include their existing chunking strategy.
+
+### Removed
+- **Breaking Change**: Removed the `team_id` field from `File` responses returned by the Files API (`upload`, `list`, `get`). The same value is available via `client.auth.get_api_key_info().team_id`, which is the canonical source.
 
 ## [v1.6.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.6.0) - 2026-01-27
 ### Added

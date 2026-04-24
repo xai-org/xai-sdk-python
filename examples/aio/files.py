@@ -26,7 +26,6 @@ async def upload_example(client: xai_sdk.AsyncClient):
         print(f"Uploaded file: {file.filename}")
         print(f"File ID: {file.id}")
         print(f"File size: {file.size} bytes")
-        print(f"Team ID: {file.team_id}")
         print(f"Created at: {file.created_at.ToDatetime()}")
         return file.id
     finally:
@@ -100,7 +99,6 @@ async def upload_large_file_example(client: xai_sdk.AsyncClient):
         print(f"Successfully uploaded file: {file.filename}")
         print(f"File ID: {file.id}")
         print(f"File size: {file.size} bytes ({file.size / (1024 * 1024):.2f} MB)")
-        print(f"Team ID: {file.team_id}")
         print(f"Created at: {file.created_at.ToDatetime()}")
         return file.id
     finally:

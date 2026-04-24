@@ -844,7 +844,6 @@ class FilesServicer(files_pb2_grpc.FilesServicer):
             id=file_id,
             filename=init.name,
             size=len(data),
-            team_id="test-team",
             created_at=now,
             expires_at=timestamp_pb2.Timestamp(seconds=int(time.time()) + 1000),
         )

@@ -6,7 +6,10 @@ from . import files_pb2 as xai_dot_api_dot_v1_dot_files__pb2
 
 
 class FilesStub(object):
-    """An API service for uploading and retrieving files.
+    """Service for uploading, listing, retrieving, and deleting files.
+
+    Files are referenced by the `id` returned on upload (e.g. when attaching
+    to chat completions). Maximum file size is 512 MB.
     """
 
     def __init__(self, channel):
@@ -40,54 +43,57 @@ class FilesStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileContentRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_files__pb2.FileContentChunk.FromString,
                 _registered_method=True)
-        self.RetrieveFileURL = channel.unary_unary(
-                '/xai_api.Files/RetrieveFileURL',
-                request_serializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileURLRequest.SerializeToString,
-                response_deserializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileURLResponse.FromString,
-                _registered_method=True)
 
 
 class FilesServicer(object):
-    """An API service for uploading and retrieving files.
+    """Service for uploading, listing, retrieving, and deleting files.
+
+    Files are referenced by the `id` returned on upload (e.g. when attaching
+    to chat completions). Maximum file size is 512 MB.
     """
 
     def UploadFile(self, request_iterator, context):
-        """Upload a file (client-streaming).
+        """Upload a file. The first stream message MUST set `chunk = init`
+        (filename + optional TTL); subsequent messages MUST set `chunk = data`
+        with file bytes in order. Recommended chunk size up to 5 MB; total
+        size capped at 512 MB. Returns the new file's metadata.
+
+        Errors: INVALID_ARGUMENT (missing/misplaced init, bad filename, bad
+        TTL), RESOURCE_EXHAUSTED (over 512 MB).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def ListFiles(self, request, context):
-        """List files.
+        """List file metadata, paginated and sorted. Returns metadata only — use
+        `RetrieveFileContent` to download bytes.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def RetrieveFile(self, request, context):
-        """Retrieve file.
+        """Get metadata for one file. Returns metadata only — use
+        `RetrieveFileContent` to download bytes. Errors NOT_FOUND if no
+        accessible file with that id (including already-deleted).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def DeleteFile(self, request, context):
-        """Delete file.
+        """Delete a file. After success it stops appearing in `ListFiles` /
+        `RetrieveFile` and is no longer downloadable. Errors NOT_FOUND if no
+        accessible file with that id (including already-deleted).
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
     def RetrieveFileContent(self, request, context):
-        """Retrieve file content (streams the file in chunks).
-        """
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def RetrieveFileURL(self, request, context):
-        """Retrieve presigned download URL for a file.
+        """Stream the file's contents in chunks of up to 5 MB, in order.
+        Concatenate `data` from every chunk to reconstruct the file.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -121,11 +127,6 @@ def add_FilesServicer_to_server(servicer, server):
                     request_deserializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileContentRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_files__pb2.FileContentChunk.SerializeToString,
             ),
-            'RetrieveFileURL': grpc.unary_unary_rpc_method_handler(
-                    servicer.RetrieveFileURL,
-                    request_deserializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileURLRequest.FromString,
-                    response_serializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileURLResponse.SerializeToString,
-            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
             'xai_api.Files', rpc_method_handlers)
@@ -135,7 +136,10 @@ def add_FilesServicer_to_server(servicer, server):
 
  # This class is part of an EXPERIMENTAL API.
 class Files(object):
-    """An API service for uploading and retrieving files.
+    """Service for uploading, listing, retrieving, and deleting files.
+
+    Files are referenced by the `id` returned on upload (e.g. when attaching
+    to chat completions). Maximum file size is 512 MB.
     """
 
     @staticmethod
@@ -263,33 +267,6 @@ class Files(object):
             '/xai_api.Files/RetrieveFileContent',
             xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileContentRequest.SerializeToString,
             xai_dot_api_dot_v1_dot_files__pb2.FileContentChunk.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def RetrieveFileURL(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/xai_api.Files/RetrieveFileURL',
-            xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileURLRequest.SerializeToString,
-            xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileURLResponse.FromString,
             options,
             channel_credentials,
             insecure,
