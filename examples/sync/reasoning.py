@@ -3,17 +3,15 @@ from typing import Sequence
 from absl import app, flags
 
 from xai_sdk import Client
-from xai_sdk.chat import ReasoningEffort, user
+from xai_sdk.chat import user
 
 STREAM = flags.DEFINE_bool("stream", False, "Whether streaming is enabled.")
-REASONING_EFFORT = flags.DEFINE_enum("effort", "low", ["low", "high"], "The effort of the reasoning model.")
 
 
-def reasoning(client: Client, reasoning_effort: ReasoningEffort) -> None:
+def reasoning(client: Client) -> None:
     """Sample from a reasoning model."""
     chat = client.chat.create(
-        model="grok-3-mini",  # This model is a reasoning model.
-        reasoning_effort=reasoning_effort,
+        model="grok-4.20",  # This model is a reasoning model.
     )
 
     prompt = input("Enter a prompt: ")
@@ -29,11 +27,10 @@ def reasoning(client: Client, reasoning_effort: ReasoningEffort) -> None:
     print(f"Total Tokens: {response.usage.total_tokens}")
 
 
-def reasoning_with_streaming(client: Client, reasoning_effort: ReasoningEffort) -> None:
+def reasoning_with_streaming(client: Client) -> None:
     """Sample from a reasoning model and stream the response."""
     chat = client.chat.create(
-        model="grok-3-mini",  # This model is a reasoning model.
-        reasoning_effort=reasoning_effort,
+        model="grok-4.20",  # This model is a reasoning model.
     )
 
     prompt = input("Enter a prompt: ")
@@ -66,15 +63,10 @@ def main(argv: Sequence[str]) -> None:
         raise app.UsageError("Unexpected command line arguments.")
 
     client = Client()
-    match (STREAM.value, REASONING_EFFORT.value):
-        case (True, "low"):
-            reasoning_with_streaming(client, "low")
-        case (True, "high"):
-            reasoning_with_streaming(client, "high")
-        case (False, "low"):
-            reasoning(client, "low")
-        case (False, "high"):
-            reasoning(client, "high")
+    if STREAM.value:
+        reasoning_with_streaming(client)
+    else:
+        reasoning(client)
 
 
 if __name__ == "__main__":

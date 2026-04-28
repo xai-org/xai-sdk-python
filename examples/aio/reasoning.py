@@ -4,17 +4,15 @@ from typing import Sequence
 from absl import app, flags
 
 from xai_sdk import AsyncClient
-from xai_sdk.chat import ReasoningEffort, user
+from xai_sdk.chat import user
 
 STREAM = flags.DEFINE_bool("stream", False, "Whether streaming is enabled.")
-REASONING_EFFORT = flags.DEFINE_enum("effort", "low", ["low", "high"], "The effort of the reasoning model.")
 
 
-async def reasoning(client: AsyncClient, reasoning_effort: ReasoningEffort) -> None:
+async def reasoning(client: AsyncClient) -> None:
     """Sample from a reasoning model."""
     chat = client.chat.create(
-        model="grok-3-mini",  # This model is a reasoning model.
-        reasoning_effort=reasoning_effort,
+        model="grok-4.20",  # This model is a reasoning model.
     )
 
     prompt = input("Enter a prompt: ")
@@ -30,11 +28,10 @@ async def reasoning(client: AsyncClient, reasoning_effort: ReasoningEffort) -> N
     print(f"Total Tokens: {response.usage.total_tokens}")
 
 
-async def reasoning_with_streaming(client: AsyncClient, reasoning_effort: ReasoningEffort) -> None:
+async def reasoning_with_streaming(client: AsyncClient) -> None:
     """Sample from a reasoning model and stream the response."""
     chat = client.chat.create(
-        model="grok-3-mini",  # This model is a reasoning model.
-        reasoning_effort=reasoning_effort,
+        model="grok-4.20",  # This model is a reasoning model.
     )
 
     prompt = input("Enter a prompt: ")
@@ -67,15 +64,10 @@ async def main(argv: Sequence[str]) -> None:
         raise app.UsageError("Unexpected command line arguments.")
 
     client = AsyncClient()
-    match (STREAM.value, REASONING_EFFORT.value):
-        case (True, "low"):
-            await reasoning_with_streaming(client, "low")
-        case (True, "high"):
-            await reasoning_with_streaming(client, "high")
-        case (False, "low"):
-            await reasoning(client, "low")
-        case (False, "high"):
-            await reasoning(client, "high")
+    if STREAM.value:
+        await reasoning_with_streaming(client)
+    else:
+        await reasoning(client)
 
 
 if __name__ == "__main__":

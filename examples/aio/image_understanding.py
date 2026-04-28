@@ -13,7 +13,7 @@ FORMAT = flags.DEFINE_enum("format", "url", ["url", "base64"], "Image format use
 
 async def image_understanding(client: AsyncClient) -> None:
     """Image understanding with multiple images."""
-    chat = client.chat.create(model="grok-2-vision")
+    chat = client.chat.create(model="grok-4.20-non-reasoning")
 
     # We can easily interleave text and images in a single user conversation turn.
     chat.append(
@@ -38,10 +38,12 @@ async def image_understanding(client: AsyncClient) -> None:
 
 async def image_understanding_b64(client: AsyncClient) -> None:
     """Image understanding with an image encoded as base64."""
-    chat = client.chat.create(model="grok-2-vision")
+    chat = client.chat.create(model="grok-4.20-non-reasoning")
 
     image_url = "https://upload.wikimedia.org/wikipedia/commons/a/a7/Camponotus_flavomarginatus_ant.jpg"
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(
+        headers={"User-Agent": "xai-sdk-example/1.0 (https://github.com/xai-org/xai-sdk-python)"}
+    ) as session:
         async with session.get(image_url) as response:
             image_data = await response.content.read()
             image_data = base64.b64encode(image_data).decode("utf-8")
