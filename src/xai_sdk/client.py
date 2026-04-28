@@ -79,7 +79,7 @@ class BaseClient(abc.ABC):
             channel_options: Additional channel options to be sent with each gRPC request, the options defined here
                 will override the default options if they have the same name.
             timeout: The timeout in seconds for all gRPC requests using this client. If not set, the default
-                timeout of 15 minutes (900 seconds) will be used.
+                timeout of 27 minutes (1620 seconds) will be used.
             use_insecure_channel: Whether to use an insecure gRPC channel. If True, an insecure gRPC client
                 is used for the underlying connection, though the API key will still be applied
                 to outgoing requests via metadata through gRPC interceptors. Defaults to False.
