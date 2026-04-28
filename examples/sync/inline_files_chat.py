@@ -17,7 +17,7 @@ def chat_with_inline_file(client: Client, file_path: str, query: str) -> None:
     mime_type, _ = mimetypes.guess_type(file_path)
 
     # Create a chat
-    chat = client.chat.create(model="grok-4-fast")
+    chat = client.chat.create(model="grok-4.20")
 
     # Append a message with the inline file
     chat.append(user(query, file(data=data, filename=os.path.basename(file_path), mime_type=mime_type)))

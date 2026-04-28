@@ -11,6 +11,7 @@ N = flags.DEFINE_integer("n", 1, "Number of answers to generate.")
 
 def basic_chat(chat: xai_sdk.sync.chat.Chat):
     """Multi-turn chat between a user and an assistant."""
+    total_cost_usd = 0.0
     while True:
         prompt = input("You: ")
         if prompt.lower() == "exit":
@@ -23,10 +24,16 @@ def basic_chat(chat: xai_sdk.sync.chat.Chat):
         print(f"Grok: {response.content}")
         # Append the assistant's response to the conversation history.
         chat.append(response)
+        # `cost_usd` is per-request; accumulate to track total spend across turns.
+        # `or 0.0` skips turns where the server did not report a cost.
+        total_cost_usd += response.cost_usd or 0.0
+
+    print(f"Total cost: ${total_cost_usd:.4f}")
 
 
 def chat_with_streaming(chat: xai_sdk.sync.chat.Chat):
     """Multi-turn chat between a user and an assistant with streaming."""
+    total_cost_usd = 0.0
     while True:
         prompt = input("You: ")
         if prompt.lower() == "exit":
@@ -46,6 +53,11 @@ def chat_with_streaming(chat: xai_sdk.sync.chat.Chat):
         print()
         assert last_response is not None
         chat.append(last_response)
+        # Final chunk's `cost_usd` is the per-request total. Accumulate across turns.
+        # `or 0.0` skips turns where the server did not report a cost.
+        total_cost_usd += last_response.cost_usd or 0.0
+
+    print(f"Total cost: ${total_cost_usd:.4f}")
 
 
 def batch_chat(chat: xai_sdk.sync.chat.Chat):
@@ -96,7 +108,7 @@ def main(argv: Sequence[str]) -> None:
     client = xai_sdk.Client()
 
     chat = client.chat.create(
-        model="grok-3",
+        model="grok-4.20-non-reasoning",
         messages=[
             system("You talk like a pirate."),
             user("How are you?"),

@@ -1,5 +1,6 @@
 import asyncio
 import itertools
+import os
 from typing import Sequence, cast
 
 from absl import app, flags
@@ -77,6 +78,8 @@ async def _save_images(turn: int, responses: Sequence[ImageResponse]):
 async def main(argv: Sequence[str]) -> None:
     if len(argv) > 1:
         raise app.UsageError("Unexpected command line arguments.")
+
+    os.makedirs(OUTPUT_DIR.value, exist_ok=True)
 
     client = xai_sdk.AsyncClient()
     image_format: ImageFormat = cast(ImageFormat, FORMAT.value)

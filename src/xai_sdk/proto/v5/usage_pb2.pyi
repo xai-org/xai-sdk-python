@@ -28,7 +28,7 @@ SERVER_SIDE_TOOL_MCP: ServerSideTool
 SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: ServerSideTool
 
 class SamplingUsage(_message.Message):
-    __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used")
+    __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used", "cost_in_usd_ticks")
     COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
     REASONING_TOKENS_FIELD_NUMBER: _ClassVar[int]
     PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -38,6 +38,7 @@ class SamplingUsage(_message.Message):
     PROMPT_IMAGE_TOKENS_FIELD_NUMBER: _ClassVar[int]
     NUM_SOURCES_USED_FIELD_NUMBER: _ClassVar[int]
     SERVER_SIDE_TOOLS_USED_FIELD_NUMBER: _ClassVar[int]
+    COST_IN_USD_TICKS_FIELD_NUMBER: _ClassVar[int]
     completion_tokens: int
     reasoning_tokens: int
     prompt_tokens: int
@@ -47,7 +48,8 @@ class SamplingUsage(_message.Message):
     prompt_image_tokens: int
     num_sources_used: int
     server_side_tools_used: _containers.RepeatedScalarFieldContainer[ServerSideTool]
-    def __init__(self, completion_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., prompt_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., prompt_text_tokens: _Optional[int] = ..., cached_prompt_text_tokens: _Optional[int] = ..., prompt_image_tokens: _Optional[int] = ..., num_sources_used: _Optional[int] = ..., server_side_tools_used: _Optional[_Iterable[_Union[ServerSideTool, str]]] = ...) -> None: ...
+    cost_in_usd_ticks: int
+    def __init__(self, completion_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., prompt_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., prompt_text_tokens: _Optional[int] = ..., cached_prompt_text_tokens: _Optional[int] = ..., prompt_image_tokens: _Optional[int] = ..., num_sources_used: _Optional[int] = ..., server_side_tools_used: _Optional[_Iterable[_Union[ServerSideTool, str]]] = ..., cost_in_usd_ticks: _Optional[int] = ...) -> None: ...
 
 class EmbeddingUsage(_message.Message):
     __slots__ = ("num_text_embeddings", "num_image_embeddings")

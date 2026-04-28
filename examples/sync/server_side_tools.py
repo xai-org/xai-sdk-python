@@ -49,6 +49,12 @@ def agentic_search(client: Client, model: str, query: str) -> None:
     print(response.server_side_tool_usage)
     print("\n\nTool Calls:")
     print(response.tool_calls)
+    # The server-side agentic loop (model + every tool call) runs inside this single
+    # gRPC request, so `cost_usd` already covers all internal turns -- no accumulation.
+    if response.cost_usd is not None:
+        print(f"\nCost: ${response.cost_usd:.4f} (covers all server-side tool calls in this request)")
+    else:
+        print("\nCost: not reported by server")
 
 
 def agentic_tools_with_client_side_tools_encrypted_content(client: Client, model: str) -> None:
@@ -78,6 +84,7 @@ def agentic_tools_with_client_side_tools_encrypted_content(client: Client, model
     )
     chat.append(user("What is the weather in the city of the team that won the 2025 NBA championship?"))
 
+    total_cost_usd = 0.0
     while True:
         client_side_tool_calls = []
         # ruff: noqa: B007
@@ -92,6 +99,9 @@ def agentic_tools_with_client_side_tools_encrypted_content(client: Client, model
                     )
 
         chat.append(response)
+        # Each `chat.stream()` is its own request; accumulate to track total spend.
+        # `or 0.0` skips turns where the server did not report a cost.
+        total_cost_usd += response.cost_usd or 0.0
 
         if not client_side_tool_calls:
             break
@@ -103,6 +113,7 @@ def agentic_tools_with_client_side_tools_encrypted_content(client: Client, model
             chat.append(tool_result(result))
 
     print(f"Final response: {response.content}")
+    print(f"Total cost: ${total_cost_usd:.4f}")
 
 
 def agentic_tools_with_client_side_tools_previous_response_id(client: Client, model: str) -> None:
@@ -132,6 +143,9 @@ def agentic_tools_with_client_side_tools_previous_response_id(client: Client, mo
     )
     chat.append(user("What is the weather in the city of the team that won the 2025 NBA championship?"))
 
+    # Each loop iteration creates a *new* `Chat` (chained via `previous_response_id`),
+    # so the accumulator must live at function scope to span the whole conversation.
+    total_cost_usd = 0.0
     while True:
         client_side_tool_calls = []
         for response, chunk in chat.stream():
@@ -143,6 +157,10 @@ def agentic_tools_with_client_side_tools_previous_response_id(client: Client, mo
                         f"Server-side tool call: {tool_call.function.name} "
                         f"with arguments: {tool_call.function.arguments}"
                     )
+
+        # Each `chat.stream()` is its own request; accumulate to track total spend.
+        # `or 0.0` skips turns where the server did not report a cost.
+        total_cost_usd += response.cost_usd or 0.0
 
         if not client_side_tool_calls:
             break
@@ -161,6 +179,7 @@ def agentic_tools_with_client_side_tools_previous_response_id(client: Client, mo
             chat.append(tool_result(result))
 
     print(f"Final response: {response.content}")
+    print(f"Total cost: ${total_cost_usd:.4f}")
 
 
 def main() -> None:
@@ -169,7 +188,7 @@ def main() -> None:
     # Trigger web/x search
     agentic_search(
         client,
-        model="grok-4-fast",
+        model="grok-4.20",
         query=(
             "What was the result of Arsenal's most recent game? Where did they play, who scored and in which minutes?"
         ),
@@ -178,27 +197,27 @@ def main() -> None:
     # Trigger code execution
     # agentic_search(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4.20",
     #     query=("What is the 102nd number in the Fibonacci sequence?. show me the code"),
     # )
 
     # Trigger x search/web search
     # agentic_search(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4.20",
     #     query="What can you tell me about the X user 0xPromar and his recent activity?",
     # )
 
     # Trigger agentic tools with client-side tools using encrypted content
     # agentic_tools_with_client_side_tools_encrypted_content(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4.20",
     # )
 
     # Trigger agentic tools with client-side tools using previous response id
     # agentic_tools_with_client_side_tools_previous_response_id(
     #     client,
-    #     model="grok-4-fast",
+    #     model="grok-4.20",
     # )
 
 

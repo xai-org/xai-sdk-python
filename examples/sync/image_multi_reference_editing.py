@@ -8,6 +8,7 @@ Example:
     --format url
 """
 
+import os
 from typing import Sequence, cast
 
 from absl import app, flags
@@ -75,6 +76,7 @@ def main(argv: Sequence[str]) -> None:
             print(f"Image {i} URL: {image.url}")
         return
 
+    os.makedirs(OUTPUT_DIR.value, exist_ok=True)  # type: ignore
     save_images(responses)
 
 
