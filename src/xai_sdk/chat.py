@@ -527,6 +527,8 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         attributes["gen_ai.usage.cached_prompt_text_tokens"] = response.usage.cached_prompt_text_tokens
         attributes["gen_ai.usage.prompt_text_tokens"] = response.usage.prompt_text_tokens
         attributes["gen_ai.usage.prompt_image_tokens"] = response.usage.prompt_image_tokens
+        if response.usage.HasField("cost_in_usd_ticks"):
+            attributes["gen_ai.usage.cost_in_usd_ticks"] = response.usage.cost_in_usd_ticks
         attributes["gen_ai.response.system_fingerprint"] = response.system_fingerprint
 
         # Only finish reasons are different for each response.
