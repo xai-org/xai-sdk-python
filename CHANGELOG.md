@@ -1,7 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+
+## [v1.12.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.12.0) - 2026-04-29
 ### Added
+- **Cost Tracking**: Responses from `chat.sample()` / `chat.stream()`, `image.sample()` / `image.sample_batch()`, and `video.generate()` / `video.extend()` now expose a `cost_usd` property that returns the per-request cost in USD (or `None` when the server does not report cost)
 - **Files API**: `client.files.upload()` (sync and async) now accepts an optional `expires_after` parameter to set a TTL on uploaded files. Accepts either an `int` (seconds) or a `datetime.timedelta`. After the duration elapses, the file is automatically deleted.
 - **Collections API Enhancements**:
     - Added `description` parameter to `collections.create()` and `collections.update()` for human-friendly collection descriptions
@@ -13,12 +16,77 @@
 - **Telemetry Improvements**:
     - Added tracing span around `collections.reindex_document`
     - Added `collection.id` and `file.id` span attributes to `delete_collection`, `add_existing_document`, `remove_document`, `reindex_document`, and `generate_description`
+    - Added `cost_in_usd_ticks` to telemetry span attributes for chat, image, and video responses
 
 ### Changed
 - **Breaking Change**: `chunk_configuration` validation is now stricter. When `chunk_configuration` is provided, it must specify exactly one of `chars_configuration`, `tokens_configuration`, or `bytes_configuration`. Previously, calls that omitted all three (e.g., to update only `strip_whitespace`) silently succeeded; they now raise `ValueError`. Callers updating only top-level chunk flags must now also include their existing chunking strategy.
 
 ### Removed
 - **Breaking Change**: Removed the `team_id` field from `File` responses returned by the Files API (`upload`, `list`, `get`). The same value is available via `client.auth.get_api_key_info().team_id`, which is the canonical source.
+
+## [v1.11.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.11.0) - 2026-03-27
+### Added
+- **Inline File Attachments**: `chat.file()` now supports inline file data via a new `data` parameter (with optional `filename` and `mime_type`), in addition to the existing `file_id` mode
+- **URL File Attachments**: `chat.file()` now supports public URL file references via a new `url` parameter (with optional `filename` and `mime_type`)
+
+## [v1.10.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.10.0) - 2026-03-24
+### Added
+- **Video Extension API**: Added `extend()` and `extend_start()` methods to sync and async video clients for extending existing videos with a text prompt
+- **Reference-to-Video Generation**: Added `reference_image_urls` parameter to `video.generate()`, `video.start()`, and `video.prepare()` for reference-image-based video generation (R2V)
+
+## [v1.9.1](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.9.1) - 2026-03-19
+### Changed
+- **Model Literals**: Updated `grok-4.20` model variants from `beta` to GA naming convention (e.g., `grok-4.20`, `grok-4.20-0309`, `grok-4.20-multi-agent`)
+
+## [v1.9.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.9.0) - 2026-03-19
+### Added
+- **Image/Video Batch Support**: Added `image.prepare()` and `video.prepare()` methods to create batch requests for image and video generation
+- **Batch API Enhancement**: Added `input_file_id` parameter to `batch.create()` for creating batches from uploaded JSONL files
+- **Batch Result Properties**: Added `image_response` and `video_response` properties on `BatchResult` for typed access to image and video batch results
+- **Model Type Signatures**: Image and video client methods now accept `Union[ImageGenerationModel, str]` / `Union[VideoGenerationModel, str]` for model parameters, enabling IDE autocomplete
+
+### Fixed
+- **Polling Robustness**: Unknown deferred statuses in video and collections polling loops now emit a warning and continue polling instead of raising `ValueError`
+- **Timeout Error Messages**: `PollTimer` now accepts an optional `context` parameter for more descriptive `TimeoutError` messages
+
+## [v1.8.2](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.8.2) - 2026-03-16
+### Fixed
+- **Video Generation Error Handling**: Video generation polling now raises a `VideoGenerationError` (with `code` and `message` attributes) when the API reports a generation failure, instead of returning an incomplete response
+
+## [v1.8.1](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.8.1) - 2026-03-11
+### Changed
+- **Model Literals**: Updated `grok-4.20` model variants from `experimental-beta` to `beta` naming convention (e.g., `grok-4.20-beta`, `grok-4.20-beta-0309`, `grok-4.20-multi-agent-beta-0309`)
+
+## [v1.8.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.8.0) - 2026-03-05
+### Added
+- **Multi-Agent Chat**: Added `agent_count` parameter to `chat.create()` for configuring the number of agents (4 or 16) when using multi-agent models
+- **Model Literals**:
+    - Added `grok-4.20-experimental-beta` and `grok-4.20-multi-agent-experimental-beta` model variants to `ChatModel`
+    - Added `grok-imagine-image-pro` to `ImageGenerationModel`
+
+### Removed
+- **Deprecated Models**: Removed `grok-2-image` model variants from `ImageGenerationModel`
+
+## [v1.7.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.7.0) - 2026-02-18
+### Added
+- **Multi-Reference Image Editing**: Added `image_urls` parameter to `image.sample()` and `image.sample_batch()` for multi-reference image editing with mutual exclusivity enforcement against `image_url`
+- **2K Image Resolution**: Added `"2k"` option to `ImageResolution` for higher resolution image generation
+
+### Changed
+- **Video Polling Defaults**: Reduced default `PollTimer` poll interval from 100ms to 1s and introduced `DEFAULT_VIDEO_POLL_INTERVAL` and `DEFAULT_VIDEO_TIMEOUT` constants for video clients
+
+### Deprecated
+- **Image Prompt**: `BaseImageResponse.prompt` now returns an empty string and emits a `DeprecationWarning` after the `up_sampled_prompt` field was removed from the `GeneratedImage` proto
+
+## [v1.6.1](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.6.1) - 2026-01-29
+### Added
+- **Video Generation API**: Added new `client.video` sub-client (sync and async) for video generation, supporting text-to-video and image-to-video with configurable `aspect_ratio`, `resolution`, and `duration`
+- **Image Generation Enhancements**:
+    - Added `image_url` parameter to `image.sample()` and `image.sample_batch()` for using a reference image as a starting point for generation
+    - Added `aspect_ratio` parameter for controlling image aspect ratios (e.g., `"1:1"`, `"16:9"`, `"9:16"`)
+    - Added `resolution` parameter for controlling image resolution (`"1k"`)
+- **Type Aliases**: Added `ImageAspectRatio`, `ImageFormat`, `ImageResolution`, `VideoAspectRatio`, `VideoResolution`, and `VideoGenerationModel` type aliases
+- **Model Literals**: Added `grok-imagine-image` to `ImageGenerationModel` and `grok-imagine-video` as `VideoGenerationModel`
 
 ## [v1.6.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.6.0) - 2026-01-27
 ### Added
