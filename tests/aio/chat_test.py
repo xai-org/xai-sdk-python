@@ -25,7 +25,8 @@ from xai_sdk.chat import (
     tool_result,
     user,
 )
-from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2
+from xai_sdk.cost import USD_PER_TICK
+from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2, usage_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
 from xai_sdk.tools import code_execution, web_search, x_search
 
@@ -1855,3 +1856,17 @@ def test_chat_create_with_include_output(client: AsyncClient):
         chat_pb2.IncludeOption.INCLUDE_OPTION_INLINE_CITATIONS,
         chat_pb2.IncludeOption.INCLUDE_OPTION_VERBOSE_STREAMING,
     ]
+
+
+def test_chat_response_cost_usd_returns_dollars_when_set():
+    proto = chat_pb2.GetChatCompletionResponse(
+        usage=usage_pb2.SamplingUsage(cost_in_usd_ticks=12345),
+    )
+    assert Response(proto, index=0).cost_usd == 12345 * USD_PER_TICK
+
+
+def test_chat_response_cost_usd_returns_none_when_unset():
+    proto = chat_pb2.GetChatCompletionResponse(
+        usage=usage_pb2.SamplingUsage(),
+    )
+    assert Response(proto, index=0).cost_usd is None

@@ -6,8 +6,9 @@ import pytest_asyncio
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import AsyncClient
-from xai_sdk.proto import batch_pb2, deferred_pb2, image_pb2, video_pb2
-from xai_sdk.video import VideoGenerationError
+from xai_sdk.cost import USD_PER_TICK
+from xai_sdk.proto import batch_pb2, deferred_pb2, image_pb2, usage_pb2, video_pb2
+from xai_sdk.video import VideoGenerationError, VideoResponse
 
 from .. import server
 
@@ -520,3 +521,19 @@ async def test_extend_warns_on_unknown_status_then_resolves(client: AsyncClient)
     assert response.url == "https://example.com/extended.mp4"
     assert len(w) == 1
     assert "Encountered unknown status: 999 whilst waiting for video extension." in str(w[0].message)
+
+
+def test_video_response_cost_usd_returns_dollars_when_set():
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5),
+        usage=usage_pb2.SamplingUsage(cost_in_usd_ticks=12345),
+    )
+    assert VideoResponse(proto).cost_usd == 12345 * USD_PER_TICK
+
+
+def test_video_response_cost_usd_returns_none_when_unset():
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5),
+        usage=usage_pb2.SamplingUsage(),
+    )
+    assert VideoResponse(proto).cost_usd is None

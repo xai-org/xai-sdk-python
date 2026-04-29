@@ -5,8 +5,9 @@ import pytest_asyncio
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import AsyncClient
-from xai_sdk.image import ImageFormat
-from xai_sdk.proto import batch_pb2, image_pb2
+from xai_sdk.cost import USD_PER_TICK
+from xai_sdk.image import BaseImageResponse, ImageFormat
+from xai_sdk.proto import batch_pb2, image_pb2, usage_pb2
 
 from .. import server
 
@@ -367,3 +368,19 @@ async def test_create_rejects_both_image_fields(client: AsyncClient):
             image_url="https://example.com/image.jpg",
             image_urls=["https://example.com/image1.jpg"],
         )
+
+
+def test_image_response_cost_usd_returns_dollars_when_set():
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png")],
+        usage=usage_pb2.SamplingUsage(cost_in_usd_ticks=12345),
+    )
+    assert BaseImageResponse(proto, 0).cost_usd == 12345 * USD_PER_TICK
+
+
+def test_image_response_cost_usd_returns_none_when_unset():
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png")],
+        usage=usage_pb2.SamplingUsage(),
+    )
+    assert BaseImageResponse(proto, 0).cost_usd is None

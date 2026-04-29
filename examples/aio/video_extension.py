@@ -46,9 +46,11 @@ async def main(argv: Sequence[str]) -> None:
             print(f"Respects moderation: {response.respect_moderation}")
             if response.respect_moderation:
                 print(f"Video URL: {response.url}")
+                print(f"Duration: {response.duration}s")
             else:
                 print("Video URL not returned due to moderation.")
-            print(f"Duration: {response.duration}s")
+            if response.cost_usd is not None:
+                print(f"Cost in USD: ${response.cost_usd:.4f}")
 
             # Chain extensions: use the returned URL as the next input video.
             if response.respect_moderation:

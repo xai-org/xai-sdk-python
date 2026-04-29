@@ -1,9 +1,10 @@
 import base64
 import warnings
-from typing import Any, Sequence, Union
+from typing import Any, Optional, Sequence, Union
 
 import grpc
 
+from .cost import cost_usd_from_usage
 from .meta import ProtoDecorator
 from .proto import image_pb2, image_pb2_grpc, usage_pb2
 from .telemetry import should_disable_sensitive_attributes
@@ -60,6 +61,11 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
     def usage(self) -> usage_pb2.SamplingUsage:
         """Token and tool usage for this request."""
         return self._proto.usage
+
+    @property
+    def cost_usd(self) -> Optional[float]:
+        """Cost of the request in USD, or None if the server did not report it."""
+        return cost_usd_from_usage(self._proto.usage)
 
     @property
     def prompt(self) -> str:
@@ -212,6 +218,8 @@ def _make_span_response_attributes(
         attributes["gen_ai.usage.cached_prompt_text_tokens"] = usage.cached_prompt_text_tokens
         attributes["gen_ai.usage.prompt_text_tokens"] = usage.prompt_text_tokens
         attributes["gen_ai.usage.prompt_image_tokens"] = usage.prompt_image_tokens
+        if usage.HasField("cost_in_usd_ticks"):
+            attributes["gen_ai.usage.cost_in_usd_ticks"] = usage.cost_in_usd_ticks
 
     attributes["gen_ai.response.image.format"] = (
         image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower()
