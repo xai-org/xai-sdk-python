@@ -22,7 +22,7 @@ HNSWMetric = Literal["cosine", "euclidean", "inner_product"]
 DocumentRetrievalMode = Literal["hybrid", "semantic", "keyword"]
 
 DEFAULT_INDEXING_POLL_INTERVAL = datetime.timedelta(seconds=10)
-DEFAULT_INDEXING_TIMEOUT = datetime.timedelta(minutes=2)
+DEFAULT_INDEXING_TIMEOUT = datetime.timedelta(seconds=180)
 
 
 class FieldDefinition(TypedDict):
