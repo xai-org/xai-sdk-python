@@ -15,7 +15,7 @@ __all__ = [
 ]
 
 AgentCount: TypeAlias = Literal[4, 16]
-ReasoningEffort: TypeAlias = Literal["low", "high"]
+ReasoningEffort: TypeAlias = Literal["none", "low", "medium", "high"]
 ImageDetail: TypeAlias = Literal["auto", "low", "high"]
 Content: TypeAlias = Union[str, chat_pb2.Content]
 ToolMode: TypeAlias = Literal["auto", "none", "required"]

@@ -137,8 +137,9 @@ class BaseClient(abc.ABC, Generic[T]):
                 decreasing the model's likelihood to repeat the same line verbatim.
             presence_penalty: Positive values penalize new tokens based on whether they appear in the text so far,
                 increasing the model's likelihood to talk about new topics.
-            reasoning_effort: Constrains how hard a reasoning model thinks before responding. Possible values are `low`
-                (uses fewer reasoning tokens) and `high` (uses more reasoning tokens). Defaults to `low`.
+            reasoning_effort: Constrains how hard a reasoning model thinks before responding. Possible values are
+                `none` (no reasoning), `low` (uses fewer reasoning tokens), `medium` (default), and `high`
+                (uses more reasoning tokens). Defaults to `medium`.
             search_parameters: The parameters that control search behavior.
                 This includes settings like search mode, date range, sources (e.g., web, news, or X), and whether
                 to return citations. See `SearchParameters` for detailed configuration options.
@@ -880,8 +881,12 @@ def _process_content(content: Content) -> chat_pb2.Content:
 def _reasoning_effort_to_proto(effort: ReasoningEffort) -> chat_pb2.ReasoningEffort:
     """Converts a `ReasoningEffort` literal to a proto."""
     match effort:
+        case "none":
+            return chat_pb2.ReasoningEffort.EFFORT_NONE
         case "low":
             return chat_pb2.ReasoningEffort.EFFORT_LOW
+        case "medium":
+            return chat_pb2.ReasoningEffort.EFFORT_MEDIUM
         case "high":
             return chat_pb2.ReasoningEffort.EFFORT_HIGH
         case _:

@@ -1315,19 +1315,32 @@ def test_multi_turn_conversation_creates_multiple_spans_with_same_conversation_i
 
 @pytest.mark.parametrize(
     "reasoning_effort",
-    ["low", "high", chat_pb2.ReasoningEffort.EFFORT_LOW, chat_pb2.ReasoningEffort.EFFORT_HIGH],
+    [
+        "none",
+        "low",
+        "medium",
+        "high",
+        chat_pb2.ReasoningEffort.EFFORT_NONE,
+        chat_pb2.ReasoningEffort.EFFORT_LOW,
+        chat_pb2.ReasoningEffort.EFFORT_MEDIUM,
+        chat_pb2.ReasoningEffort.EFFORT_HIGH,
+    ],
 )
 def test_chat_create_with_reasoning(
     client: Client, reasoning_effort: Union[ReasoningEffort, "chat_pb2.ReasoningEffort"]
 ):
     chat = client.chat.create(
-        "grok-3-mini",
+        "grok-4.3",
         reasoning_effort=reasoning_effort,
     )
 
     chat_completion_request = chat.proto
-    if reasoning_effort == "low":
+    if reasoning_effort == "none":
+        assert chat_completion_request.reasoning_effort == chat_pb2.ReasoningEffort.EFFORT_NONE
+    elif reasoning_effort == "low":
         assert chat_completion_request.reasoning_effort == chat_pb2.ReasoningEffort.EFFORT_LOW
+    elif reasoning_effort == "medium":
+        assert chat_completion_request.reasoning_effort == chat_pb2.ReasoningEffort.EFFORT_MEDIUM
     elif reasoning_effort == "high":
         assert chat_completion_request.reasoning_effort == chat_pb2.ReasoningEffort.EFFORT_HIGH
     else:
@@ -1337,10 +1350,10 @@ def test_chat_create_with_reasoning(
 def test_chat_with_reasoning_invalid_value(client: Client):
     with pytest.raises(ValueError) as e:
         client.chat.create(
-            "grok-3-mini",
+            "grok-4.3",
             reasoning_effort="invalid",  # type: ignore
         )
-    assert str(e.value) == "Invalid reasoning effort: invalid. Must be one of: ('low', 'high')"
+    assert str(e.value) == "Invalid reasoning effort: invalid. Must be one of: ('none', 'low', 'medium', 'high')"
 
 
 def test_chat_create_with_tools(client: Client):
