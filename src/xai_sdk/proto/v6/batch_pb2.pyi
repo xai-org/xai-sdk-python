@@ -72,16 +72,18 @@ class EndpointCost(_message.Message):
     def __init__(self, endpoint: _Optional[str] = ..., cost_usd_ticks: _Optional[int] = ..., request_count: _Optional[int] = ...) -> None: ...
 
 class BatchRequest(_message.Message):
-    __slots__ = ("batch_request_id", "completion_request", "image_request", "video_request")
+    __slots__ = ("batch_request_id", "completion_request", "image_request", "video_request", "video_extension_request")
     BATCH_REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
     COMPLETION_REQUEST_FIELD_NUMBER: _ClassVar[int]
     IMAGE_REQUEST_FIELD_NUMBER: _ClassVar[int]
     VIDEO_REQUEST_FIELD_NUMBER: _ClassVar[int]
+    VIDEO_EXTENSION_REQUEST_FIELD_NUMBER: _ClassVar[int]
     batch_request_id: str
     completion_request: _chat_pb2.GetCompletionsRequest
     image_request: _image_pb2.GenerateImageRequest
     video_request: _video_pb2.GenerateVideoRequest
-    def __init__(self, batch_request_id: _Optional[str] = ..., completion_request: _Optional[_Union[_chat_pb2.GetCompletionsRequest, _Mapping]] = ..., image_request: _Optional[_Union[_image_pb2.GenerateImageRequest, _Mapping]] = ..., video_request: _Optional[_Union[_video_pb2.GenerateVideoRequest, _Mapping]] = ...) -> None: ...
+    video_extension_request: _video_pb2.ExtendVideoRequest
+    def __init__(self, batch_request_id: _Optional[str] = ..., completion_request: _Optional[_Union[_chat_pb2.GetCompletionsRequest, _Mapping]] = ..., image_request: _Optional[_Union[_image_pb2.GenerateImageRequest, _Mapping]] = ..., video_request: _Optional[_Union[_video_pb2.GenerateVideoRequest, _Mapping]] = ..., video_extension_request: _Optional[_Union[_video_pb2.ExtendVideoRequest, _Mapping]] = ...) -> None: ...
 
 class BatchResultData(_message.Message):
     __slots__ = ("completion_response", "image_response", "video_response")
@@ -176,14 +178,16 @@ class CancelBatchRequest(_message.Message):
     def __init__(self, batch_id: _Optional[str] = ...) -> None: ...
 
 class ListBatchRequestMetadataRequest(_message.Message):
-    __slots__ = ("batch_id", "limit", "pagination_token")
+    __slots__ = ("batch_id", "limit", "pagination_token", "status")
     BATCH_ID_FIELD_NUMBER: _ClassVar[int]
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     PAGINATION_TOKEN_FIELD_NUMBER: _ClassVar[int]
+    STATUS_FIELD_NUMBER: _ClassVar[int]
     batch_id: str
     limit: int
     pagination_token: str
-    def __init__(self, batch_id: _Optional[str] = ..., limit: _Optional[int] = ..., pagination_token: _Optional[str] = ...) -> None: ...
+    status: _containers.RepeatedScalarFieldContainer[BatchRequestMetadata.State]
+    def __init__(self, batch_id: _Optional[str] = ..., limit: _Optional[int] = ..., pagination_token: _Optional[str] = ..., status: _Optional[_Iterable[_Union[BatchRequestMetadata.State, str]]] = ...) -> None: ...
 
 class ListBatchRequestMetadataResponse(_message.Message):
     __slots__ = ("batch_request_metadata", "pagination_token")
