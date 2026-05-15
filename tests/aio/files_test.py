@@ -718,6 +718,16 @@ async def test_batch_upload_empty_list(client_with_mock_stub: AsyncClient):
         await client_with_mock_stub.files.batch_upload([])
 
 
+@pytest.mark.asyncio
+async def test_batch_upload_invalid_batch_size(client_with_mock_stub: AsyncClient):
+    """Test batch upload rejects non-positive batch sizes."""
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        await client_with_mock_stub.files.batch_upload(["file.txt"], batch_size=0)
+
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        await client_with_mock_stub.files.batch_upload(["file.txt"], batch_size=-1)
+
+
 @mock.patch("xai_sdk.aio.files.tracer")
 @pytest.mark.asyncio
 async def test_upload_creates_span_with_correct_attributes(
@@ -745,7 +755,7 @@ async def test_upload_creates_span_with_correct_attributes(
     )
 
     mock_span.set_attribute.assert_any_call("file.id", result.id)
-    mock_span.set_attribute.assert_any_call("file.filename", result.filename)
+    mock_span.set_attribute.assert_any_call("file.name", result.filename)
 
 
 @mock.patch("xai_sdk.aio.files.tracer")

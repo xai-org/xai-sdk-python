@@ -208,6 +208,8 @@ class Client(BaseClient):
         """
         if len(files) == 0:
             raise ValueError("files cannot be empty - please provide at least one file to upload")
+        if batch_size < 1:
+            raise ValueError("batch_size must be at least 1")
 
         results: dict[int, Union[files_pb2.File, BaseException]] = {}
 

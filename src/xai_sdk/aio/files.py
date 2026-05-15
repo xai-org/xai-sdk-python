@@ -145,7 +145,7 @@ class Client(BaseClient):
             res = await self._stub.UploadFile(chunks)
             if not should_disable_sensitive_attributes():
                 span.set_attribute("file.id", res.id)
-                span.set_attribute("file.filename", res.filename)
+                span.set_attribute("file.name", res.filename)
             return res
 
     async def batch_upload(
@@ -209,6 +209,8 @@ class Client(BaseClient):
         """
         if len(files) == 0:
             raise ValueError("files cannot be empty - please provide at least one file to upload")
+        if batch_size < 1:
+            raise ValueError("batch_size must be at least 1")
 
         semaphore = Semaphore(batch_size)
         results: dict[int, Union[files_pb2.File, BaseException]] = {}
