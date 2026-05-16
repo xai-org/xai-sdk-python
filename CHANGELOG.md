@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **Batch Video Extension**: Added `video.prepare_extension()` to sync and async clients for preparing video extension requests for the Batch API
 
 ## [v1.12.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.12.0) - 2026-04-29
 ### Added

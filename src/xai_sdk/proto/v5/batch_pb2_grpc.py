@@ -51,6 +51,11 @@ class BatchMgmtStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_batch__pb2.ListBatchResultsRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_batch__pb2.ListBatchResultsResponse.FromString,
                 _registered_method=True)
+        self.GetBatchRequestResult = channel.unary_unary(
+                '/xai_api.BatchMgmt/GetBatchRequestResult',
+                request_serializer=xai_dot_api_dot_v1_dot_batch__pb2.GetBatchRequestResultRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_batch__pb2.GetBatchRequestResultResponse.FromString,
+                _registered_method=True)
 
 
 class BatchMgmtServicer(object):
@@ -106,6 +111,13 @@ class BatchMgmtServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetBatchRequestResult(self, request, context):
+        """Retrieves an individual request in a batch.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_BatchMgmtServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -143,6 +155,11 @@ def add_BatchMgmtServicer_to_server(servicer, server):
                     servicer.ListBatchResults,
                     request_deserializer=xai_dot_api_dot_v1_dot_batch__pb2.ListBatchResultsRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_batch__pb2.ListBatchResultsResponse.SerializeToString,
+            ),
+            'GetBatchRequestResult': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetBatchRequestResult,
+                    request_deserializer=xai_dot_api_dot_v1_dot_batch__pb2.GetBatchRequestResultRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_batch__pb2.GetBatchRequestResultResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -345,4 +362,29 @@ class BatchMgmt(object):
             metadata,
             _registered_method=True)
 
-
+    @staticmethod
+    def GetBatchRequestResult(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/xai_api.BatchMgmt/GetBatchRequestResult',
+            xai_dot_api_dot_v1_dot_batch__pb2.GetBatchRequestResultRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_batch__pb2.GetBatchRequestResultResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)

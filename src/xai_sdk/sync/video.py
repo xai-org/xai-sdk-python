@@ -110,6 +110,44 @@ class Client(BaseClient):
             batch_request_id=batch_request_id or "",
         )
 
+    def prepare_extension(
+        self,
+        prompt: str,
+        model: Union[VideoGenerationModel, str],
+        video_url: str,
+        *,
+        batch_request_id: Optional[str] = None,
+        duration: Optional[int] = None,
+    ) -> batch_pb2.BatchRequest:
+        """Prepares a video extension request for batch processing.
+
+        Use this method to prepare video extension requests that can be added to a batch.
+        This does not execute the extension - use `client.batch.add()` to submit requests.
+
+        Args:
+            prompt: Prompt describing what should happen next in the video.
+            model: The model to use for video extension.
+            video_url: The URL of the input video to extend.
+            batch_request_id: An optional user-provided identifier for the batch request.
+                **If provided, it must be unique within the batch.**
+            duration: Duration of the extension segment in seconds (1-10).
+                Defaults to 6 seconds if not specified.
+
+        Returns:
+            A `BatchRequest` proto ready to be added to a batch.
+        """
+        request = _make_extend_request(
+            prompt,
+            model,
+            video_url,
+            duration=duration,
+        )
+
+        return batch_pb2.BatchRequest(
+            video_extension_request=request,
+            batch_request_id=batch_request_id or "",
+        )
+
     def start(
         self,
         prompt: str,

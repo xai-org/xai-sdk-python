@@ -278,6 +278,47 @@ def test_create_with_video_url(client: Client):
     assert batch_req.video_request.video.url == input_video_url
 
 
+def test_prepare_extension_returns_batch_request(client: Client):
+    """Test that prepare_extension() returns a BatchRequest with video_extension_request."""
+    batch_req = client.video.prepare_extension(
+        prompt="Continue the scene",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+        batch_request_id="ext_1",
+    )
+
+    assert isinstance(batch_req, batch_pb2.BatchRequest)
+    assert batch_req.batch_request_id == "ext_1"
+    assert batch_req.HasField("video_extension_request")
+    assert batch_req.video_extension_request.prompt == "Continue the scene"
+    assert batch_req.video_extension_request.model == "grok-imagine-video"
+    assert batch_req.video_extension_request.video.url == "https://example.com/input.mp4"
+
+
+def test_prepare_extension_without_batch_request_id(client: Client):
+    """Test that prepare_extension() works without batch_request_id."""
+    batch_req = client.video.prepare_extension(
+        prompt="Extend this",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+    )
+
+    assert batch_req.batch_request_id == ""
+    assert batch_req.HasField("video_extension_request")
+
+
+def test_prepare_extension_with_duration(client: Client):
+    """Test that prepare_extension() passes duration."""
+    batch_req = client.video.prepare_extension(
+        prompt="More action",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+        duration=8,
+    )
+
+    assert batch_req.video_extension_request.duration == 8
+
+
 def test_generate_warns_on_unknown_status_then_resolves(client: Client):
     """Test that generate emits a warning on unknown deferred status and continues polling."""
     # First poll returns an unknown status (999), second poll returns DONE.
