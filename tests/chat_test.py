@@ -645,6 +645,27 @@ def test_web_search_user_location():
     assert tool.web_search.user_location.timezone == "America/Los_Angeles"
 
 
+def test_attachment_search_tool():
+    """Test that attachment_search util function creates the expected tool."""
+    from xai_sdk.tools import attachment_search
+
+    tool = attachment_search()
+
+    assert isinstance(tool, chat_pb2.Tool)
+    assert tool.HasField("attachment_search")
+    assert not tool.attachment_search.HasField("limit")
+
+
+def test_attachment_search_tool_with_limit():
+    """Test that attachment_search util function sets the optional limit."""
+    from xai_sdk.tools import attachment_search
+
+    tool = attachment_search(limit=5)
+
+    assert tool.HasField("attachment_search")
+    assert tool.attachment_search.limit == 5
+
+
 def test_developer_message():
     """Test that developer() creates a message with ROLE_DEVELOPER role."""
     # Simple string content

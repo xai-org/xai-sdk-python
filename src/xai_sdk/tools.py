@@ -166,6 +166,33 @@ def code_execution() -> chat_pb2.Tool:
     return chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
 
+def attachment_search(limit: Optional[int] = None) -> chat_pb2.Tool:
+    """Creates a server-side tool for searching files attached to the request.
+
+    This tool enables the model to search over file attachments provided in the current
+    request. It can be configured with an optional maximum number of results.
+
+    Args:
+        limit: The maximum number of attachment search results to return. If omitted,
+            the server uses its default limit.
+
+    Returns:
+        A `chat_pb2.Tool` object configured for attachment search.
+
+    Example:
+        ```
+        from xai_sdk.tools import attachment_search
+
+        tool = attachment_search(limit=5)
+        ```
+    """
+    attachment_search_kwargs: dict = {}
+    if limit is not None:
+        attachment_search_kwargs["limit"] = limit
+
+    return chat_pb2.Tool(attachment_search=chat_pb2.AttachmentSearch(**attachment_search_kwargs))
+
+
 def collections_search(
     collection_ids: list[str],
     limit: Optional[int] = None,
