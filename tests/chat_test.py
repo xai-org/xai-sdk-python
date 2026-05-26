@@ -661,6 +661,44 @@ def test_server_side_tool_image_search_enum():
     assert usage_pb2.ServerSideTool.Name(usage_pb2.SERVER_SIDE_TOOL_IMAGE_SEARCH) == "SERVER_SIDE_TOOL_IMAGE_SEARCH"
 
 
+def test_mcp_tool_minimal():
+    """Test that mcp() creates a tool with only server_url set."""
+    from xai_sdk.tools import mcp
+
+    tool = mcp(server_url="https://mcp.example.com")
+
+    assert isinstance(tool, chat_pb2.Tool)
+    assert tool.HasField("mcp")
+    assert tool.mcp.server_url == "https://mcp.example.com"
+    assert tool.mcp.server_label == ""
+    assert tool.mcp.server_description == ""
+    assert list(tool.mcp.allowed_tool_names) == []
+    assert tool.mcp.authorization == ""
+    assert dict(tool.mcp.extra_headers) == {}
+
+
+def test_mcp_tool_all_fields():
+    """Test that mcp() correctly sets every field on the MCP proto."""
+    from xai_sdk.tools import mcp
+
+    tool = mcp(
+        server_url="https://mcp.example.com",
+        server_label="example",
+        server_description="An example MCP server",
+        allowed_tool_names=["search", "lookup"],
+        authorization="Bearer my-token",
+        extra_headers={"X-Trace-Id": "abc123"},
+    )
+
+    assert tool.HasField("mcp")
+    assert tool.mcp.server_url == "https://mcp.example.com"
+    assert tool.mcp.server_label == "example"
+    assert tool.mcp.server_description == "An example MCP server"
+    assert list(tool.mcp.allowed_tool_names) == ["search", "lookup"]
+    assert tool.mcp.authorization == "Bearer my-token"
+    assert dict(tool.mcp.extra_headers) == {"X-Trace-Id": "abc123"}
+
+
 def test_developer_message():
     """Test that developer() creates a message with ROLE_DEVELOPER role."""
     # Simple string content
