@@ -1,7 +1,7 @@
 import pytest
 
 from xai_sdk.chat import Response, _agent_count_to_proto, developer
-from xai_sdk.proto import chat_pb2, sample_pb2
+from xai_sdk.proto import chat_pb2, sample_pb2, usage_pb2
 from xai_sdk.tools import get_tool_call_type
 
 
@@ -643,6 +643,22 @@ def test_web_search_user_location():
     # Verify user_location fields are set correctly
     assert tool.web_search.user_location.city == "San Francisco"
     assert tool.web_search.user_location.timezone == "America/Los_Angeles"
+
+
+def test_web_search_enable_image_search():
+    """Test that web_search util function correctly sets enable_image_search."""
+    from xai_sdk.tools import web_search
+
+    tool = web_search(enable_image_search=True)
+
+    assert isinstance(tool, chat_pb2.Tool)
+    assert tool.HasField("web_search")
+    assert tool.web_search.enable_image_search is True
+
+
+def test_server_side_tool_image_search_enum():
+    assert usage_pb2.SERVER_SIDE_TOOL_IMAGE_SEARCH == 10
+    assert usage_pb2.ServerSideTool.Name(usage_pb2.SERVER_SIDE_TOOL_IMAGE_SEARCH) == "SERVER_SIDE_TOOL_IMAGE_SEARCH"
 
 
 def test_developer_message():
