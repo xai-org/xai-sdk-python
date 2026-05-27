@@ -1447,6 +1447,7 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
             web_search(
                 excluded_domains=["spam.com", "unwanted.com"],
                 enable_image_understanding=True,
+                enable_image_search=True,
             ),
             x_search(
                 from_date=from_date,
@@ -1472,6 +1473,7 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
         web_search=chat_pb2.WebSearch(
             excluded_domains=["spam.com", "unwanted.com"],
             enable_image_understanding=True,
+            enable_image_search=True,
         )
     )
 

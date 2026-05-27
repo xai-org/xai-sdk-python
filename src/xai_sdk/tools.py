@@ -12,6 +12,7 @@ def web_search(
     allowed_domains: Optional[list[str]] = None,
     *,
     enable_image_understanding: bool = False,
+    enable_image_search: bool = False,
     user_location_country: Optional[str] = None,
     user_location_city: Optional[str] = None,
     user_location_region: Optional[str] = None,
@@ -21,7 +22,7 @@ def web_search(
 
     This tool enables the model to perform web searches and access online content during
     conversation. It can be configured to restrict or exclude specific domains and enable
-    image understanding capabilities.
+    image search and image understanding capabilities.
 
     Args:
         excluded_domains: List of website domains (without protocol specification or subdomains)
@@ -33,6 +34,7 @@ def web_search(
             allowed. Use this as a whitelist to limit results to only these specific sites; no
             other websites will be considered. This parameter cannot be set together with `excluded_domains`.
         enable_image_understanding: Enables understanding/interpreting images encountered during the web search process.
+        enable_image_search: Enables searching for image results that can be embedded in responses.
         user_location_country: Optional country of the user. ISO 3166-1 alpha-2 code.
         user_location_city: Optional freeform text to indicate the city of the user.
         user_location_region: Optional freeform text to indicate the region of the user.
@@ -49,6 +51,7 @@ def web_search(
         tool = web_search(
             excluded_domains=["spam-site.com", "unwanted.com"],
             enable_image_understanding=True,
+            enable_image_search=True,
             user_location_country="US",
             user_location_city="San Francisco",
             user_location_timezone="America/Los_Angeles",
@@ -73,6 +76,7 @@ def web_search(
             excluded_domains=excluded_domains,
             allowed_domains=allowed_domains,
             enable_image_understanding=enable_image_understanding,
+            enable_image_search=enable_image_search,
             user_location=user_location,
         )
     )

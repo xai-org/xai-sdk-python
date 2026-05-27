@@ -458,16 +458,18 @@ class MCP(_message.Message):
     def __init__(self, server_label: _Optional[str] = ..., server_description: _Optional[str] = ..., server_url: _Optional[str] = ..., allowed_tool_names: _Optional[_Iterable[str]] = ..., authorization: _Optional[str] = ..., extra_headers: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class WebSearch(_message.Message):
-    __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding", "user_location")
+    __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding", "enable_image_search", "user_location")
     EXCLUDED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
     ALLOWED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
     ENABLE_IMAGE_UNDERSTANDING_FIELD_NUMBER: _ClassVar[int]
+    ENABLE_IMAGE_SEARCH_FIELD_NUMBER: _ClassVar[int]
     USER_LOCATION_FIELD_NUMBER: _ClassVar[int]
     excluded_domains: _containers.RepeatedScalarFieldContainer[str]
     allowed_domains: _containers.RepeatedScalarFieldContainer[str]
     enable_image_understanding: bool
+    enable_image_search: bool
     user_location: WebSearchUserLocation
-    def __init__(self, excluded_domains: _Optional[_Iterable[str]] = ..., allowed_domains: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ..., user_location: _Optional[_Union[WebSearchUserLocation, _Mapping]] = ...) -> None: ...
+    def __init__(self, excluded_domains: _Optional[_Iterable[str]] = ..., allowed_domains: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ..., enable_image_search: bool = ..., user_location: _Optional[_Union[WebSearchUserLocation, _Mapping]] = ...) -> None: ...
 
 class WebSearchUserLocation(_message.Message):
     __slots__ = ("country", "city", "region", "timezone")
