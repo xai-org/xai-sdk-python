@@ -29,6 +29,7 @@ ChatModel: TypeAlias = Literal[
     "grok-4.3",
     "grok-4.3-latest",
     "grok-code-fast-1",
+    "grok-build-0.1",
     "grok-3",
     "grok-3-latest",
     "grok-3-mini",
