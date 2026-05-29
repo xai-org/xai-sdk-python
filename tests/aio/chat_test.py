@@ -1,6 +1,7 @@
+import asyncio
 import json
 from datetime import datetime, timezone
-from typing import Union
+from typing import Any, Union
 from unittest import mock
 
 import grpc
@@ -11,6 +12,7 @@ from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
 
 from xai_sdk import AsyncClient
+from xai_sdk.aio.chat import Chat
 from xai_sdk.chat import (
     ImageDetail,
     ReasoningEffort,
@@ -31,6 +33,35 @@ from xai_sdk.search import SearchParameters, news_source, rss_source, web_source
 from xai_sdk.tools import code_execution, web_search, x_search
 
 from .. import server
+
+
+class _BlockingAsyncStream:
+    def __init__(self) -> None:
+        self.started = asyncio.Event()
+        self.cancelled = False
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        self.started.set()
+        while not self.cancelled:
+            await asyncio.sleep(0.01)
+        raise asyncio.CancelledError
+
+    def cancel(self) -> bool:
+        self.cancelled = True
+        return True
+
+
+class _StreamingStub:
+    def __init__(self, stream: _BlockingAsyncStream) -> None:
+        self.stream = stream
+        self.request = None
+
+    def GetCompletionChunk(self, request):  # noqa: N802
+        self.request = request
+        return self.stream
 
 
 @pytest.fixture(scope="session")
@@ -92,6 +123,25 @@ async def test_streaming(client):
 
     assert last_response is not None
     assert last_response.content == "Hello, this is a test response!"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_streaming_can_be_closed_while_iterating():
+    blocking_stream = _BlockingAsyncStream()
+    stub: Any = _StreamingStub(blocking_stream)
+    chat = Chat(stub, None, batch_request_id=None, model="grok-3-latest")
+    chat.append(user("test message"))
+    stream = chat.stream()
+
+    read_task = asyncio.create_task(stream.__anext__())
+    await blocking_stream.started.wait()
+    assert stream.grpc_call is blocking_stream
+
+    await stream.aclose()
+
+    with pytest.raises(asyncio.CancelledError):
+        await read_task
+    assert blocking_stream.cancelled
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -869,7 +919,7 @@ async def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mo
 @pytest.mark.asyncio(loop_scope="session")
 async def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
     mock_span = mock.MagicMock()
-    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+    mock_tracer.start_span.return_value = mock_span
 
     conversation_id = "test-conversation-id"
     chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
@@ -904,7 +954,7 @@ async def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.request.use_encrypted_content": False,
     }
 
-    mock_tracer.start_as_current_span.assert_called_once_with(
+    mock_tracer.start_span.assert_called_once_with(
         name="chat.stream grok-3",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
@@ -928,13 +978,14 @@ async def test_stream_creates_span_with_correct_attributes(mock_tracer: mock.Mag
         "gen_ai.completion.0.content": final_response.content,
     }
     mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+    mock_span.end.assert_called_once()
 
 
 @mock.patch("xai_sdk.aio.chat.tracer")
 @pytest.mark.asyncio(loop_scope="session")
 async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
     mock_span = mock.MagicMock()
-    mock_tracer.start_as_current_span.return_value.__enter__.return_value = mock_span
+    mock_tracer.start_span.return_value = mock_span
 
     conversation_id = "test-conversation-id"
     chat = client.chat.create(model="grok-3", conversation_id=conversation_id)
@@ -970,7 +1021,7 @@ async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.request.use_encrypted_content": False,
     }
 
-    mock_tracer.start_as_current_span.assert_called_once_with(
+    mock_tracer.start_span.assert_called_once_with(
         name="chat.stream_batch grok-3",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
@@ -996,13 +1047,12 @@ async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.completion.1.content": final_responses[1].content,
     }
     mock_span.set_attributes.assert_called_once_with(expected_response_attributes)
+    mock_span.end.assert_called_once()
 
 
 @mock.patch("xai_sdk.aio.chat.tracer")
 @pytest.mark.asyncio(loop_scope="session")
 async def test_parse_creates_span_with_correct_attributes(mock_tracer: mock.MagicMock, client: AsyncClient):
-    from pydantic import BaseModel
-
     class TestResponse(BaseModel):
         city: str
         units: str
