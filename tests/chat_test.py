@@ -1,6 +1,6 @@
 import pytest
 
-from xai_sdk.chat import Response, _agent_count_to_proto, developer
+from xai_sdk.chat import CompactContextResponse, Response, _agent_count_to_proto, developer
 from xai_sdk.proto import chat_pb2, sample_pb2, usage_pb2
 from xai_sdk.tools import get_tool_call_type
 
@@ -706,3 +706,130 @@ def test_agent_count_on_request_proto():
         agent_count=chat_pb2.AgentCount.AGENT_COUNT_16,
     )
     assert request.agent_count == chat_pb2.AgentCount.AGENT_COUNT_16
+
+
+def test_compact_context_response_id():
+    """Test that CompactContextResponse.id returns the id from the proto."""
+    proto = chat_pb2.CompactContextResponse(id="compact-abc123")
+    response = CompactContextResponse(proto)
+    assert response.id == "compact-abc123"
+
+
+def test_compact_context_response_encrypted_content():
+    """Test that CompactContextResponse.encrypted_content returns the encrypted_content from the proto."""
+    proto = chat_pb2.CompactContextResponse(encrypted_content="opaque-encrypted-blob")
+    response = CompactContextResponse(proto)
+    assert response.encrypted_content == "opaque-encrypted-blob"
+
+
+def test_compact_context_response_dropped_message_count():
+    """Test that CompactContextResponse.dropped_message_count returns the count from the proto."""
+    proto = chat_pb2.CompactContextResponse(dropped_message_count=5)
+    response = CompactContextResponse(proto)
+    assert response.dropped_message_count == 5
+
+
+def test_compact_context_response_dropped_message_count_zero():
+    """Test that dropped_message_count defaults to 0 when not set."""
+    proto = chat_pb2.CompactContextResponse()
+    response = CompactContextResponse(proto)
+    assert response.dropped_message_count == 0
+
+
+def test_compact_context_response_usage():
+    """Test that CompactContextResponse.usage returns the SamplingUsage from the proto."""
+    usage = usage_pb2.SamplingUsage(
+        prompt_tokens=100,
+        completion_tokens=20,
+        total_tokens=120,
+        reasoning_tokens=10,
+    )
+    proto = chat_pb2.CompactContextResponse(usage=usage)
+    response = CompactContextResponse(proto)
+    assert response.usage.prompt_tokens == 100
+    assert response.usage.completion_tokens == 20
+    assert response.usage.total_tokens == 120
+    assert response.usage.reasoning_tokens == 10
+
+
+def test_compact_context_response_all_fields():
+    """Test CompactContextResponse with all fields populated."""
+    usage = usage_pb2.SamplingUsage(
+        prompt_tokens=50,
+        completion_tokens=10,
+        total_tokens=60,
+    )
+    proto = chat_pb2.CompactContextResponse(
+        id="compact-xyz",
+        encrypted_content="encrypted-payload",
+        dropped_message_count=3,
+        usage=usage,
+    )
+    response = CompactContextResponse(proto)
+    assert response.id == "compact-xyz"
+    assert response.encrypted_content == "encrypted-payload"
+    assert response.dropped_message_count == 3
+    assert response.usage.prompt_tokens == 50
+    assert response.usage.total_tokens == 60
+
+
+def test_compact_context_response_proto_accessible():
+    """Test that the underlying proto is accessible via the .proto property."""
+    proto = chat_pb2.CompactContextResponse(
+        id="compact-test",
+        encrypted_content="content",
+        dropped_message_count=1,
+    )
+    response = CompactContextResponse(proto)
+    assert response.proto == proto
+    assert response.proto.id == "compact-test"
+
+
+def test_compact_context_response_empty_encrypted_content():
+    """Test CompactContextResponse when encrypted_content is empty."""
+    proto = chat_pb2.CompactContextResponse(id="compact-empty", encrypted_content="")
+    response = CompactContextResponse(proto)
+    assert response.encrypted_content == ""
+
+
+def test_append_compact_context_response_creates_user_message():
+    """Test that append(CompactContextResponse) produces a ROLE_USER message with encrypted_content."""
+    from xai_sdk.proto import chat_pb2_grpc
+    from xai_sdk.sync.chat import Chat as SyncChat
+
+    proto = chat_pb2.CompactContextResponse(
+        id="compact-test",
+        encrypted_content="opaque-blob",
+    )
+    compact_resp = CompactContextResponse(proto)
+
+    # Create a minimal Chat to test append behavior.
+    stub = chat_pb2_grpc.ChatStub.__new__(chat_pb2_grpc.ChatStub)
+    chat = SyncChat(stub, None, None, model="grok-4.3")
+    chat.append(compact_resp)
+
+    assert len(chat.messages) == 1
+    assert chat.messages[0].role == chat_pb2.MessageRole.ROLE_USER
+    assert chat.messages[0].encrypted_content == "opaque-blob"
+    assert len(chat.messages[0].content) == 0
+
+
+def test_append_compact_context_response_clears_existing_messages():
+    """Test that appending a CompactContextResponse clears prior messages."""
+    from xai_sdk.chat import user as user_msg
+    from xai_sdk.proto import chat_pb2_grpc
+    from xai_sdk.sync.chat import Chat as SyncChat
+
+    proto = chat_pb2.CompactContextResponse(encrypted_content="blob")
+    compact_resp = CompactContextResponse(proto)
+
+    stub = chat_pb2_grpc.ChatStub.__new__(chat_pb2_grpc.ChatStub)
+    chat = SyncChat(stub, None, None, model="grok-4.3")
+    chat.append(user_msg("Hello"))
+    assert len(chat.messages) == 1
+
+    chat.append(compact_resp)
+
+    assert len(chat.messages) == 1
+    assert chat.messages[0].role == chat_pb2.MessageRole.ROLE_USER
+    assert chat.messages[0].encrypted_content == "blob"

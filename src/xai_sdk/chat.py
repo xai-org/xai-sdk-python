@@ -281,7 +281,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         self._conversation_id = conversation_id
         self._batch_request_id = batch_request_id
 
-    def append(self, message: Union[chat_pb2.Message, "Response"]) -> Self:
+    def append(self, message: Union[chat_pb2.Message, "Response", "CompactContextResponse"]) -> Self:
         """Adds a new message to the conversation history, enabling multi-turn interactions.
 
         This method appends a message to the chat's message sequence, which can be a user input,
@@ -334,14 +334,25 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
             ```
 
         Args:
-            message: The message to append, either a `chat_pb2.Message` (e.g., created by `user`,
-                `system`, `assistant`, or `tool_result`) or a `Response` object from a previous
-                chat interaction.
+            message: The message to append. Can be a ``chat_pb2.Message`` (e.g., created by
+                ``user``, ``system``, ``assistant``, or ``tool_result``), a ``Response`` from a
+                previous chat interaction, or a ``CompactContextResponse`` from
+                ``client.chat.compact_context()``. **Note:** appending a
+                ``CompactContextResponse`` drops all previous messages and replaces
+                them with the compacted context.
 
         Returns:
             Self: The chat object, enabling method chaining.
         """
-        if isinstance(message, chat_pb2.Message):
+        if isinstance(message, CompactContextResponse):
+            del self._proto.messages[:]
+            self._proto.messages.append(
+                chat_pb2.Message(
+                    role=chat_pb2.MessageRole.ROLE_USER,
+                    encrypted_content=message.encrypted_content,
+                )
+            )
+        elif isinstance(message, chat_pb2.Message):
             self._proto.messages.append(message)
         elif isinstance(message, Response):
             if message._index is None:
@@ -601,6 +612,17 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
     def messages(self) -> Sequence[chat_pb2.Message]:
         """Returns the messages in the conversation."""
         return self._proto.messages
+
+    def _make_compact_request(self) -> chat_pb2.CompactContextRequest:
+        """Creates a CompactContextRequest from the chat's current model and messages."""
+        return chat_pb2.CompactContextRequest(
+            model=self._proto.model,
+            input=self._proto.messages,
+        )
+
+    def _apply_compaction(self, response: "CompactContextResponse") -> None:
+        """Replaces all messages with the compaction message to reduce payload size."""
+        self.append(response)
 
 
 def user(*args: Content) -> chat_pb2.Message:
@@ -1324,3 +1346,34 @@ class Response(_ResponseProtoDecorator):
     def debug_output(self) -> chat_pb2.DebugOutput:
         """Returns the debug output of this response. Only available to trusted testers."""
         return self.proto.debug_output
+
+
+class CompactContextResponse(ProtoDecorator[chat_pb2.CompactContextResponse]):
+    """Response from a context compaction request.
+
+    Wraps a ``CompactContextResponse`` proto with convenience accessors.
+    The ``encrypted_content`` string is an opaque, compact representation
+    of the input messages produced by the model. It can be passed back
+    as an ``encrypted_content`` field on an assistant message in a
+    follow-up chat request to hydrate the compacted context.
+    """
+
+    @property
+    def id(self) -> str:
+        """Unique identifier for this compaction response."""
+        return self._proto.id
+
+    @property
+    def encrypted_content(self) -> str:
+        """Opaque compacted representation of the input messages."""
+        return self._proto.encrypted_content
+
+    @property
+    def dropped_message_count(self) -> int:
+        """Number of input messages that were dropped during compaction."""
+        return self._proto.dropped_message_count
+
+    @property
+    def usage(self) -> usage_pb2.SamplingUsage:
+        """Token usage for the compaction request."""
+        return self._proto.usage

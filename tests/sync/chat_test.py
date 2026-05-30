@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from xai_sdk import Client
 from xai_sdk.chat import (
     Chunk,
+    CompactContextResponse,
     ImageDetail,
     ReasoningEffort,
     Response,
@@ -2008,3 +2009,105 @@ def test_chat_response_cost_usd_returns_none_when_unset():
         usage=usage_pb2.SamplingUsage(),
     )
     assert Response(proto, index=0).cost_usd is None
+
+
+def test_compact_context(client: Client):
+    messages = [
+        system("You are a helpful assistant."),
+        user("Hello, how are you?"),
+        assistant("I'm doing well, thank you!"),
+        user("Tell me a joke."),
+    ]
+    compact = client.chat.compact_context(model="grok-4.3", messages=messages)
+
+    assert isinstance(compact, CompactContextResponse)
+    assert compact.id.startswith("compact-")
+    assert compact.encrypted_content == "compacted-encrypted-content"
+    assert compact.dropped_message_count == 2
+    assert compact.usage.prompt_tokens == 40
+    assert compact.usage.completion_tokens == 5
+    assert compact.usage.total_tokens == 45
+
+
+def test_compact_context_single_message(client: Client):
+    messages = [user("Hello")]
+    compact = client.chat.compact_context(model="grok-4.3", messages=messages)
+
+    assert compact.encrypted_content == "compacted-encrypted-content"
+    assert compact.dropped_message_count == 0
+    assert compact.usage.prompt_tokens == 10
+
+
+def test_compact_context_proto_accessible(client: Client):
+    messages = [user("Hello"), assistant("Hi there!")]
+    compact = client.chat.compact_context(model="grok-4.3", messages=messages)
+
+    assert compact.proto.id == compact.id
+    assert compact.proto.encrypted_content == compact.encrypted_content
+    assert compact.proto.dropped_message_count == compact.dropped_message_count
+
+
+def test_compact_context_empty_messages(client: Client):
+    compact = client.chat.compact_context(model="grok-4.3", messages=[])
+
+    assert compact.encrypted_content == "compacted-encrypted-content"
+    assert compact.dropped_message_count == 0
+    assert compact.usage.prompt_tokens == 0
+
+
+def test_compact_context_then_use_in_chat(client: Client):
+    """End-to-end: compact a conversation, then use the encrypted_content in a follow-up chat."""
+    messages = [
+        system("You are a helpful assistant."),
+        user("Hello, how are you?"),
+        assistant("I'm doing well, thank you!"),
+    ]
+    compact = client.chat.compact_context(model="grok-4.3", messages=messages)
+
+    chat = client.chat.create(model="grok-4.3", use_encrypted_content=True)
+    chat.append(compact)
+    chat.append(user("Tell me a joke."))
+    response = chat.sample()
+
+    assert response.content == "Hello, this is a test response!"
+    assert chat.messages[-1].role == chat_pb2.ROLE_USER
+    assert chat.messages[-2].role == chat_pb2.ROLE_USER
+    assert chat.messages[-2].encrypted_content == compact.encrypted_content
+
+
+def test_chat_compact_in_place(client: Client):
+    """Test that chat.compact() appends a compaction message to the conversation."""
+    chat = client.chat.create(model="grok-4.3")
+    chat.append(system("You are helpful."))
+    chat.append(user("Hello"))
+    chat.append(assistant("Hi there!"))
+    chat.append(user("Tell me a joke."))
+    assert len(chat.messages) == 4
+
+    compact = chat.compact()
+
+    assert isinstance(compact, CompactContextResponse)
+    assert compact.encrypted_content == "compacted-encrypted-content"
+    assert compact.dropped_message_count == 2
+    # Prior messages are dropped to reduce payload size
+    assert len(chat.messages) == 1
+    assert chat.messages[0].role == chat_pb2.ROLE_USER
+    assert chat.messages[0].encrypted_content == "compacted-encrypted-content"
+    assert len(chat.messages[0].content) == 0
+
+
+def test_chat_compact_then_continue(client: Client):
+    """Test that chat works normally after compaction."""
+    chat = client.chat.create(model="grok-4.3")
+    chat.append(user("Hello"))
+    chat.append(assistant("Hi!"))
+    chat.append(user("How are you?"))
+
+    chat.compact()
+
+    # Should be able to append and sample after compaction
+    chat.append(user("Tell me something."))
+    response = chat.sample()
+    assert response.content == "Hello, this is a test response!"
+    # compaction message + new user message
+    assert len(chat.messages) == 2

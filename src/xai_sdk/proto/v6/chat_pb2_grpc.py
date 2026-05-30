@@ -46,6 +46,11 @@ class ChatStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionResponse.FromString,
                 _registered_method=True)
+        self.CompactContext = channel.unary_unary(
+                '/xai_api.Chat/CompactContext',
+                request_serializer=xai_dot_api_dot_v1_dot_chat__pb2.CompactContextRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.CompactContextResponse.FromString,
+                _registered_method=True)
 
 
 class ChatServicer(object):
@@ -98,6 +103,16 @@ class ChatServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CompactContext(self, request, context):
+        """Compacts a full responses input context and returns a compacted context.
+        The client sends the current input items and receives back a compacted
+        set of items (with an opaque compaction summary) suitable for use as
+        the input to the next /v1/responses call.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_ChatServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -130,6 +145,11 @@ def add_ChatServicer_to_server(servicer, server):
                     servicer.DeleteStoredCompletion,
                     request_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionResponse.SerializeToString,
+            ),
+            'CompactContext': grpc.unary_unary_rpc_method_handler(
+                    servicer.CompactContext,
+                    request_deserializer=xai_dot_api_dot_v1_dot_chat__pb2.CompactContextRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_chat__pb2.CompactContextResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -295,6 +315,33 @@ class Chat(object):
             '/xai_api.Chat/DeleteStoredCompletion',
             xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionRequest.SerializeToString,
             xai_dot_api_dot_v1_dot_chat__pb2.DeleteStoredCompletionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CompactContext(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/xai_api.Chat/CompactContext',
+            xai_dot_api_dot_v1_dot_chat__pb2.CompactContextRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_chat__pb2.CompactContextResponse.FromString,
             options,
             channel_credentials,
             insecure,
