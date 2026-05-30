@@ -572,6 +572,19 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
 
         return self._stored_completions[request.response_id]
 
+    def CompactContext(self, request: chat_pb2.CompactContextRequest, context: grpc.ServicerContext):
+        """Returns a dummy compact context response."""
+        _check_auth(context)
+
+        return chat_pb2.CompactContextResponse(
+            id=f"compact-{uuid.uuid4()}",
+            encrypted_content="compacted-encrypted-content",
+            dropped_message_count=max(0, len(request.input) - 2),
+            usage=usage_pb2.SamplingUsage(
+                prompt_tokens=len(request.input) * 10, completion_tokens=5, total_tokens=len(request.input) * 10 + 5
+            ),
+        )
+
     def DeleteStoredCompletion(self, request: chat_pb2.DeleteStoredCompletionRequest, context: grpc.ServicerContext):
         """Deletes a stored completion response."""
         _check_auth(context)

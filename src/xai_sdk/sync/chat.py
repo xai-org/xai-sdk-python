@@ -2,15 +2,16 @@ import datetime
 import json
 import time
 import warnings
-from typing import Iterator, Optional, Sequence, TypeVar
+from typing import Iterator, Optional, Sequence, TypeVar, Union
 
 from opentelemetry.trace import SpanKind
 from pydantic import BaseModel
 
-from ..chat import BaseChat, BaseClient, Chunk, Response
+from ..chat import BaseChat, BaseClient, Chunk, CompactContextResponse, Response
 from ..poll_timer import PollTimer
 from ..proto import chat_pb2, deferred_pb2
 from ..telemetry import get_tracer
+from ..types import ChatModel
 
 
 class Client(BaseClient["Chat"]):
@@ -50,6 +51,39 @@ class Client(BaseClient["Chat"]):
         response = self._stub.GetStoredCompletion(chat_pb2.GetStoredCompletionRequest(response_id=response_id))
         return [Response(response, i) for i in range(len(response.outputs))]
 
+    def compact_context(
+        self,
+        model: Union[ChatModel, str],
+        messages: Sequence[chat_pb2.Message],
+    ) -> CompactContextResponse:
+        """Compacts a conversation context into an opaque encrypted representation.
+
+        Sends the current input messages to the server which returns a compacted
+        context. The resulting ``encrypted_content`` can be used in a follow-up
+        chat request via an assistant message with the ``encrypted_content`` field
+        set, allowing the model to hydrate the summarised context without sending
+        the full message history.
+
+        Args:
+            model: Model to use for compaction, e.g. ``"grok-4.3"``.
+            messages: The conversation messages to compact.
+
+        Returns:
+            CompactContextResponse: A response containing the ``encrypted_content``
+                string, the number of dropped messages, and token usage.
+
+        Example:
+            >>> from xai_sdk.chat import user, system
+            >>> compact = client.chat.compact_context(
+            ...     model="grok-4.3",
+            ...     messages=[system("You are helpful."), user("Summarise our chat.")],
+            ... )
+            >>> print(compact.encrypted_content)
+        """
+        request = chat_pb2.CompactContextRequest(model=model, input=messages)
+        response = self._stub.CompactContext(request)
+        return CompactContextResponse(response)
+
     def delete_stored_completion(self, response_id: str) -> str:
         """Deletes a stored chat completion response from the xAI backend.
 
@@ -81,6 +115,35 @@ tracer = get_tracer(__name__)
 
 class Chat(BaseChat):
     """Utility class for simplifying the interaction with Chat requests and responses."""
+
+    def compact(self) -> CompactContextResponse:
+        """Compacts the current conversation history.
+
+        Sends all messages to the CompactContext RPC and appends the resulting
+        compaction message to the conversation. Prior messages are kept
+        client-side; the server will automatically drop everything before the
+        last compaction message when processing the next request.
+
+        Returns:
+            CompactContextResponse: The compaction response with token usage
+                and dropped message count.
+
+        Example:
+            >>> chat = client.chat.create(model="grok-4.3")
+            >>> chat.append(user("Hello!"))
+            >>> response = chat.sample()
+            >>> chat.append(response)
+            >>> # ... many turns later ...
+            >>> compact = chat.compact()
+            >>> print(f"Dropped {compact.dropped_message_count} messages")
+            >>> # Continue chatting on top of compacted context
+            >>> chat.append(user("What did we discuss?"))
+            >>> response = chat.sample()
+        """
+        response_pb = self._stub.CompactContext(self._make_compact_request())
+        result = CompactContextResponse(response_pb)
+        self._apply_compaction(result)
+        return result
 
     def sample(self) -> Response:
         """Samples a single chat completion response from the model.

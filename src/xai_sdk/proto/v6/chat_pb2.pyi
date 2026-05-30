@@ -458,18 +458,18 @@ class MCP(_message.Message):
     def __init__(self, server_label: _Optional[str] = ..., server_description: _Optional[str] = ..., server_url: _Optional[str] = ..., allowed_tool_names: _Optional[_Iterable[str]] = ..., authorization: _Optional[str] = ..., extra_headers: _Optional[_Mapping[str, str]] = ...) -> None: ...
 
 class WebSearch(_message.Message):
-    __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding", "enable_image_search", "user_location")
+    __slots__ = ("excluded_domains", "allowed_domains", "enable_image_understanding", "user_location", "enable_image_search")
     EXCLUDED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
     ALLOWED_DOMAINS_FIELD_NUMBER: _ClassVar[int]
     ENABLE_IMAGE_UNDERSTANDING_FIELD_NUMBER: _ClassVar[int]
-    ENABLE_IMAGE_SEARCH_FIELD_NUMBER: _ClassVar[int]
     USER_LOCATION_FIELD_NUMBER: _ClassVar[int]
+    ENABLE_IMAGE_SEARCH_FIELD_NUMBER: _ClassVar[int]
     excluded_domains: _containers.RepeatedScalarFieldContainer[str]
     allowed_domains: _containers.RepeatedScalarFieldContainer[str]
     enable_image_understanding: bool
-    enable_image_search: bool
     user_location: WebSearchUserLocation
-    def __init__(self, excluded_domains: _Optional[_Iterable[str]] = ..., allowed_domains: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ..., enable_image_search: bool = ..., user_location: _Optional[_Union[WebSearchUserLocation, _Mapping]] = ...) -> None: ...
+    enable_image_search: bool
+    def __init__(self, excluded_domains: _Optional[_Iterable[str]] = ..., allowed_domains: _Optional[_Iterable[str]] = ..., enable_image_understanding: bool = ..., user_location: _Optional[_Union[WebSearchUserLocation, _Mapping]] = ..., enable_image_search: bool = ...) -> None: ...
 
 class WebSearchUserLocation(_message.Message):
     __slots__ = ("country", "city", "region", "timezone")
@@ -712,3 +712,23 @@ class DebugOutput(_message.Message):
     lb_address: str
     sampler_tag: str
     def __init__(self, attempts: _Optional[int] = ..., request: _Optional[str] = ..., prompt: _Optional[str] = ..., engine_request: _Optional[str] = ..., responses: _Optional[_Iterable[str]] = ..., chunks: _Optional[_Iterable[str]] = ..., cache_read_count: _Optional[int] = ..., cache_read_input_bytes: _Optional[int] = ..., cache_write_count: _Optional[int] = ..., cache_write_input_bytes: _Optional[int] = ..., lb_address: _Optional[str] = ..., sampler_tag: _Optional[str] = ...) -> None: ...
+
+class CompactContextRequest(_message.Message):
+    __slots__ = ("model", "input")
+    MODEL_FIELD_NUMBER: _ClassVar[int]
+    INPUT_FIELD_NUMBER: _ClassVar[int]
+    model: str
+    input: _containers.RepeatedCompositeFieldContainer[Message]
+    def __init__(self, model: _Optional[str] = ..., input: _Optional[_Iterable[_Union[Message, _Mapping]]] = ...) -> None: ...
+
+class CompactContextResponse(_message.Message):
+    __slots__ = ("id", "encrypted_content", "dropped_message_count", "usage")
+    ID_FIELD_NUMBER: _ClassVar[int]
+    ENCRYPTED_CONTENT_FIELD_NUMBER: _ClassVar[int]
+    DROPPED_MESSAGE_COUNT_FIELD_NUMBER: _ClassVar[int]
+    USAGE_FIELD_NUMBER: _ClassVar[int]
+    id: str
+    encrypted_content: str
+    dropped_message_count: int
+    usage: _usage_pb2.SamplingUsage
+    def __init__(self, id: _Optional[str] = ..., encrypted_content: _Optional[str] = ..., dropped_message_count: _Optional[int] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ...) -> None: ...
