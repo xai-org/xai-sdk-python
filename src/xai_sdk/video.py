@@ -8,6 +8,7 @@ from .meta import ProtoDecorator
 from .proto import image_pb2, usage_pb2, video_pb2, video_pb2_grpc
 from .telemetry import should_disable_sensitive_attributes
 from .types import VideoGenerationModel
+from .types.chat import ServiceTier
 from .types.video import VideoAspectRatio, VideoAspectRatioMap, VideoResolution, VideoResolutionMap
 
 DEFAULT_VIDEO_POLL_INTERVAL = datetime.timedelta(seconds=1)
@@ -98,6 +99,7 @@ def _make_generate_request(
     aspect_ratio: Optional[VideoAspectRatio],
     resolution: Optional[VideoResolution],
     reference_image_urls: Optional[Sequence[str]],
+    service_tier: Optional[Union[ServiceTier, "usage_pb2.ServiceTier"]] = None,
 ) -> video_pb2.GenerateVideoRequest:
     request = video_pb2.GenerateVideoRequest(prompt=prompt, model=model)
 
@@ -126,6 +128,10 @@ def _make_generate_request(
                 for url in reference_image_urls
             ]
         )
+    if service_tier is not None:
+        from .chat import _service_tier_to_proto
+
+        request.service_tier = _service_tier_to_proto(service_tier) if isinstance(service_tier, str) else service_tier
 
     return request
 
@@ -193,6 +199,7 @@ def _make_extend_request(
     video_url: str,
     *,
     duration: Optional[int],
+    service_tier: Optional[Union[ServiceTier, "usage_pb2.ServiceTier"]] = None,
 ) -> video_pb2.ExtendVideoRequest:
     request = video_pb2.ExtendVideoRequest(
         prompt=prompt,
@@ -202,6 +209,10 @@ def _make_extend_request(
 
     if duration is not None:
         request.duration = duration
+    if service_tier is not None:
+        from .chat import _service_tier_to_proto
+
+        request.service_tier = _service_tier_to_proto(service_tier) if isinstance(service_tier, str) else service_tier
     return request
 
 

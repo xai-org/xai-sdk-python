@@ -23,6 +23,7 @@ from .types import (
     IncludeOptionMap,
     ReasoningEffort,
     ResponseFormat,
+    ServiceTier,
     ToolMode,
 )
 
@@ -67,6 +68,7 @@ class BaseClient(abc.ABC, Generic[T]):
         include: Optional[Sequence[Union[IncludeOption, "chat_pb2.IncludeOption"]]] = None,
         agent_count: Optional[Union[AgentCount, "chat_pb2.AgentCount"]] = None,
         batch_request_id: Optional[str] = None,
+        service_tier: Optional[Union[ServiceTier, "usage_pb2.ServiceTier"]] = None,
     ) -> T:
         """Creates a new chat conversation.
 
@@ -175,6 +177,9 @@ class BaseClient(abc.ABC, Generic[T]):
             batch_request_id: An optional user-provided identifier for the batch request. **If provided, it must be
               unique within the batch.**Used to identify the corresponding result when the response is returned to the
               user.
+            service_tier: The processing tier for this request. Set to `"priority"` for higher
+                scheduling priority. Valid values: `"auto"` (default), `"default"`, `"priority"`.
+                The response includes a `service_tier` field indicating which tier was actually used.
 
         Returns:
             A new chat request bound to a client.
@@ -221,6 +226,12 @@ class BaseClient(abc.ABC, Generic[T]):
         else:
             agent_count_pb = agent_count
 
+        service_tier_pb: Optional[usage_pb2.ServiceTier] = None
+        if isinstance(service_tier, str):
+            service_tier_pb = _service_tier_to_proto(service_tier)
+        elif service_tier is not None:
+            service_tier_pb = service_tier
+
         return self._make_chat(
             conversation_id=conversation_id,
             batch_request_id=batch_request_id,
@@ -248,6 +259,7 @@ class BaseClient(abc.ABC, Generic[T]):
             max_turns=max_turns,
             include=include_pb,
             agent_count=agent_count_pb,
+            service_tier=service_tier_pb,
         )
 
     @abc.abstractmethod
@@ -922,6 +934,17 @@ def _include_option_to_proto(include_option: IncludeOption) -> chat_pb2.IncludeO
     raise ValueError(f"Invalid include option: {include_option}. Must be one of: {IncludeOptionMap.keys()}")
 
 
+def _service_tier_to_proto(tier: ServiceTier) -> usage_pb2.ServiceTier:
+    """Converts a `ServiceTier` literal to a proto."""
+    match tier:
+        case "priority":
+            return usage_pb2.ServiceTier.SERVICE_TIER_PRIORITY
+        case "default" | "auto":
+            return usage_pb2.ServiceTier.SERVICE_TIER_DEFAULT
+        case _:
+            raise ValueError(f"Invalid service tier: {tier}. Must be one of: 'auto', 'default', 'priority'.")
+
+
 def _agent_count_to_proto(agent_count: int) -> chat_pb2.AgentCount:
     """Converts an `AgentCount` literal to a proto."""
     if agent_count in AgentCountMap:
@@ -1285,6 +1308,15 @@ class Response(_ResponseProtoDecorator):
     def system_fingerprint(self) -> str:
         """Returns the system fingerprint of this response."""
         return self.proto.system_fingerprint
+
+    @property
+    def service_tier(self) -> str:
+        """Returns the processing tier used for this request.
+
+        Returns ``"priority"`` if the request was served at the priority tier,
+        or ``"default"`` otherwise.
+        """
+        return usage_pb2.ServiceTier.Name(self._proto.service_tier).removeprefix("SERVICE_TIER_").lower()
 
     @property
     def tool_calls(self) -> Sequence[chat_pb2.ToolCall]:

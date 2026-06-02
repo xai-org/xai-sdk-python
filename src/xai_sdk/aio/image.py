@@ -17,6 +17,7 @@ from ..image import (
 from ..proto import batch_pb2
 from ..telemetry import get_tracer
 from ..types import ImageGenerationModel
+from ..types.chat import ServiceTier
 
 tracer = get_tracer(__name__)
 
@@ -36,6 +37,7 @@ class Client(BaseClient):
         image_format: Optional[ImageFormat] = None,
         aspect_ratio: Optional[ImageAspectRatio] = None,
         resolution: Optional[ImageResolution] = None,
+        service_tier: Optional[ServiceTier] = None,
     ) -> batch_pb2.BatchRequest:
         """Prepares an image generation request for batch processing.
 
@@ -96,6 +98,7 @@ class Client(BaseClient):
             image_format=image_format,
             aspect_ratio=aspect_ratio,
             resolution=resolution,
+            service_tier=service_tier,
         )
         return batch_pb2.BatchRequest(
             image_request=request,
@@ -113,6 +116,7 @@ class Client(BaseClient):
         image_format: Optional[ImageFormat] = None,
         aspect_ratio: Optional[ImageAspectRatio] = None,
         resolution: Optional[ImageResolution] = None,
+        service_tier: Optional[ServiceTier] = None,
     ) -> "ImageResponse":
         """Samples a single image asynchronously based on the provided prompt.
 
@@ -163,6 +167,7 @@ class Client(BaseClient):
             image_format=image_format,
             aspect_ratio=aspect_ratio,
             resolution=resolution,
+            service_tier=service_tier,
         )
         with tracer.start_as_current_span(
             name=f"image.sample {model}",
@@ -186,6 +191,7 @@ class Client(BaseClient):
         image_format: Optional[ImageFormat] = None,
         aspect_ratio: Optional[ImageAspectRatio] = None,
         resolution: Optional[ImageResolution] = None,
+        service_tier: Optional[ServiceTier] = None,
     ) -> Sequence["ImageResponse"]:
         """Samples a batch of images asynchronously based on the provided prompt.
 
@@ -238,6 +244,7 @@ class Client(BaseClient):
             image_format=image_format,
             aspect_ratio=aspect_ratio,
             resolution=resolution,
+            service_tier=service_tier,
         )
         with tracer.start_as_current_span(
             name=f"image.sample_batch {model}",

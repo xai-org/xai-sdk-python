@@ -7,6 +7,7 @@ import grpc
 from .cost import cost_usd_from_usage
 from .meta import ProtoDecorator
 from .proto import image_pb2, image_pb2_grpc, usage_pb2
+from .types.chat import ServiceTier
 from .telemetry import should_disable_sensitive_attributes
 from .types import ImageAspectRatio, ImageFormat, ImageGenerationModel, ImageResolution
 
@@ -130,6 +131,7 @@ def _make_generate_request(
     image_format: ImageFormat | None = None,
     aspect_ratio: ImageAspectRatio | None = None,
     resolution: ImageResolution | None = None,
+    service_tier: Union[ServiceTier, "usage_pb2.ServiceTier", None] = None,
 ) -> image_pb2.GenerateImageRequest:
     if image_url is not None and image_urls is not None:
         raise ValueError("Only one of image_url or image_urls can be set for a request.")
@@ -163,6 +165,10 @@ def _make_generate_request(
         request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)
     if resolution is not None:
         request.resolution = convert_image_resolution_to_pb(resolution)
+    if service_tier is not None:
+        from .chat import _service_tier_to_proto
+
+        request.service_tier = _service_tier_to_proto(service_tier) if isinstance(service_tier, str) else service_tier
     return request
 
 

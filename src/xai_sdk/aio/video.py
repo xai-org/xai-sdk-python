@@ -9,6 +9,7 @@ from ..poll_timer import PollTimer
 from ..proto import batch_pb2, deferred_pb2, video_pb2
 from ..telemetry import get_tracer
 from ..types import VideoGenerationModel
+from ..types.chat import ServiceTier
 from ..video import (
     DEFAULT_VIDEO_POLL_INTERVAL,
     DEFAULT_VIDEO_TIMEOUT,
@@ -43,6 +44,7 @@ class Client(BaseClient):
         aspect_ratio: Optional[VideoAspectRatio] = None,
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
+        service_tier: Optional[ServiceTier] = None,
     ) -> batch_pb2.BatchRequest:
         """Prepares a video generation request for batch processing.
 
@@ -103,6 +105,7 @@ class Client(BaseClient):
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             reference_image_urls=reference_image_urls,
+            service_tier=service_tier,
         )
 
         return batch_pb2.BatchRequest(
@@ -118,6 +121,7 @@ class Client(BaseClient):
         *,
         batch_request_id: Optional[str] = None,
         duration: Optional[int] = None,
+        service_tier: Optional[ServiceTier] = None,
     ) -> batch_pb2.BatchRequest:
         """Prepares a video extension request for batch processing.
 
@@ -141,6 +145,7 @@ class Client(BaseClient):
             model,
             video_url,
             duration=duration,
+            service_tier=service_tier,
         )
 
         return batch_pb2.BatchRequest(
@@ -159,6 +164,7 @@ class Client(BaseClient):
         aspect_ratio: Optional[VideoAspectRatio] = None,
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
+        service_tier: Optional[ServiceTier] = None,
     ) -> deferred_pb2.StartDeferredResponse:
         """Starts a video generation request and returns a request_id for polling."""
         request = _make_generate_request(
@@ -170,6 +176,7 @@ class Client(BaseClient):
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             reference_image_urls=reference_image_urls,
+            service_tier=service_tier,
         )
 
         with tracer.start_as_current_span(
@@ -195,6 +202,7 @@ class Client(BaseClient):
         aspect_ratio: Optional[VideoAspectRatio] = None,
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
+        service_tier: Optional[ServiceTier] = None,
         timeout: Optional[datetime.timedelta] = None,
         interval: Optional[datetime.timedelta] = None,
     ) -> VideoResponse:
@@ -295,6 +303,7 @@ class Client(BaseClient):
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             reference_image_urls=reference_image_urls,
+            service_tier=service_tier,
         )
 
         with tracer.start_as_current_span(
@@ -339,6 +348,7 @@ class Client(BaseClient):
         video_url: str,
         *,
         duration: Optional[int] = None,
+        service_tier: Optional[ServiceTier] = None,
     ) -> deferred_pb2.StartDeferredResponse:
         """Starts a video extension request and returns a request_id for polling.
 
@@ -358,6 +368,7 @@ class Client(BaseClient):
             model,
             video_url,
             duration=duration,
+            service_tier=service_tier,
         )
 
         with tracer.start_as_current_span(
@@ -374,6 +385,7 @@ class Client(BaseClient):
         video_url: str,
         *,
         duration: Optional[int] = None,
+        service_tier: Optional[ServiceTier] = None,
         timeout: Optional[datetime.timedelta] = None,
         interval: Optional[datetime.timedelta] = None,
     ) -> VideoResponse:
@@ -441,6 +453,7 @@ class Client(BaseClient):
             model,
             video_url,
             duration=duration,
+            service_tier=service_tier,
         )
 
         with tracer.start_as_current_span(

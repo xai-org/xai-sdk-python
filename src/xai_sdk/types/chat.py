@@ -11,10 +11,12 @@ __all__ = [
     "IncludeOptionMap",
     "ReasoningEffort",
     "ResponseFormat",
+    "ServiceTier",
     "ToolMode",
 ]
 
 AgentCount: TypeAlias = Literal[4, 16]
+ServiceTier: TypeAlias = Literal["auto", "default", "priority"]
 ReasoningEffort: TypeAlias = Literal["none", "low", "medium", "high"]
 ImageDetail: TypeAlias = Literal["auto", "low", "high"]
 Content: TypeAlias = Union[str, chat_pb2.Content]

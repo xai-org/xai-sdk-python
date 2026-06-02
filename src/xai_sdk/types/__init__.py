@@ -7,6 +7,7 @@ from .chat import (
     IncludeOptionMap,
     ReasoningEffort,
     ResponseFormat,
+    ServiceTier,
     ToolMode,
 )
 from .image import ImageAspectRatio, ImageFormat, ImageResolution
@@ -28,6 +29,7 @@ __all__ = [
     "IncludeOptionMap",
     "ReasoningEffort",
     "ResponseFormat",
+    "ServiceTier",
     "ToolMode",
     "VideoAspectRatio",
     "VideoGenerationModel",
