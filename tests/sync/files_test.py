@@ -316,6 +316,27 @@ def test_list_files_with_sort_by(client_with_mock_stub: Client, mock_stub):
     assert call_args.order == files_pb2.Ordering.ASCENDING
 
 
+def test_list_files_with_filter(client_with_mock_stub: Client, mock_stub):
+    """Test listing files with an filter expression."""
+    mock_stub.ListFiles.return_value = files_pb2.ListFilesResponse(data=[])
+
+    client_with_mock_stub.files.list(filter='content_type = "application/pdf"')
+
+    call_args = mock_stub.ListFiles.call_args[0][0]
+    assert call_args.HasField("filter")
+    assert call_args.filter == 'content_type = "application/pdf"'
+
+
+def test_list_files_omits_empty_filter(client_with_mock_stub: Client, mock_stub):
+    """Test that an empty filter string is treated as unset."""
+    mock_stub.ListFiles.return_value = files_pb2.ListFilesResponse(data=[])
+
+    client_with_mock_stub.files.list(filter="")
+
+    call_args = mock_stub.ListFiles.call_args[0][0]
+    assert not call_args.HasField("filter")
+
+
 def test_get_file(client_with_mock_stub: Client, mock_stub):
     """Test getting file metadata."""
     # Mock the response
@@ -819,3 +840,54 @@ def test_upload_with_expires_after_timedelta(client_with_mock_stub: Client, mock
 
     result = client_with_mock_stub.files.upload(data, filename=filename, expires_after=datetime.timedelta(days=1))
     assert result.id == "file-123"
+
+
+@pytest.mark.parametrize(
+    "expires_after, expected_seconds",
+    [
+        (None, None),
+        (86400, 86400),
+        (datetime.timedelta(hours=12), 43200),
+    ],
+    ids=["no-expiry", "int-seconds", "timedelta"],
+)
+def test_create_public_url(client_with_mock_stub: Client, mock_stub, expires_after, expected_seconds):
+    """Test creating a public URL with various expires_after values."""
+    mock_expires_at = timestamp_pb2.Timestamp(seconds=1720000000)
+    mock_response = files_pb2.CreatePublicUrlResponse(
+        public_url="https://example.com/files/file-123.png",
+        expires_at=mock_expires_at,
+    )
+    mock_stub.CreatePublicUrl.return_value = mock_response
+
+    kwargs = {"expires_after": expires_after} if expires_after is not None else {}
+    result = client_with_mock_stub.files.create_public_url("file-123", **kwargs)
+
+    call_args = mock_stub.CreatePublicUrl.call_args[0][0]
+    assert call_args.file_id == "file-123"
+    if expected_seconds is None:
+        assert not call_args.HasField("expires_after")
+    else:
+        assert call_args.expires_after == expected_seconds
+
+    assert result.public_url == "https://example.com/files/file-123.png"
+    assert result.expires_at == mock_expires_at
+
+
+def test_revoke_public_url(client_with_mock_stub: Client, mock_stub):
+    """Test revoking a public URL for a file."""
+    mock_response = files_pb2.RevokePublicUrlResponse(
+        file_id="file-123",
+        revoked=True,
+        public_url="https://example.com/files/file-123.png",
+    )
+    mock_stub.RevokePublicUrl.return_value = mock_response
+
+    result = client_with_mock_stub.files.revoke_public_url("file-123")
+
+    call_args = mock_stub.RevokePublicUrl.call_args[0][0]
+    assert call_args.file_id == "file-123"
+    assert isinstance(result, files_pb2.RevokePublicUrlResponse)
+    assert result.file_id == "file-123"
+    assert result.revoked is True
+    assert result.public_url == "https://example.com/files/file-123.png"
