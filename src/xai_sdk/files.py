@@ -4,8 +4,10 @@ import os
 from typing import Any, AsyncIterator, BinaryIO, Callable, Iterator, Literal, Optional, Protocol, Union
 
 import grpc
+from pydantic import TypeAdapter
+from typing_extensions import NotRequired, TypedDict
 
-from .proto import files_pb2, files_pb2_grpc
+from .proto import files_pb2, files_pb2_grpc, image_pb2
 
 # Chunk size for file uploads (3 MiB)
 _CHUNK_SIZE = 3 << 20
@@ -21,6 +23,72 @@ def _expires_after_to_seconds(expires_after: Optional[Union[datetime.timedelta, 
     if isinstance(expires_after, datetime.timedelta):
         return int(expires_after.total_seconds())
     return expires_after
+
+
+class PublicUrlOptions(TypedDict, total=False):
+    """Options for creating a public URL alongside file storage.
+
+    Attributes:
+        expires_after: Seconds (or ``timedelta``) until the public URL expires.
+            Independent of the file's ``expires_after`` -- the file remains
+            accessible via authenticated endpoints after the public URL expires.
+            If omitted, the public URL inherits the file's TTL, or remains
+            valid indefinitely if the file has no TTL.
+    """
+
+    expires_after: Union[datetime.timedelta, int]
+
+
+# Accept either True (create with defaults) or a PublicUrlOptions dict.
+PublicUrlInput = Union[bool, PublicUrlOptions]
+
+
+class StorageOptions(TypedDict):
+    """Options for storing generated assets in the Files API.
+
+    Attributes:
+        filename: Filename for the stored file (required).
+        expires_after: Time until the stored file auto-deletes. Accepts an
+            ``int`` (seconds) or a ``datetime.timedelta``.
+        public_url: ``True`` to create a public URL with default TTL behavior
+            (inherits the file's TTL, or no expiry if the file has none).
+            Pass ``{"expires_after": <seconds>}`` to set an independent TTL
+            on the public URL. Omit entirely to store the file privately.
+    """
+
+    filename: str
+    expires_after: NotRequired[Union[datetime.timedelta, int]]
+    public_url: NotRequired[PublicUrlInput]
+
+
+# Validates StorageOptions dicts at runtime (required keys, types, and the
+# bool-or-PublicUrlOptions `public_url` union). Raises pydantic.ValidationError.
+StorageOptionsValidator = TypeAdapter(StorageOptions)
+
+
+def _resolve_storage_options_pb(
+    storage_options: Union[StorageOptions, image_pb2.StorageOptions],
+) -> image_pb2.StorageOptions:
+    """Converts a StorageOptions TypedDict or proto into a StorageOptions protobuf message."""
+    if isinstance(storage_options, image_pb2.StorageOptions):
+        return storage_options
+
+    validated = StorageOptionsValidator.validate_python(storage_options)
+    pb = image_pb2.StorageOptions(
+        filename=validated["filename"],
+        expires_after=_expires_after_to_seconds(validated.get("expires_after")),
+    )
+    public_url = validated.get("public_url")
+    if public_url is True:
+        # True = create public URL with defaults (no independent expiry).
+        pb.public_url.CopyFrom(image_pb2.PublicUrlOptions())
+    elif isinstance(public_url, dict):
+        pb.public_url.CopyFrom(
+            image_pb2.PublicUrlOptions(
+                expires_after=_expires_after_to_seconds(public_url.get("expires_after")),
+            )
+        )
+    return pb
 
 
 class ProgressBarLike(Protocol):

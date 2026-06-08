@@ -50,30 +50,36 @@ class UploadFileChunk(_message.Message):
     def __init__(self, init: _Optional[_Union[UploadFileInit, _Mapping]] = ..., data: _Optional[bytes] = ...) -> None: ...
 
 class File(_message.Message):
-    __slots__ = ("size", "created_at", "expires_at", "filename", "id")
+    __slots__ = ("size", "created_at", "expires_at", "filename", "id", "public_url", "public_url_expires_at")
     SIZE_FIELD_NUMBER: _ClassVar[int]
     CREATED_AT_FIELD_NUMBER: _ClassVar[int]
     EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     FILENAME_FIELD_NUMBER: _ClassVar[int]
     ID_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_URL_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_URL_EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
     size: int
     created_at: _timestamp_pb2.Timestamp
     expires_at: _timestamp_pb2.Timestamp
     filename: str
     id: str
-    def __init__(self, size: _Optional[int] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., filename: _Optional[str] = ..., id: _Optional[str] = ...) -> None: ...
+    public_url: str
+    public_url_expires_at: _timestamp_pb2.Timestamp
+    def __init__(self, size: _Optional[int] = ..., created_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., filename: _Optional[str] = ..., id: _Optional[str] = ..., public_url: _Optional[str] = ..., public_url_expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
 
 class ListFilesRequest(_message.Message):
-    __slots__ = ("limit", "order", "pagination_token", "sort_by")
+    __slots__ = ("limit", "order", "pagination_token", "sort_by", "filter")
     LIMIT_FIELD_NUMBER: _ClassVar[int]
     ORDER_FIELD_NUMBER: _ClassVar[int]
     PAGINATION_TOKEN_FIELD_NUMBER: _ClassVar[int]
     SORT_BY_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
     limit: int
     order: Ordering
     pagination_token: str
     sort_by: FilesSortBy
-    def __init__(self, limit: _Optional[int] = ..., order: _Optional[_Union[Ordering, str]] = ..., pagination_token: _Optional[str] = ..., sort_by: _Optional[_Union[FilesSortBy, str]] = ...) -> None: ...
+    filter: str
+    def __init__(self, limit: _Optional[int] = ..., order: _Optional[_Union[Ordering, str]] = ..., pagination_token: _Optional[str] = ..., sort_by: _Optional[_Union[FilesSortBy, str]] = ..., filter: _Optional[str] = ...) -> None: ...
 
 class ListFilesResponse(_message.Message):
     __slots__ = ("data", "pagination_token")
@@ -116,3 +122,35 @@ class FileContentChunk(_message.Message):
     DATA_FIELD_NUMBER: _ClassVar[int]
     data: bytes
     def __init__(self, data: _Optional[bytes] = ...) -> None: ...
+
+class CreatePublicUrlRequest(_message.Message):
+    __slots__ = ("file_id", "expires_after")
+    FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AFTER_FIELD_NUMBER: _ClassVar[int]
+    file_id: str
+    expires_after: int
+    def __init__(self, file_id: _Optional[str] = ..., expires_after: _Optional[int] = ...) -> None: ...
+
+class CreatePublicUrlResponse(_message.Message):
+    __slots__ = ("public_url", "expires_at")
+    PUBLIC_URL_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    public_url: str
+    expires_at: _timestamp_pb2.Timestamp
+    def __init__(self, public_url: _Optional[str] = ..., expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ...) -> None: ...
+
+class RevokePublicUrlRequest(_message.Message):
+    __slots__ = ("file_id",)
+    FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    file_id: str
+    def __init__(self, file_id: _Optional[str] = ...) -> None: ...
+
+class RevokePublicUrlResponse(_message.Message):
+    __slots__ = ("file_id", "revoked", "public_url")
+    FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    REVOKED_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_URL_FIELD_NUMBER: _ClassVar[int]
+    file_id: str
+    revoked: bool
+    public_url: str
+    def __init__(self, file_id: _Optional[str] = ..., revoked: bool = ..., public_url: _Optional[str] = ...) -> None: ...

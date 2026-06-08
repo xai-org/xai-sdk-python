@@ -43,6 +43,16 @@ class FilesStub(object):
                 request_serializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileContentRequest.SerializeToString,
                 response_deserializer=xai_dot_api_dot_v1_dot_files__pb2.FileContentChunk.FromString,
                 _registered_method=True)
+        self.CreatePublicUrl = channel.unary_unary(
+                '/xai_api.Files/CreatePublicUrl',
+                request_serializer=xai_dot_api_dot_v1_dot_files__pb2.CreatePublicUrlRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_files__pb2.CreatePublicUrlResponse.FromString,
+                _registered_method=True)
+        self.RevokePublicUrl = channel.unary_unary(
+                '/xai_api.Files/RevokePublicUrl',
+                request_serializer=xai_dot_api_dot_v1_dot_files__pb2.RevokePublicUrlRequest.SerializeToString,
+                response_deserializer=xai_dot_api_dot_v1_dot_files__pb2.RevokePublicUrlResponse.FromString,
+                _registered_method=True)
 
 
 class FilesServicer(object):
@@ -99,6 +109,53 @@ class FilesServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CreatePublicUrl(self, request, context):
+        """Create a public, unauthenticated URL for a file, accessible without an
+        API key. Only images, videos, and PDFs can be made public.
+
+        A file can have at most one public URL at a time. Calling this on a
+        file that already has a public URL returns the existing URL. To update
+        the expiry, call again with a new `expires_after` value.
+
+        **Public URL expiry behavior:**
+
+        - If `expires_after` is set, the public URL expires that many seconds
+        from now, independently of the file's own TTL.
+        - If `expires_after` is omitted and the file has a TTL
+        (`UploadFileInit.expires_after` was set at upload), the public URL
+        automatically inherits the file's expiry — it will expire at the
+        same time as the file.
+        - If `expires_after` is omitted and the file has no TTL, the public
+        URL remains valid indefinitely (until explicitly revoked or the file
+        is deleted).
+
+        **Automatic revocation:**
+
+        A public URL is automatically revoked when the file is deleted (by the
+        user or by TTL expiry). Revocation may not take effect immediately, so
+        the URL can remain accessible for a short period after the file or the
+        public URL expires. Call `RevokePublicUrl` to revoke immediately.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RevokePublicUrl(self, request, context):
+        """Revoke the public URL for a file. After revocation the public URL is
+        no longer accessible, while the original file remains accessible via
+        authenticated endpoints.
+
+        Public URLs are also automatically revoked when the file is deleted,
+        when the file's TTL elapses, or when the public URL's own expiry
+        elapses. Automatic revocation may not take effect immediately; use this
+        RPC to revoke a public URL right away.
+
+        Returns success if the file has no public URL (nothing to revoke).
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_FilesServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -126,6 +183,16 @@ def add_FilesServicer_to_server(servicer, server):
                     servicer.RetrieveFileContent,
                     request_deserializer=xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileContentRequest.FromString,
                     response_serializer=xai_dot_api_dot_v1_dot_files__pb2.FileContentChunk.SerializeToString,
+            ),
+            'CreatePublicUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreatePublicUrl,
+                    request_deserializer=xai_dot_api_dot_v1_dot_files__pb2.CreatePublicUrlRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_files__pb2.CreatePublicUrlResponse.SerializeToString,
+            ),
+            'RevokePublicUrl': grpc.unary_unary_rpc_method_handler(
+                    servicer.RevokePublicUrl,
+                    request_deserializer=xai_dot_api_dot_v1_dot_files__pb2.RevokePublicUrlRequest.FromString,
+                    response_serializer=xai_dot_api_dot_v1_dot_files__pb2.RevokePublicUrlResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -267,6 +334,60 @@ class Files(object):
             '/xai_api.Files/RetrieveFileContent',
             xai_dot_api_dot_v1_dot_files__pb2.RetrieveFileContentRequest.SerializeToString,
             xai_dot_api_dot_v1_dot_files__pb2.FileContentChunk.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CreatePublicUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/xai_api.Files/CreatePublicUrl',
+            xai_dot_api_dot_v1_dot_files__pb2.CreatePublicUrlRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_files__pb2.CreatePublicUrlResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RevokePublicUrl(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/xai_api.Files/RevokePublicUrl',
+            xai_dot_api_dot_v1_dot_files__pb2.RevokePublicUrlRequest.SerializeToString,
+            xai_dot_api_dot_v1_dot_files__pb2.RevokePublicUrlResponse.FromString,
             options,
             channel_credentials,
             insecure,

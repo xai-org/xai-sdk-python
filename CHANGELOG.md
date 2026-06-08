@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- **Imagine File Storage**: Image and video generation (sync and async) now accept a `storage_options` parameter to persist generated assets to the Files API. It takes a dict with a required `filename` and optional `expires_after` (an `int` in seconds or a `datetime.timedelta`) and `public_url` (`True` to create a public URL with default expiry, or `{"expires_after": <seconds>}` for an independent URL expiry). Image and video responses expose new `file_output`, `storage_error`, `public_url`, and `public_url_error` properties.
+- **File-ID Inputs for Generation**: Image and video generation now accept Files API `file_id` references as inputs alongside URLs/base64 — `image_file_id` / `image_file_ids` for `image.sample()` / `image.sample_batch()`, and `image_file_id` / `video_file_id` / `reference_image_file_ids` for `video.generate()` / `video.extend()` (and the batch `prepare` helpers). URL and file-ID lists may be mixed in the same multi-image request (file IDs are sent first).
 
 ## [v1.14.0]
 ### Added

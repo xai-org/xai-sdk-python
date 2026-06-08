@@ -7,6 +7,7 @@ import tempfile
 from typing import Callable, Iterable, Optional
 from unittest import mock
 
+import pydantic
 import pytest
 from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
@@ -16,9 +17,10 @@ from xai_sdk.files import (
     _chunk_file_data,
     _chunk_file_from_path,
     _order_to_pb,
+    _resolve_storage_options_pb,
     _sort_by_to_pb,
 )
-from xai_sdk.proto import files_pb2
+from xai_sdk.proto import files_pb2, image_pb2
 
 
 def _extract_file_index_from_chunks(chunks: Iterable[files_pb2.UploadFileChunk]) -> int:
@@ -393,6 +395,64 @@ def test_sort_by_conversion():
     assert _sort_by_to_pb("filename") == files_pb2.FilesSortBy.FILES_SORT_BY_FILENAME
     assert _sort_by_to_pb("size") == files_pb2.FilesSortBy.FILES_SORT_BY_SIZE
     assert _sort_by_to_pb(None) == files_pb2.FilesSortBy.FILES_SORT_BY_CREATED_AT
+
+
+def test_resolve_storage_options_pb_proto_passthrough():
+    """A StorageOptions proto is returned unchanged."""
+    proto = image_pb2.StorageOptions(filename="a.png", expires_after=10)
+    assert _resolve_storage_options_pb(proto) is proto
+
+
+def test_resolve_storage_options_pb_filename_only():
+    """Only filename set; no expiry, no public URL."""
+    pb = _resolve_storage_options_pb({"filename": "a.png"})
+    assert pb.filename == "a.png"
+    assert pb.expires_after == 0
+    assert not pb.HasField("public_url")
+
+
+def test_resolve_storage_options_pb_expires_after_int_and_timedelta():
+    """expires_after accepts both int seconds and timedelta."""
+    assert _resolve_storage_options_pb({"filename": "a.png", "expires_after": 3600}).expires_after == 3600
+    pb = _resolve_storage_options_pb({"filename": "a.png", "expires_after": datetime.timedelta(hours=1)})
+    assert pb.expires_after == 3600
+
+
+def test_resolve_storage_options_pb_public_url_true():
+    """public_url=True creates a public URL with no independent expiry."""
+    pb = _resolve_storage_options_pb({"filename": "a.png", "public_url": True})
+    assert pb.HasField("public_url")
+    assert not pb.public_url.HasField("expires_after")
+
+
+def test_resolve_storage_options_pb_public_url_false():
+    """public_url=False stores privately (no public URL)."""
+    pb = _resolve_storage_options_pb({"filename": "a.png", "public_url": False})
+    assert not pb.HasField("public_url")
+
+
+def test_resolve_storage_options_pb_public_url_dict():
+    """public_url as a dict sets an independent expiry (int or timedelta)."""
+    pb = _resolve_storage_options_pb({"filename": "a.png", "public_url": {"expires_after": 86400}})
+    assert pb.public_url.expires_after == 86400
+    pb = _resolve_storage_options_pb(
+        {"filename": "a.png", "public_url": {"expires_after": datetime.timedelta(hours=2)}}
+    )
+    assert pb.public_url.expires_after == 7200
+
+
+def test_resolve_storage_options_pb_missing_filename_raises():
+    """A missing required filename raises a clear ValidationError, not KeyError."""
+    with pytest.raises(pydantic.ValidationError):
+        _resolve_storage_options_pb({"expires_after": 3600})  # type: ignore[typeddict-item]
+
+
+def test_resolve_storage_options_pb_invalid_types_raise():
+    """Wrong field types are rejected at runtime."""
+    with pytest.raises(pydantic.ValidationError):
+        _resolve_storage_options_pb({"filename": 123})  # type: ignore[typeddict-item]
+    with pytest.raises(pydantic.ValidationError):
+        _resolve_storage_options_pb({"filename": "a.png", "public_url": ["nope"]})  # type: ignore[typeddict-item]
 
 
 def test_chunk_file_data():

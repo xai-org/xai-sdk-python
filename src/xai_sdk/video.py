@@ -4,6 +4,7 @@ from typing import Any, Optional, Sequence, Union
 import grpc
 
 from .cost import cost_usd_from_usage
+from .files import StorageOptions, _resolve_storage_options_pb
 from .meta import ProtoDecorator
 from .proto import image_pb2, usage_pb2, video_pb2, video_pb2_grpc
 from .telemetry import should_disable_sensitive_attributes
@@ -87,47 +88,126 @@ class VideoResponse(ProtoDecorator[video_pb2.VideoResponse]):
         """Duration of the generated video in seconds."""
         return self._video.duration
 
+    @property
+    def file_output(self) -> Optional[image_pb2.FileOutput]:
+        """The full FileOutput proto if the asset was stored, or None otherwise."""
+        if self._video.HasField("file_output"):
+            return self._video.file_output
+        return None
+
+    @property
+    def storage_error(self) -> Optional[str]:
+        """Error message if storage was requested but failed, or None on success."""
+        if self._video.storage_error:
+            return self._video.storage_error
+        return None
+
+    @property
+    def public_url(self) -> Optional[str]:
+        """Public URL for the stored file, or None if not requested or creation failed."""
+        file_output = self.file_output
+        if file_output is not None and file_output.public_url:
+            return file_output.public_url
+        return None
+
+    @property
+    def public_url_error(self) -> Optional[str]:
+        """Error message if public URL creation failed, or None on success."""
+        file_output = self.file_output
+        if file_output is not None and file_output.public_url_error:
+            return file_output.public_url_error
+        return None
+
+
+def _validate_video_inputs(
+    *,
+    image_url: Optional[str] = None,
+    image_file_id: Optional[str] = None,
+    video_url: Optional[str] = None,
+    video_file_id: Optional[str] = None,
+) -> None:
+    """Validates mutual exclusion constraints on video input parameters."""
+    if image_url is not None and image_file_id is not None:
+        raise ValueError("Only one of image_url or image_file_id can be set for a request.")
+    if video_url is not None and video_file_id is not None:
+        raise ValueError("Only one of video_url or video_file_id can be set for a request.")
+
 
 def _make_generate_request(
     prompt: str,
     model: Union[VideoGenerationModel, str],
     *,
     image_url: Optional[str],
+    image_file_id: Optional[str] = None,
     video_url: Optional[str],
+    video_file_id: Optional[str] = None,
     duration: Optional[int],
     aspect_ratio: Optional[VideoAspectRatio],
     resolution: Optional[VideoResolution],
     reference_image_urls: Optional[Sequence[str]],
+    reference_image_file_ids: Optional[Sequence[str]] = None,
+    storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
 ) -> video_pb2.GenerateVideoRequest:
+    _validate_video_inputs(
+        image_url=image_url, image_file_id=image_file_id, video_url=video_url, video_file_id=video_file_id
+    )
+
     request = video_pb2.GenerateVideoRequest(prompt=prompt, model=model)
 
     if image_url is not None:
+        request.image.CopyFrom(image_pb2.ImageUrlContent(image_url=image_url, detail=image_pb2.ImageDetail.DETAIL_AUTO))
+    elif image_file_id is not None:
         request.image.CopyFrom(
-            image_pb2.ImageUrlContent(
-                image_url=image_url,
-                detail=image_pb2.ImageDetail.DETAIL_AUTO,
-            )
+            image_pb2.ImageUrlContent(file_id=image_file_id, detail=image_pb2.ImageDetail.DETAIL_AUTO)
         )
     if video_url is not None:
         request.video.CopyFrom(video_pb2.VideoUrlContent(url=video_url))
+    elif video_file_id is not None:
+        request.video.CopyFrom(video_pb2.VideoUrlContent(file_id=video_file_id))
     if duration is not None:
         request.duration = duration
     if aspect_ratio is not None:
         request.aspect_ratio = convert_video_aspect_ratio_to_pb(aspect_ratio)
     if resolution is not None:
         request.resolution = convert_video_resolution_to_pb(resolution)
-    if reference_image_urls is not None:
+    _set_reference_images(request, reference_image_urls, reference_image_file_ids)
+    if storage_options is not None:
+        request.storage_options.CopyFrom(_resolve_storage_options_pb(storage_options))
+
+    return request
+
+
+def _set_reference_images(
+    request: video_pb2.GenerateVideoRequest,
+    urls: Optional[Sequence[str]],
+    file_ids: Optional[Sequence[str]],
+) -> None:
+    """Populates `reference_images` from URL and/or file-ID lists.
+
+    Both lists may be supplied to mix URL/base64 and file-ID references in
+    the same request. File IDs are appended first so callers can predict the
+    resulting positional ordering used by the model.
+    """
+    if file_ids is not None:
+        request.reference_images.extend(
+            [
+                image_pb2.ImageUrlContent(
+                    file_id=fid,
+                    detail=image_pb2.ImageDetail.DETAIL_AUTO,
+                )
+                for fid in file_ids
+            ]
+        )
+    if urls is not None:
         request.reference_images.extend(
             [
                 image_pb2.ImageUrlContent(
                     image_url=url,
                     detail=image_pb2.ImageDetail.DETAIL_AUTO,
                 )
-                for url in reference_image_urls
+                for url in urls
             ]
         )
-
-    return request
 
 
 def _make_span_request_attributes(request: video_pb2.GenerateVideoRequest) -> dict[str, Any]:
@@ -144,6 +224,15 @@ def _make_span_request_attributes(request: video_pb2.GenerateVideoRequest) -> di
         return attributes
 
     attributes["gen_ai.prompt"] = request.prompt
+
+    if request.HasField("storage_options"):
+        attributes["gen_ai.request.storage"] = True
+        if request.storage_options.filename:
+            attributes["gen_ai.request.storage.filename"] = request.storage_options.filename
+        if request.storage_options.expires_after:
+            attributes["gen_ai.request.storage.expires_after"] = request.storage_options.expires_after
+        if request.storage_options.HasField("public_url"):
+            attributes["gen_ai.request.storage.public_url"] = True
 
     if request.HasField("duration"):
         attributes["gen_ai.request.video.duration"] = request.duration
@@ -183,6 +272,14 @@ def _make_span_response_attributes(request: video_pb2.GenerateVideoRequest, resp
     if response._video.url:
         attributes["gen_ai.response.0.video.url"] = response._video.url
     attributes["gen_ai.response.0.video.duration"] = response.duration
+    if response.file_output and response.file_output.file_id:
+        attributes["gen_ai.response.0.video.file_id"] = response.file_output.file_id
+    if response.public_url:
+        attributes["gen_ai.response.0.video.public_url"] = response.public_url
+    if response.public_url_error:
+        attributes["gen_ai.response.0.video.public_url_error"] = response.public_url_error
+    if response.storage_error:
+        attributes["gen_ai.response.0.video.storage_error"] = response.storage_error
 
     return attributes
 
@@ -190,18 +287,26 @@ def _make_span_response_attributes(request: video_pb2.GenerateVideoRequest, resp
 def _make_extend_request(
     prompt: str,
     model: Union[VideoGenerationModel, str],
-    video_url: str,
     *,
+    video_url: Optional[str] = None,
+    video_file_id: Optional[str] = None,
     duration: Optional[int],
+    storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
 ) -> video_pb2.ExtendVideoRequest:
-    request = video_pb2.ExtendVideoRequest(
-        prompt=prompt,
-        model=model,
-        video=video_pb2.VideoUrlContent(url=video_url),
-    )
+    _validate_video_inputs(video_url=video_url, video_file_id=video_file_id)
+    if video_url is None and video_file_id is None:
+        raise ValueError("One of video_url or video_file_id must be set for a request.")
+
+    request = video_pb2.ExtendVideoRequest(prompt=prompt, model=model)
+    if video_url is not None:
+        request.video.CopyFrom(video_pb2.VideoUrlContent(url=video_url))
+    else:
+        request.video.CopyFrom(video_pb2.VideoUrlContent(file_id=video_file_id))
 
     if duration is not None:
         request.duration = duration
+    if storage_options is not None:
+        request.storage_options.CopyFrom(_resolve_storage_options_pb(storage_options))
     return request
 
 
@@ -219,6 +324,15 @@ def _make_extend_span_request_attributes(request: video_pb2.ExtendVideoRequest) 
         return attributes
 
     attributes["gen_ai.prompt"] = request.prompt
+
+    if request.HasField("storage_options"):
+        attributes["gen_ai.request.storage"] = True
+        if request.storage_options.filename:
+            attributes["gen_ai.request.storage.filename"] = request.storage_options.filename
+        if request.storage_options.expires_after:
+            attributes["gen_ai.request.storage.expires_after"] = request.storage_options.expires_after
+        if request.storage_options.HasField("public_url"):
+            attributes["gen_ai.request.storage.public_url"] = True
 
     if request.HasField("duration"):
         attributes["gen_ai.request.video.duration"] = request.duration
@@ -252,6 +366,14 @@ def _make_extend_span_response_attributes(
     if response._video.url:
         attributes["gen_ai.response.0.video.url"] = response._video.url
     attributes["gen_ai.response.0.video.duration"] = response.duration
+    if response.file_output and response.file_output.file_id:
+        attributes["gen_ai.response.0.video.file_id"] = response.file_output.file_id
+    if response.public_url:
+        attributes["gen_ai.response.0.video.public_url"] = response.public_url
+    if response.public_url_error:
+        attributes["gen_ai.response.0.video.public_url_error"] = response.public_url_error
+    if response.storage_error:
+        attributes["gen_ai.response.0.video.storage_error"] = response.storage_error
 
     return attributes
 

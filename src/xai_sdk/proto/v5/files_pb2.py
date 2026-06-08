@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16xai/api/v1/files.proto\x12\x07xai_api\x1a\x1fgoogle/protobuf/timestamp.proto\"`\n\x0eUploadFileInit\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12(\n\rexpires_after\x18\x02 \x01(\x03H\x00R\x0c\x65xpiresAfter\x88\x01\x01\x42\x10\n\x0e_expires_after\"_\n\x0fUploadFileChunk\x12-\n\x04init\x18\x01 \x01(\x0b\x32\x17.xai_api.UploadFileInitH\x00R\x04init\x12\x14\n\x04\x64\x61ta\x18\x02 \x01(\x0cH\x00R\x04\x64\x61taB\x07\n\x05\x63hunk\"\xd6\x01\n\x04\x46ile\x12\x12\n\x04size\x18\x01 \x01(\x03R\x04size\x12\x39\n\ncreated_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12>\n\nexpires_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00R\texpiresAt\x88\x01\x01\x12\x1a\n\x08\x66ilename\x18\x04 \x01(\tR\x08\x66ilename\x12\x0e\n\x02id\x18\x05 \x01(\tR\x02idB\r\n\x0b_expires_atJ\x04\x08\x06\x10\x07\"\xd6\x01\n\x10ListFilesRequest\x12\x14\n\x05limit\x18\x01 \x01(\x05R\x05limit\x12\'\n\x05order\x18\x02 \x01(\x0e\x32\x11.xai_api.OrderingR\x05order\x12.\n\x10pagination_token\x18\x03 \x01(\tH\x00R\x0fpaginationToken\x88\x01\x01\x12\x32\n\x07sort_by\x18\x04 \x01(\x0e\x32\x14.xai_api.FilesSortByH\x01R\x06sortBy\x88\x01\x01\x42\x13\n\x11_pagination_tokenB\n\n\x08_sort_by\"{\n\x11ListFilesResponse\x12!\n\x04\x64\x61ta\x18\x01 \x03(\x0b\x32\r.xai_api.FileR\x04\x64\x61ta\x12.\n\x10pagination_token\x18\x02 \x01(\tH\x00R\x0fpaginationToken\x88\x01\x01\x42\x13\n\x11_pagination_token\".\n\x13RetrieveFileRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\",\n\x11\x44\x65leteFileRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\">\n\x12\x44\x65leteFileResponse\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n\x07\x64\x65leted\x18\x02 \x01(\x08R\x07\x64\x65leted\"v\n\x1aRetrieveFileContentRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12\x34\n\x06\x66ormat\x18\x02 \x01(\x0e\x32\x17.xai_api.DownloadFormatH\x00R\x06\x66ormat\x88\x01\x01\x42\t\n\x07_format\"&\n\x10\x46ileContentChunk\x12\x12\n\x04\x64\x61ta\x18\x01 \x01(\x0cR\x04\x64\x61ta*)\n\x08Ordering\x12\r\n\tASCENDING\x10\x00\x12\x0e\n\nDESCENDING\x10\x01*_\n\x0b\x46ilesSortBy\x12\x1c\n\x18\x46ILES_SORT_BY_CREATED_AT\x10\x00\x12\x1a\n\x16\x46ILES_SORT_BY_FILENAME\x10\x01\x12\x16\n\x12\x46ILES_SORT_BY_SIZE\x10\x02*e\n\x0e\x44ownloadFormat\x12\x1b\n\x17\x44OWNLOAD_FORMAT_UNKNOWN\x10\x00\x12\x1c\n\x18\x44OWNLOAD_FORMAT_ORIGINAL\x10\x01\x12\x18\n\x14\x44OWNLOAD_FORMAT_TEXT\x10\x02\x32\xeb\x02\n\x05\x46iles\x12\x39\n\nUploadFile\x12\x18.xai_api.UploadFileChunk\x1a\r.xai_api.File\"\x00(\x01\x12\x44\n\tListFiles\x12\x19.xai_api.ListFilesRequest\x1a\x1a.xai_api.ListFilesResponse\"\x00\x12=\n\x0cRetrieveFile\x12\x1c.xai_api.RetrieveFileRequest\x1a\r.xai_api.File\"\x00\x12G\n\nDeleteFile\x12\x1a.xai_api.DeleteFileRequest\x1a\x1b.xai_api.DeleteFileResponse\"\x00\x12Y\n\x13RetrieveFileContent\x12#.xai_api.RetrieveFileContentRequest\x1a\x19.xai_api.FileContentChunk\"\x00\x30\x01\x42Q\n\x0b\x63om.xai_apiB\nFilesProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x16xai/api/v1/files.proto\x12\x07xai_api\x1a\x1fgoogle/protobuf/timestamp.proto\"`\n\x0eUploadFileInit\x12\x12\n\x04name\x18\x01 \x01(\tR\x04name\x12(\n\rexpires_after\x18\x02 \x01(\x03H\x00R\x0c\x65xpiresAfter\x88\x01\x01\x42\x10\n\x0e_expires_after\"_\n\x0fUploadFileChunk\x12-\n\x04init\x18\x01 \x01(\x0b\x32\x17.xai_api.UploadFileInitH\x00R\x04init\x12\x14\n\x04\x64\x61ta\x18\x02 \x01(\x0cH\x00R\x04\x64\x61taB\x07\n\x05\x63hunk\"\xf7\x02\n\x04\x46ile\x12\x12\n\x04size\x18\x01 \x01(\x03R\x04size\x12\x39\n\ncreated_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampR\tcreatedAt\x12>\n\nexpires_at\x18\x03 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00R\texpiresAt\x88\x01\x01\x12\x1a\n\x08\x66ilename\x18\x04 \x01(\tR\x08\x66ilename\x12\x0e\n\x02id\x18\x05 \x01(\tR\x02id\x12\"\n\npublic_url\x18\x07 \x01(\tH\x01R\tpublicUrl\x88\x01\x01\x12R\n\x15public_url_expires_at\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x02R\x12publicUrlExpiresAt\x88\x01\x01\x42\r\n\x0b_expires_atB\r\n\x0b_public_urlB\x18\n\x16_public_url_expires_atJ\x04\x08\x06\x10\x07\"\xfe\x01\n\x10ListFilesRequest\x12\x14\n\x05limit\x18\x01 \x01(\x05R\x05limit\x12\'\n\x05order\x18\x02 \x01(\x0e\x32\x11.xai_api.OrderingR\x05order\x12.\n\x10pagination_token\x18\x03 \x01(\tH\x00R\x0fpaginationToken\x88\x01\x01\x12\x32\n\x07sort_by\x18\x04 \x01(\x0e\x32\x14.xai_api.FilesSortByH\x01R\x06sortBy\x88\x01\x01\x12\x1b\n\x06\x66ilter\x18\x05 \x01(\tH\x02R\x06\x66ilter\x88\x01\x01\x42\x13\n\x11_pagination_tokenB\n\n\x08_sort_byB\t\n\x07_filter\"{\n\x11ListFilesResponse\x12!\n\x04\x64\x61ta\x18\x01 \x03(\x0b\x32\r.xai_api.FileR\x04\x64\x61ta\x12.\n\x10pagination_token\x18\x02 \x01(\tH\x00R\x0fpaginationToken\x88\x01\x01\x42\x13\n\x11_pagination_token\".\n\x13RetrieveFileRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\",\n\x11\x44\x65leteFileRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\">\n\x12\x44\x65leteFileResponse\x12\x0e\n\x02id\x18\x01 \x01(\tR\x02id\x12\x18\n\x07\x64\x65leted\x18\x02 \x01(\x08R\x07\x64\x65leted\"v\n\x1aRetrieveFileContentRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12\x34\n\x06\x66ormat\x18\x02 \x01(\x0e\x32\x17.xai_api.DownloadFormatH\x00R\x06\x66ormat\x88\x01\x01\x42\t\n\x07_format\"&\n\x10\x46ileContentChunk\x12\x12\n\x04\x64\x61ta\x18\x01 \x01(\x0cR\x04\x64\x61ta\"m\n\x16\x43reatePublicUrlRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12(\n\rexpires_after\x18\x02 \x01(\x03H\x00R\x0c\x65xpiresAfter\x88\x01\x01\x42\x10\n\x0e_expires_after\"\x87\x01\n\x17\x43reatePublicUrlResponse\x12\x1d\n\npublic_url\x18\x01 \x01(\tR\tpublicUrl\x12>\n\nexpires_at\x18\x02 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00R\texpiresAt\x88\x01\x01\x42\r\n\x0b_expires_at\"1\n\x16RevokePublicUrlRequest\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\"\x7f\n\x17RevokePublicUrlResponse\x12\x17\n\x07\x66ile_id\x18\x01 \x01(\tR\x06\x66ileId\x12\x18\n\x07revoked\x18\x02 \x01(\x08R\x07revoked\x12\"\n\npublic_url\x18\x03 \x01(\tH\x00R\tpublicUrl\x88\x01\x01\x42\r\n\x0b_public_url*)\n\x08Ordering\x12\r\n\tASCENDING\x10\x00\x12\x0e\n\nDESCENDING\x10\x01*_\n\x0b\x46ilesSortBy\x12\x1c\n\x18\x46ILES_SORT_BY_CREATED_AT\x10\x00\x12\x1a\n\x16\x46ILES_SORT_BY_FILENAME\x10\x01\x12\x16\n\x12\x46ILES_SORT_BY_SIZE\x10\x02*e\n\x0e\x44ownloadFormat\x12\x1b\n\x17\x44OWNLOAD_FORMAT_UNKNOWN\x10\x00\x12\x1c\n\x18\x44OWNLOAD_FORMAT_ORIGINAL\x10\x01\x12\x18\n\x14\x44OWNLOAD_FORMAT_TEXT\x10\x02\x32\x9b\x04\n\x05\x46iles\x12\x39\n\nUploadFile\x12\x18.xai_api.UploadFileChunk\x1a\r.xai_api.File\"\x00(\x01\x12\x44\n\tListFiles\x12\x19.xai_api.ListFilesRequest\x1a\x1a.xai_api.ListFilesResponse\"\x00\x12=\n\x0cRetrieveFile\x12\x1c.xai_api.RetrieveFileRequest\x1a\r.xai_api.File\"\x00\x12G\n\nDeleteFile\x12\x1a.xai_api.DeleteFileRequest\x1a\x1b.xai_api.DeleteFileResponse\"\x00\x12Y\n\x13RetrieveFileContent\x12#.xai_api.RetrieveFileContentRequest\x1a\x19.xai_api.FileContentChunk\"\x00\x30\x01\x12V\n\x0f\x43reatePublicUrl\x12\x1f.xai_api.CreatePublicUrlRequest\x1a .xai_api.CreatePublicUrlResponse\"\x00\x12V\n\x0fRevokePublicUrl\x12\x1f.xai_api.RevokePublicUrlRequest\x1a .xai_api.RevokePublicUrlResponse\"\x00\x42Q\n\x0b\x63om.xai_apiB\nFilesProtoP\x01\xa2\x02\x03XXX\xaa\x02\x06XaiApi\xca\x02\x06XaiApi\xe2\x02\x12XaiApi\\GPBMetadata\xea\x02\x06XaiApib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -33,32 +33,40 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'xai.api.v1.files_pb2', _glo
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\013com.xai_apiB\nFilesProtoP\001\242\002\003XXX\252\002\006XaiApi\312\002\006XaiApi\342\002\022XaiApi\\GPBMetadata\352\002\006XaiApi'
-  _globals['_ORDERING']._serialized_start=1140
-  _globals['_ORDERING']._serialized_end=1181
-  _globals['_FILESSORTBY']._serialized_start=1183
-  _globals['_FILESSORTBY']._serialized_end=1278
-  _globals['_DOWNLOADFORMAT']._serialized_start=1280
-  _globals['_DOWNLOADFORMAT']._serialized_end=1381
+  _globals['_ORDERING']._serialized_start=1770
+  _globals['_ORDERING']._serialized_end=1811
+  _globals['_FILESSORTBY']._serialized_start=1813
+  _globals['_FILESSORTBY']._serialized_end=1908
+  _globals['_DOWNLOADFORMAT']._serialized_start=1910
+  _globals['_DOWNLOADFORMAT']._serialized_end=2011
   _globals['_UPLOADFILEINIT']._serialized_start=68
   _globals['_UPLOADFILEINIT']._serialized_end=164
   _globals['_UPLOADFILECHUNK']._serialized_start=166
   _globals['_UPLOADFILECHUNK']._serialized_end=261
   _globals['_FILE']._serialized_start=264
-  _globals['_FILE']._serialized_end=478
-  _globals['_LISTFILESREQUEST']._serialized_start=481
-  _globals['_LISTFILESREQUEST']._serialized_end=695
-  _globals['_LISTFILESRESPONSE']._serialized_start=697
-  _globals['_LISTFILESRESPONSE']._serialized_end=820
-  _globals['_RETRIEVEFILEREQUEST']._serialized_start=822
-  _globals['_RETRIEVEFILEREQUEST']._serialized_end=868
-  _globals['_DELETEFILEREQUEST']._serialized_start=870
-  _globals['_DELETEFILEREQUEST']._serialized_end=914
-  _globals['_DELETEFILERESPONSE']._serialized_start=916
-  _globals['_DELETEFILERESPONSE']._serialized_end=978
-  _globals['_RETRIEVEFILECONTENTREQUEST']._serialized_start=980
-  _globals['_RETRIEVEFILECONTENTREQUEST']._serialized_end=1098
-  _globals['_FILECONTENTCHUNK']._serialized_start=1100
-  _globals['_FILECONTENTCHUNK']._serialized_end=1138
-  _globals['_FILES']._serialized_start=1384
-  _globals['_FILES']._serialized_end=1747
+  _globals['_FILE']._serialized_end=639
+  _globals['_LISTFILESREQUEST']._serialized_start=642
+  _globals['_LISTFILESREQUEST']._serialized_end=896
+  _globals['_LISTFILESRESPONSE']._serialized_start=898
+  _globals['_LISTFILESRESPONSE']._serialized_end=1021
+  _globals['_RETRIEVEFILEREQUEST']._serialized_start=1023
+  _globals['_RETRIEVEFILEREQUEST']._serialized_end=1069
+  _globals['_DELETEFILEREQUEST']._serialized_start=1071
+  _globals['_DELETEFILEREQUEST']._serialized_end=1115
+  _globals['_DELETEFILERESPONSE']._serialized_start=1117
+  _globals['_DELETEFILERESPONSE']._serialized_end=1179
+  _globals['_RETRIEVEFILECONTENTREQUEST']._serialized_start=1181
+  _globals['_RETRIEVEFILECONTENTREQUEST']._serialized_end=1299
+  _globals['_FILECONTENTCHUNK']._serialized_start=1301
+  _globals['_FILECONTENTCHUNK']._serialized_end=1339
+  _globals['_CREATEPUBLICURLREQUEST']._serialized_start=1341
+  _globals['_CREATEPUBLICURLREQUEST']._serialized_end=1450
+  _globals['_CREATEPUBLICURLRESPONSE']._serialized_start=1453
+  _globals['_CREATEPUBLICURLRESPONSE']._serialized_end=1588
+  _globals['_REVOKEPUBLICURLREQUEST']._serialized_start=1590
+  _globals['_REVOKEPUBLICURLREQUEST']._serialized_end=1639
+  _globals['_REVOKEPUBLICURLRESPONSE']._serialized_start=1641
+  _globals['_REVOKEPUBLICURLRESPONSE']._serialized_end=1768
+  _globals['_FILES']._serialized_start=2014
+  _globals['_FILES']._serialized_end=2553
 # @@protoc_insertion_point(module_scope)
