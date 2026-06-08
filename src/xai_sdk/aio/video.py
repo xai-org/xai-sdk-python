@@ -5,8 +5,9 @@ from typing import Optional, Sequence, Union
 
 from opentelemetry.trace import SpanKind
 
+from ..files import StorageOptions
 from ..poll_timer import PollTimer
-from ..proto import batch_pb2, deferred_pb2, video_pb2
+from ..proto import batch_pb2, deferred_pb2, image_pb2, video_pb2
 from ..telemetry import get_tracer
 from ..types import VideoGenerationModel
 from ..video import (
@@ -38,11 +39,15 @@ class Client(BaseClient):
         *,
         batch_request_id: Optional[str] = None,
         image_url: Optional[str] = None,
+        image_file_id: Optional[str] = None,
         video_url: Optional[str] = None,
+        video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
         aspect_ratio: Optional[VideoAspectRatio] = None,
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
+        reference_image_file_ids: Optional[Sequence[str]] = None,
+        storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
     ) -> batch_pb2.BatchRequest:
         """Prepares a video generation request for batch processing.
 
@@ -56,13 +61,35 @@ class Client(BaseClient):
                 **If provided, it must be unique within the batch.** Used to identify the
                 corresponding result when the response is returned.
             image_url: The URL of an input image to use as a starting frame.
+                Cannot be set together with ``image_file_id``.
+            image_file_id: The file ID of an input image to use as a starting frame.
+                Cannot be set together with ``image_url``.
             video_url: The URL of an input video to use as a starting point.
+                Cannot be set together with ``video_file_id``.
+            video_file_id: The file ID of an input video to use as a starting point.
+                Cannot be set together with ``video_url``.
             duration: The duration of the video to generate in seconds.
             aspect_ratio: The aspect ratio of the video to generate.
             resolution: The video resolution to generate.
             reference_image_urls: Optional list of reference image URLs for
                 reference-to-video (R2V) generation. When provided (and `image_url`
                 is not set), generates video using these images as style/content references.
+                May be combined with ``reference_image_file_ids`` to mix URL/base64
+                and file-ID references in the same request; file IDs are appended
+                first in that case.
+            reference_image_file_ids: Optional list of reference image file IDs for
+                reference-to-video (R2V) generation. May be combined with
+                ``reference_image_urls`` to mix URL/base64 and file-ID references
+                in the same request.
+            storage_options: Persist the result to the Files API. Accepts a dict
+                with a required ``filename`` and optional ``expires_after`` and ``public_url`` keys.
+                Set ``public_url`` to also create a publicly shareable URL.
+                Examples::
+
+                    storage_options={"filename": "output.mp4"}  # store privately, no expiry
+                    storage_options={"filename": "output.mp4", "expires_after": 7200}  # auto-delete after 2h
+                    storage_options={"filename": "output.mp4", "public_url": True}  # + shareable URL
+                    storage_options={"filename": "output.mp4", "public_url": {"expires_after": 86400}}  # + expiring URL
 
         Returns:
             A `BatchRequest` proto ready to be added to a batch.
@@ -98,11 +125,15 @@ class Client(BaseClient):
             prompt,
             model,
             image_url=image_url,
+            image_file_id=image_file_id,
             video_url=video_url,
+            video_file_id=video_file_id,
             duration=duration,
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             reference_image_urls=reference_image_urls,
+            reference_image_file_ids=reference_image_file_ids,
+            storage_options=storage_options,
         )
 
         return batch_pb2.BatchRequest(
@@ -114,10 +145,12 @@ class Client(BaseClient):
         self,
         prompt: str,
         model: Union[VideoGenerationModel, str],
-        video_url: str,
+        video_url: Optional[str] = None,
         *,
+        video_file_id: Optional[str] = None,
         batch_request_id: Optional[str] = None,
         duration: Optional[int] = None,
+        storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
     ) -> batch_pb2.BatchRequest:
         """Prepares a video extension request for batch processing.
 
@@ -128,10 +161,22 @@ class Client(BaseClient):
             prompt: Prompt describing what should happen next in the video.
             model: The model to use for video extension.
             video_url: The URL of the input video to extend.
+                Cannot be set together with ``video_file_id``.
+            video_file_id: The file ID of the input video to extend.
+                Cannot be set together with ``video_url``.
             batch_request_id: An optional user-provided identifier for the batch request.
                 **If provided, it must be unique within the batch.**
             duration: Duration of the extension segment in seconds (1-10).
                 Defaults to 6 seconds if not specified.
+            storage_options: Persist the result to the Files API. Accepts a dict
+                with a required ``filename`` and optional ``expires_after`` and ``public_url`` keys.
+                Set ``public_url`` to also create a publicly shareable URL.
+                Examples::
+
+                    storage_options={"filename": "output.mp4"}  # store privately, no expiry
+                    storage_options={"filename": "output.mp4", "expires_after": 7200}  # auto-delete after 2h
+                    storage_options={"filename": "output.mp4", "public_url": True}  # + shareable URL
+                    storage_options={"filename": "output.mp4", "public_url": {"expires_after": 86400}}  # + expiring URL
 
         Returns:
             A `BatchRequest` proto ready to be added to a batch.
@@ -139,8 +184,10 @@ class Client(BaseClient):
         request = _make_extend_request(
             prompt,
             model,
-            video_url,
+            video_url=video_url,
+            video_file_id=video_file_id,
             duration=duration,
+            storage_options=storage_options,
         )
 
         return batch_pb2.BatchRequest(
@@ -154,22 +201,33 @@ class Client(BaseClient):
         model: Union[VideoGenerationModel, str],
         *,
         image_url: Optional[str] = None,
+        image_file_id: Optional[str] = None,
         video_url: Optional[str] = None,
+        video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
         aspect_ratio: Optional[VideoAspectRatio] = None,
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
+        reference_image_file_ids: Optional[Sequence[str]] = None,
+        storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
     ) -> deferred_pb2.StartDeferredResponse:
-        """Starts a video generation request and returns a request_id for polling."""
+        """Starts a video generation request and returns a request_id for polling.
+
+        See `generate()` for full parameter documentation.
+        """
         request = _make_generate_request(
             prompt,
             model,
             image_url=image_url,
+            image_file_id=image_file_id,
             video_url=video_url,
+            video_file_id=video_file_id,
             duration=duration,
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             reference_image_urls=reference_image_urls,
+            reference_image_file_ids=reference_image_file_ids,
+            storage_options=storage_options,
         )
 
         with tracer.start_as_current_span(
@@ -190,11 +248,15 @@ class Client(BaseClient):
         model: Union[VideoGenerationModel, str],
         *,
         image_url: Optional[str] = None,
+        image_file_id: Optional[str] = None,
         video_url: Optional[str] = None,
+        video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
         aspect_ratio: Optional[VideoAspectRatio] = None,
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
+        reference_image_file_ids: Optional[Sequence[str]] = None,
+        storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
         timeout: Optional[datetime.timedelta] = None,
         interval: Optional[datetime.timedelta] = None,
     ) -> VideoResponse:
@@ -206,18 +268,26 @@ class Client(BaseClient):
         Supports four generation modes depending on which optional inputs are provided:
 
         - **Text-to-video**: Only a `prompt` is provided.
-        - **Image-to-video**: An `image_url` is provided; the image is used as the first frame.
-        - **Reference-to-video**: `reference_image_urls` are provided; generates video using the
-          images as style/content references.
-        - **Video editing**: A `video_url` is provided; the video is edited based on the prompt.
+        - **Image-to-video**: An `image_url` or `image_file_id` is provided; the image is
+          used as the first frame.
+        - **Reference-to-video**: `reference_image_urls` or `reference_image_file_ids` are
+          provided; generates video using the images as style/content references.
+        - **Video editing**: A `video_url` or `video_file_id` is provided; the video is edited
+          based on the prompt.
 
         Args:
             prompt: The text prompt to generate a video from.
             model: The model to use for video generation.
             image_url: The URL or base64-encoded data URL of an input image to use as
-                the first frame (image-to-video). Cannot be combined with `video_url`.
+                the first frame (image-to-video). Cannot be combined with `image_file_id`
+                or `video_url`.
+            image_file_id: The file ID of an input image to use as the first frame
+                (image-to-video). Cannot be combined with `image_url`.
             video_url: The URL or base64-encoded data URL of an input video to edit
-                based on the prompt (video-to-video). Cannot be combined with `image_url`.
+                based on the prompt (video-to-video). Cannot be combined with `video_file_id`
+                or `image_url`.
+            video_file_id: The file ID of an input video to edit based on the prompt
+                (video-to-video). Cannot be combined with `video_url`.
             duration: Duration of the video to generate in seconds (1-15).
                 Defaults to 8 seconds if not specified.
             aspect_ratio: The aspect ratio of the video to generate.
@@ -227,6 +297,22 @@ class Client(BaseClient):
             reference_image_urls: Optional list of reference image URLs for
                 reference-to-video (R2V) generation. When provided (and `image_url`
                 is not set), generates video using these images as style/content references.
+                May be combined with `reference_image_file_ids` to mix URL/base64
+                and file-ID references in the same request; file IDs are appended
+                first in that case.
+            reference_image_file_ids: Optional list of reference image file IDs for
+                reference-to-video (R2V) generation. May be combined with
+                `reference_image_urls` to mix URL/base64 and file-ID references
+                in the same request.
+            storage_options: Persist the result to the Files API. Accepts a dict
+                with a required ``filename`` and optional ``expires_after`` and ``public_url`` keys.
+                Set ``public_url`` to also create a publicly shareable URL.
+                Examples::
+
+                    storage_options={"filename": "output.mp4"}  # store privately, no expiry
+                    storage_options={"filename": "output.mp4", "expires_after": 7200}  # auto-delete after 2h
+                    storage_options={"filename": "output.mp4", "public_url": True}  # + shareable URL
+                    storage_options={"filename": "output.mp4", "public_url": {"expires_after": 86400}}  # + expiring URL
             timeout: Maximum time to wait for video generation to complete.
                 Defaults to 10 minutes.
             interval: Polling interval between status checks.
@@ -290,11 +376,15 @@ class Client(BaseClient):
             prompt,
             model,
             image_url=image_url,
+            image_file_id=image_file_id,
             video_url=video_url,
+            video_file_id=video_file_id,
             duration=duration,
             aspect_ratio=aspect_ratio,
             resolution=resolution,
             reference_image_urls=reference_image_urls,
+            reference_image_file_ids=reference_image_file_ids,
+            storage_options=storage_options,
         )
 
         with tracer.start_as_current_span(
@@ -336,9 +426,11 @@ class Client(BaseClient):
         self,
         prompt: str,
         model: Union[VideoGenerationModel, str],
-        video_url: str,
+        video_url: Optional[str] = None,
         *,
+        video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
+        storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
     ) -> deferred_pb2.StartDeferredResponse:
         """Starts a video extension request and returns a request_id for polling.
 
@@ -347,8 +439,20 @@ class Client(BaseClient):
             model: The model to use for video extension.
             video_url: The URL of the input video to extend. The extension continues
                 from the end of this video. Input video must be between 2 and 30 seconds long.
+                Cannot be set together with ``video_file_id``.
+            video_file_id: The file ID of the input video to extend. The extension continues
+                from the end of this video. Cannot be set together with ``video_url``.
             duration: Duration of the extension segment to generate in seconds (1-10).
                 Defaults to 6 seconds if not specified.
+            storage_options: Persist the result to the Files API. Accepts a dict
+                with a required ``filename`` and optional ``expires_after`` and ``public_url`` keys.
+                Set ``public_url`` to also create a publicly shareable URL.
+                Examples::
+
+                    storage_options={"filename": "output.mp4"}  # store privately, no expiry
+                    storage_options={"filename": "output.mp4", "expires_after": 7200}  # auto-delete after 2h
+                    storage_options={"filename": "output.mp4", "public_url": True}  # + shareable URL
+                    storage_options={"filename": "output.mp4", "public_url": {"expires_after": 86400}}  # + expiring URL
 
         Returns:
             A `StartDeferredResponse` containing the `request_id` for polling.
@@ -356,8 +460,10 @@ class Client(BaseClient):
         request = _make_extend_request(
             prompt,
             model,
-            video_url,
+            video_url=video_url,
+            video_file_id=video_file_id,
             duration=duration,
+            storage_options=storage_options,
         )
 
         with tracer.start_as_current_span(
@@ -371,9 +477,11 @@ class Client(BaseClient):
         self,
         prompt: str,
         model: Union[VideoGenerationModel, str],
-        video_url: str,
+        video_url: Optional[str] = None,
         *,
+        video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
+        storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
         timeout: Optional[datetime.timedelta] = None,
         interval: Optional[datetime.timedelta] = None,
     ) -> VideoResponse:
@@ -392,8 +500,20 @@ class Client(BaseClient):
             video_url: The URL or base64-encoded data URL of the input video to extend.
                 The extension continues from the end of this video.
                 Input video must be between 2 and 30 seconds long.
+                Cannot be set together with ``video_file_id``.
+            video_file_id: The file ID of the input video to extend. The extension continues
+                from the end of this video. Cannot be set together with ``video_url``.
             duration: Duration of the extension segment to generate in seconds (1-10).
                 Defaults to 6 seconds if not specified.
+            storage_options: Persist the result to the Files API. Accepts a dict
+                with a required ``filename`` and optional ``expires_after`` and ``public_url`` keys.
+                Set ``public_url`` to also create a publicly shareable URL.
+                Examples::
+
+                    storage_options={"filename": "output.mp4"}  # store privately, no expiry
+                    storage_options={"filename": "output.mp4", "expires_after": 7200}  # auto-delete after 2h
+                    storage_options={"filename": "output.mp4", "public_url": True}  # + shareable URL
+                    storage_options={"filename": "output.mp4", "public_url": {"expires_after": 86400}}  # + expiring URL
             timeout: Maximum time to wait for video extension to complete.
                 Defaults to 10 minutes.
             interval: Polling interval between status checks.
@@ -439,8 +559,10 @@ class Client(BaseClient):
         request_pb = _make_extend_request(
             prompt,
             model,
-            video_url,
+            video_url=video_url,
+            video_file_id=video_file_id,
             duration=duration,
+            storage_options=storage_options,
         )
 
         with tracer.start_as_current_span(

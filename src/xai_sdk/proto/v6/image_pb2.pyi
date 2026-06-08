@@ -1,3 +1,4 @@
+from google.protobuf import timestamp_pb2 as _timestamp_pb2
 from . import usage_pb2 as _usage_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
@@ -82,7 +83,7 @@ IMG_RESOLUTION_1K: ImageResolution
 IMG_RESOLUTION_2K: ImageResolution
 
 class GenerateImageRequest(_message.Message):
-    __slots__ = ("prompt", "image", "model", "n", "user", "format", "aspect_ratio", "resolution", "images")
+    __slots__ = ("prompt", "image", "model", "n", "user", "format", "aspect_ratio", "resolution", "images", "storage_options")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -92,6 +93,7 @@ class GenerateImageRequest(_message.Message):
     ASPECT_RATIO_FIELD_NUMBER: _ClassVar[int]
     RESOLUTION_FIELD_NUMBER: _ClassVar[int]
     IMAGES_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_OPTIONS_FIELD_NUMBER: _ClassVar[int]
     prompt: str
     image: ImageUrlContent
     model: str
@@ -101,7 +103,40 @@ class GenerateImageRequest(_message.Message):
     aspect_ratio: ImageAspectRatio
     resolution: ImageResolution
     images: _containers.RepeatedCompositeFieldContainer[ImageUrlContent]
-    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., user: _Optional[str] = ..., format: _Optional[_Union[ImageFormat, str]] = ..., aspect_ratio: _Optional[_Union[ImageAspectRatio, str]] = ..., resolution: _Optional[_Union[ImageResolution, str]] = ..., images: _Optional[_Iterable[_Union[ImageUrlContent, _Mapping]]] = ...) -> None: ...
+    storage_options: StorageOptions
+    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., user: _Optional[str] = ..., format: _Optional[_Union[ImageFormat, str]] = ..., aspect_ratio: _Optional[_Union[ImageAspectRatio, str]] = ..., resolution: _Optional[_Union[ImageResolution, str]] = ..., images: _Optional[_Iterable[_Union[ImageUrlContent, _Mapping]]] = ..., storage_options: _Optional[_Union[StorageOptions, _Mapping]] = ...) -> None: ...
+
+class StorageOptions(_message.Message):
+    __slots__ = ("filename", "expires_after", "public_url")
+    FILENAME_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AFTER_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_URL_FIELD_NUMBER: _ClassVar[int]
+    filename: str
+    expires_after: int
+    public_url: PublicUrlOptions
+    def __init__(self, filename: _Optional[str] = ..., expires_after: _Optional[int] = ..., public_url: _Optional[_Union[PublicUrlOptions, _Mapping]] = ...) -> None: ...
+
+class PublicUrlOptions(_message.Message):
+    __slots__ = ("expires_after",)
+    EXPIRES_AFTER_FIELD_NUMBER: _ClassVar[int]
+    expires_after: int
+    def __init__(self, expires_after: _Optional[int] = ...) -> None: ...
+
+class FileOutput(_message.Message):
+    __slots__ = ("file_id", "filename", "public_url", "public_url_expires_at", "expires_at", "public_url_error")
+    FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    FILENAME_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_URL_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_URL_EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    EXPIRES_AT_FIELD_NUMBER: _ClassVar[int]
+    PUBLIC_URL_ERROR_FIELD_NUMBER: _ClassVar[int]
+    file_id: str
+    filename: str
+    public_url: str
+    public_url_expires_at: _timestamp_pb2.Timestamp
+    expires_at: _timestamp_pb2.Timestamp
+    public_url_error: str
+    def __init__(self, file_id: _Optional[str] = ..., filename: _Optional[str] = ..., public_url: _Optional[str] = ..., public_url_expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., expires_at: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., public_url_error: _Optional[str] = ...) -> None: ...
 
 class ImageResponse(_message.Message):
     __slots__ = ("images", "model", "usage")
@@ -114,19 +149,25 @@ class ImageResponse(_message.Message):
     def __init__(self, images: _Optional[_Iterable[_Union[GeneratedImage, _Mapping]]] = ..., model: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ...) -> None: ...
 
 class GeneratedImage(_message.Message):
-    __slots__ = ("base64", "url", "respect_moderation")
+    __slots__ = ("base64", "url", "respect_moderation", "file_output", "storage_error")
     BASE64_FIELD_NUMBER: _ClassVar[int]
     URL_FIELD_NUMBER: _ClassVar[int]
     RESPECT_MODERATION_FIELD_NUMBER: _ClassVar[int]
+    FILE_OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    STORAGE_ERROR_FIELD_NUMBER: _ClassVar[int]
     base64: str
     url: str
     respect_moderation: bool
-    def __init__(self, base64: _Optional[str] = ..., url: _Optional[str] = ..., respect_moderation: bool = ...) -> None: ...
+    file_output: FileOutput
+    storage_error: str
+    def __init__(self, base64: _Optional[str] = ..., url: _Optional[str] = ..., respect_moderation: bool = ..., file_output: _Optional[_Union[FileOutput, _Mapping]] = ..., storage_error: _Optional[str] = ...) -> None: ...
 
 class ImageUrlContent(_message.Message):
-    __slots__ = ("image_url", "detail")
+    __slots__ = ("image_url", "file_id", "detail")
     IMAGE_URL_FIELD_NUMBER: _ClassVar[int]
+    FILE_ID_FIELD_NUMBER: _ClassVar[int]
     DETAIL_FIELD_NUMBER: _ClassVar[int]
     image_url: str
+    file_id: str
     detail: ImageDetail
-    def __init__(self, image_url: _Optional[str] = ..., detail: _Optional[_Union[ImageDetail, str]] = ...) -> None: ...
+    def __init__(self, image_url: _Optional[str] = ..., file_id: _Optional[str] = ..., detail: _Optional[_Union[ImageDetail, str]] = ...) -> None: ...

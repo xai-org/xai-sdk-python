@@ -5,6 +5,7 @@ from typing import Any, Optional, Sequence, Union
 import grpc
 
 from .cost import cost_usd_from_usage
+from .files import StorageOptions, _resolve_storage_options_pb
 from .meta import ProtoDecorator
 from .proto import image_pb2, image_pb2_grpc, usage_pb2
 from .telemetry import should_disable_sensitive_attributes
@@ -111,6 +112,36 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
             raise ValueError("Image was not returned via base64.")
         return value
 
+    @property
+    def file_output(self) -> Optional[image_pb2.FileOutput]:
+        """The full FileOutput proto if the asset was stored, or None otherwise."""
+        if self._image.HasField("file_output"):
+            return self._image.file_output
+        return None
+
+    @property
+    def storage_error(self) -> Optional[str]:
+        """Error message if storage was requested but failed, or None on success."""
+        if self._image.storage_error:
+            return self._image.storage_error
+        return None
+
+    @property
+    def public_url(self) -> Optional[str]:
+        """Public URL for the stored file, or None if not requested or creation failed."""
+        file_output = self.file_output
+        if file_output is not None and file_output.public_url:
+            return file_output.public_url
+        return None
+
+    @property
+    def public_url_error(self) -> Optional[str]:
+        """Error message if public URL creation failed, or None on success."""
+        file_output = self.file_output
+        if file_output is not None and file_output.public_url_error:
+            return file_output.public_url_error
+        return None
+
     def _decode_base64(self) -> bytes:
         """Returns the raw image buffer from a base64-encoded response."""
         encoded = self.base64
@@ -119,20 +150,42 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
         return base64.b64decode(encoded_buffer)
 
 
+def _validate_image_inputs(
+    image_url: str | None,
+    image_file_id: str | None,
+    image_urls: Sequence[str] | None,
+    image_file_ids: Sequence[str] | None,
+) -> None:
+    """Validates mutual exclusion constraints on image input parameters.
+
+    `image_urls` and `image_file_ids` may be supplied together so callers can
+    mix URL/base64 and file-ID references in the same multi-image request.
+    When both are provided, file IDs are appended first, then URLs.
+    """
+    if image_url is not None and image_file_id is not None:
+        raise ValueError("Only one of image_url or image_file_id can be set for a request.")
+    has_single = image_url is not None or image_file_id is not None
+    has_multi = image_urls is not None or image_file_ids is not None
+    if has_single and has_multi:
+        raise ValueError("Only one of image_url/image_file_id or image_urls/image_file_ids can be set for a request.")
+
+
 def _make_generate_request(
     prompt: str,
     model: Union[ImageGenerationModel, str],
     *,
     n: int = 1,
     image_url: str | None = None,
+    image_file_id: str | None = None,
     image_urls: Sequence[str] | None = None,
+    image_file_ids: Sequence[str] | None = None,
     user: str | None = None,
     image_format: ImageFormat | None = None,
     aspect_ratio: ImageAspectRatio | None = None,
     resolution: ImageResolution | None = None,
+    storage_options: Union[StorageOptions, image_pb2.StorageOptions, None] = None,
 ) -> image_pb2.GenerateImageRequest:
-    if image_url is not None and image_urls is not None:
-        raise ValueError("Only one of image_url or image_urls can be set for a request.")
+    _validate_image_inputs(image_url, image_file_id, image_urls, image_file_ids)
 
     image_format = image_format or "url"
     request = image_pb2.GenerateImageRequest(
@@ -149,6 +202,27 @@ def _make_generate_request(
                 detail=image_pb2.ImageDetail.DETAIL_AUTO,
             )
         )
+    elif image_file_id is not None:
+        request.image.CopyFrom(
+            image_pb2.ImageUrlContent(
+                file_id=image_file_id,
+                detail=image_pb2.ImageDetail.DETAIL_AUTO,
+            )
+        )
+    # When both `image_file_ids` and `image_urls` are provided we send both
+    # lists in the same `images` field. File IDs are appended first so callers
+    # can predict the resulting `<IMAGE_N>` positional indices used by the
+    # model prompt.
+    if image_file_ids is not None:
+        request.images.extend(
+            [
+                image_pb2.ImageUrlContent(
+                    file_id=fid,
+                    detail=image_pb2.ImageDetail.DETAIL_AUTO,
+                )
+                for fid in image_file_ids
+            ]
+        )
     if image_urls is not None:
         request.images.extend(
             [
@@ -163,6 +237,8 @@ def _make_generate_request(
         request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)
     if resolution is not None:
         request.resolution = convert_image_resolution_to_pb(resolution)
+    if storage_options is not None:
+        request.storage_options.CopyFrom(_resolve_storage_options_pb(storage_options))
     return request
 
 
@@ -183,6 +259,15 @@ def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> di
     )
     attributes["gen_ai.prompt"] = request.prompt
 
+    if request.HasField("storage_options"):
+        attributes["gen_ai.request.storage"] = True
+        if request.storage_options.filename:
+            attributes["gen_ai.request.storage.filename"] = request.storage_options.filename
+        if request.storage_options.expires_after:
+            attributes["gen_ai.request.storage.expires_after"] = request.storage_options.expires_after
+        if request.storage_options.HasField("public_url"):
+            attributes["gen_ai.request.storage.public_url"] = True
+
     if request.HasField("n"):
         attributes["gen_ai.request.image.count"] = request.n
     if request.HasField("aspect_ratio"):
@@ -197,6 +282,30 @@ def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> di
     return attributes
 
 
+def _collect_per_image_attributes(
+    prefix: str,
+    response: BaseImageResponse,
+    image_format: int,
+) -> dict[str, Any]:
+    """Collects span attributes for a single generated image."""
+    attributes: dict[str, Any] = {
+        f"{prefix}.respect_moderation": response.respect_moderation,
+    }
+    if image_format == image_pb2.ImageFormat.IMG_FORMAT_URL and response._image.url:
+        attributes[f"{prefix}.url"] = response._image.url
+    elif image_format == image_pb2.ImageFormat.IMG_FORMAT_BASE64 and response._image.base64:
+        attributes[f"{prefix}.base64"] = response._image.base64
+    if response.file_output and response.file_output.file_id:
+        attributes[f"{prefix}.file_id"] = response.file_output.file_id
+    if response.public_url:
+        attributes[f"{prefix}.public_url"] = response.public_url
+    if response.public_url_error:
+        attributes[f"{prefix}.public_url_error"] = response.public_url_error
+    if response.storage_error:
+        attributes[f"{prefix}.storage_error"] = response.storage_error
+    return attributes
+
+
 def _make_span_response_attributes(
     request: image_pb2.GenerateImageRequest, responses: Sequence[BaseImageResponse]
 ) -> dict[str, Any]:
@@ -208,7 +317,6 @@ def _make_span_response_attributes(
     if should_disable_sensitive_attributes():
         return attributes
 
-    # All of these attributes are the same for all images in this response.
     if responses:
         usage = responses[0].usage
         attributes["gen_ai.usage.input_tokens"] = usage.prompt_tokens
@@ -225,14 +333,7 @@ def _make_span_response_attributes(
         image_pb2.ImageFormat.Name(request.format).removeprefix("IMG_FORMAT_").lower()
     )
     for index, response in enumerate(responses):
-        attributes[f"gen_ai.response.{index}.image.up_sampled_prompt"] = ""
-        attributes[f"gen_ai.response.{index}.image.respect_moderation"] = response.respect_moderation
-        if request.format == image_pb2.ImageFormat.IMG_FORMAT_URL:
-            if response._image.url:
-                attributes[f"gen_ai.response.{index}.image.url"] = response._image.url
-        elif request.format == image_pb2.ImageFormat.IMG_FORMAT_BASE64:
-            if response._image.base64:
-                attributes[f"gen_ai.response.{index}.image.base64"] = response._image.base64
+        attributes.update(_collect_per_image_attributes(f"gen_ai.response.{index}.image", response, request.format))
 
     return attributes
 

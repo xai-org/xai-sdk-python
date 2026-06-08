@@ -1,7 +1,9 @@
+import datetime
 from unittest import mock
 
 import pytest
 import pytest_asyncio
+from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import AsyncClient
@@ -148,7 +150,7 @@ async def test_sample_rejects_both_image_fields(client: AsyncClient):
     input_image_url = "https://example.com/image.jpg"
     input_image_urls = ["https://example.com/image1.jpg"]
 
-    with pytest.raises(ValueError, match="Only one of image_url or image_urls can be set"):
+    with pytest.raises(ValueError, match="image_url/image_file_id or image_urls/image_file_ids"):
         await client.image.sample(
             prompt="foo",
             model="grok-imagine-image",
@@ -162,7 +164,7 @@ async def test_sample_batch_rejects_both_image_fields(client: AsyncClient):
     input_image_url = "https://example.com/image.jpg"
     input_image_urls = ["https://example.com/image1.jpg"]
 
-    with pytest.raises(ValueError, match="Only one of image_url or image_urls can be set"):
+    with pytest.raises(ValueError, match="image_url/image_file_id or image_urls/image_file_ids"):
         await client.image.sample_batch(
             prompt="foo",
             model="grok-imagine-image",
@@ -183,7 +185,7 @@ async def test_sample_creates_span_with_correct_attributes(
 
     user = "test-user-123"
     response = await client.image.sample(
-        prompt="A beautiful sunset", model="grok-2-image", image_format=image_format, user=user
+        prompt="A beautiful sunset", model="grok-imagine-image", image_format=image_format, user=user
     )
 
     expected_request_attributes = {
@@ -191,20 +193,20 @@ async def test_sample_creates_span_with_correct_attributes(
         "gen_ai.operation.name": "generate_image",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "image",
-        "gen_ai.request.model": "grok-2-image",
+        "gen_ai.request.model": "grok-imagine-image",
         "gen_ai.request.image.format": image_format,
         "gen_ai.request.image.count": 1,
         "user_id": user,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="image.sample grok-2-image",
+        name="image.sample grok-imagine-image",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
 
     expected_response_attributes = {
-        "gen_ai.response.model": "grok-2-image",
+        "gen_ai.response.model": "grok-imagine-image",
         "gen_ai.response.image.format": image_format,
         "gen_ai.usage.input_tokens": response.usage.prompt_tokens,
         "gen_ai.usage.output_tokens": response.usage.completion_tokens,
@@ -213,7 +215,6 @@ async def test_sample_creates_span_with_correct_attributes(
         "gen_ai.usage.cached_prompt_text_tokens": response.usage.cached_prompt_text_tokens,
         "gen_ai.usage.prompt_text_tokens": response.usage.prompt_text_tokens,
         "gen_ai.usage.prompt_image_tokens": response.usage.prompt_image_tokens,
-        "gen_ai.response.0.image.up_sampled_prompt": "",
         "gen_ai.response.0.image.respect_moderation": response.respect_moderation,
     }
 
@@ -272,7 +273,7 @@ async def test_sample_batch_creates_span_with_correct_attributes(
 
     user = "test-user-123"
     responses = await client.image.sample_batch(
-        prompt="A beautiful sunset", model="grok-2-image", n=3, image_format=image_format, user=user
+        prompt="A beautiful sunset", model="grok-imagine-image", n=3, image_format=image_format, user=user
     )
 
     assert len(responses) == 3
@@ -282,20 +283,20 @@ async def test_sample_batch_creates_span_with_correct_attributes(
         "gen_ai.operation.name": "generate_image",
         "gen_ai.provider.name": "xai",
         "gen_ai.output.type": "image",
-        "gen_ai.request.model": "grok-2-image",
+        "gen_ai.request.model": "grok-imagine-image",
         "gen_ai.request.image.format": image_format,
         "gen_ai.request.image.count": 3,
         "user_id": user,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
-        name="image.sample_batch grok-2-image",
+        name="image.sample_batch grok-imagine-image",
         kind=SpanKind.CLIENT,
         attributes=expected_request_attributes,
     )
 
     expected_response_attributes = {
-        "gen_ai.response.model": "grok-2-image",
+        "gen_ai.response.model": "grok-imagine-image",
         "gen_ai.response.image.format": image_format,
         "gen_ai.usage.input_tokens": responses[0].usage.prompt_tokens,
         "gen_ai.usage.output_tokens": responses[0].usage.completion_tokens,
@@ -304,9 +305,6 @@ async def test_sample_batch_creates_span_with_correct_attributes(
         "gen_ai.usage.cached_prompt_text_tokens": responses[0].usage.cached_prompt_text_tokens,
         "gen_ai.usage.prompt_text_tokens": responses[0].usage.prompt_text_tokens,
         "gen_ai.usage.prompt_image_tokens": responses[0].usage.prompt_image_tokens,
-        "gen_ai.response.0.image.up_sampled_prompt": "",
-        "gen_ai.response.1.image.up_sampled_prompt": "",
-        "gen_ai.response.2.image.up_sampled_prompt": "",
         "gen_ai.response.0.image.respect_moderation": responses[0].respect_moderation,
         "gen_ai.response.1.image.respect_moderation": responses[1].respect_moderation,
         "gen_ai.response.2.image.respect_moderation": responses[2].respect_moderation,
@@ -361,7 +359,7 @@ async def test_create_with_aspect_ratio_and_resolution(client: AsyncClient):
 @pytest.mark.asyncio(loop_scope="session")
 async def test_create_rejects_both_image_fields(client: AsyncClient):
     """Test that create() rejects both image_url and image_urls."""
-    with pytest.raises(ValueError, match="Only one of image_url or image_urls can be set"):
+    with pytest.raises(ValueError, match="image_url/image_file_id or image_urls/image_file_ids"):
         client.image.prepare(
             prompt="foo",
             model="grok-imagine-image",
@@ -384,3 +382,326 @@ def test_image_response_cost_usd_returns_none_when_unset():
         usage=usage_pb2.SamplingUsage(),
     )
     assert BaseImageResponse(proto, 0).cost_usd is None
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_image_file_id(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(prompt="foo", model="grok-imagine-image", image_file_id="file_abc")
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("image")
+    assert request.image.file_id == "file_abc"
+    assert request.image.detail == image_pb2.ImageDetail.DETAIL_AUTO
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_image_file_ids(client: AsyncClient):
+    server.clear_last_image_request()
+
+    input_file_ids = ["file_abc", "file_def"]
+    await client.image.sample(prompt="foo", model="grok-imagine-image", image_file_ids=input_file_ids)
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert [image.file_id for image in request.images] == input_file_ids
+    assert all(image.detail == image_pb2.ImageDetail.DETAIL_AUTO for image in request.images)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_rejects_image_url_and_file_id(client: AsyncClient):
+    with pytest.raises(ValueError, match="Only one of image_url or image_file_id can be set"):
+        await client.image.sample(
+            prompt="foo",
+            model="grok-imagine-image",
+            image_url="https://example.com/image.jpg",
+            image_file_id="file_abc",
+        )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_mixed_image_urls_and_file_ids(client: AsyncClient):
+    """`image_urls` and `image_file_ids` can be combined; file IDs are appended first."""
+    server.clear_last_image_request()
+
+    file_ids = ["file_abc", "file_def"]
+    urls = ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        image_urls=urls,
+        image_file_ids=file_ids,
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert len(request.images) == 4
+    # Documented order: file IDs first, then URLs.
+    assert request.images[0].file_id == "file_abc"
+    assert request.images[1].file_id == "file_def"
+    assert request.images[2].image_url == "https://example.com/image1.jpg"
+    assert request.images[3].image_url == "https://example.com/image2.jpg"
+    assert all(image.detail == image_pb2.ImageDetail.DETAIL_AUTO for image in request.images)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_batch_passes_image_file_ids(client: AsyncClient):
+    server.clear_last_image_request()
+
+    input_file_ids = ["file_abc", "file_def"]
+    await client.image.sample_batch(prompt="foo", model="grok-imagine-image", n=2, image_file_ids=input_file_ids)
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert [image.file_id for image in request.images] == input_file_ids
+    assert all(image.detail == image_pb2.ImageDetail.DETAIL_AUTO for image in request.images)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_prepare_passes_image_file_id(client: AsyncClient):
+    batch_req = client.image.prepare(
+        prompt="Edit this image",
+        model="grok-imagine-image",
+        image_file_id="file_abc",
+    )
+
+    assert batch_req.image_request.HasField("image")
+    assert batch_req.image_request.image.file_id == "file_abc"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options={"filename": "my-image.png", "expires_after": 3600},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "my-image.png"
+    assert request.storage_options.expires_after == 3600
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options_timedelta(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options={"filename": "test.png", "expires_after": datetime.timedelta(hours=1)},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.expires_after == 3600
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options_proto(client: AsyncClient):
+    server.clear_last_image_request()
+
+    proto_opts = image_pb2.StorageOptions(filename="proto.png", expires_after=7200)
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options=proto_opts,
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "proto.png"
+    assert request.storage_options.expires_after == 7200
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_batch_passes_storage_options(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample_batch(
+        prompt="foo",
+        model="grok-imagine-image",
+        n=2,
+        storage_options={"filename": "my-image.png", "expires_after": 3600},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "my-image.png"
+    assert request.storage_options.expires_after == 3600
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options_with_filename_only(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options={"filename": "test.png"},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "test.png"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_omits_storage_options_by_default(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(prompt="foo", model="grok-imagine-image")
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert not request.HasField("storage_options")
+
+
+def test_image_response_file_output_properties():
+    file_output = image_pb2.FileOutput(
+        file_id="file-abc123",
+        filename="my-image.png",
+        expires_at=timestamp_pb2.Timestamp(seconds=1720000000),
+    )
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png", file_output=file_output)],
+    )
+    response = BaseImageResponse(proto, 0)
+    assert response.file_output is not None
+    assert response.file_output.file_id == "file-abc123"
+    assert response.file_output.filename == "my-image.png"
+    assert response.file_output.expires_at == timestamp_pb2.Timestamp(seconds=1720000000)
+    assert response.storage_error is None
+
+
+def test_image_response_no_file_output():
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png")],
+    )
+    response = BaseImageResponse(proto, 0)
+    assert response.file_output is None
+    assert response.storage_error is None
+
+
+def test_image_response_storage_error():
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png", storage_error="quota exceeded")],
+    )
+    response = BaseImageResponse(proto, 0)
+    assert response.storage_error == "quota exceeded"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options_with_public_url(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options={"filename": "my-image.png", "public_url": {"expires_after": 86400}},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "my-image.png"
+    assert request.storage_options.HasField("public_url")
+    assert request.storage_options.public_url.expires_after == 86400
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options_with_public_url_true(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options={"filename": "test.png", "public_url": True},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "test.png"
+    assert request.storage_options.HasField("public_url")
+    assert not request.storage_options.public_url.HasField("expires_after")
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options_with_public_url_false(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options={"filename": "test.png", "public_url": False},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "test.png"
+    assert not request.storage_options.HasField("public_url")
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_storage_options_with_public_url_timedelta(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(
+        prompt="foo",
+        model="grok-imagine-image",
+        storage_options={"filename": "test.png", "public_url": {"expires_after": datetime.timedelta(hours=2)}},
+    )
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.storage_options.HasField("public_url")
+    assert request.storage_options.public_url.expires_after == 7200
+
+
+def test_image_response_public_url_properties():
+    file_output = image_pb2.FileOutput(
+        file_id="file-abc123",
+        filename="my-image.png",
+        public_url="https://files-cdn.x.ai/tok/file-abc123.png",
+    )
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png", file_output=file_output)],
+    )
+    response = BaseImageResponse(proto, 0)
+    assert response.public_url == "https://files-cdn.x.ai/tok/file-abc123.png"
+    assert response.public_url_error is None
+
+
+def test_image_response_public_url_error():
+    file_output = image_pb2.FileOutput(
+        file_id="file-abc123",
+        filename="my-image.png",
+        public_url_error="content type not allowed",
+    )
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png", file_output=file_output)],
+    )
+    response = BaseImageResponse(proto, 0)
+    assert response.public_url is None
+    assert response.public_url_error == "content type not allowed"
+
+
+def test_image_response_public_url_none_when_no_file_output():
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png")],
+    )
+    response = BaseImageResponse(proto, 0)
+    assert response.public_url is None
+    assert response.public_url_error is None

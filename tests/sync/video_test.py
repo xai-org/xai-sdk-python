@@ -2,6 +2,7 @@ import warnings
 from unittest import mock
 
 import pytest
+from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
@@ -556,3 +557,410 @@ def test_video_response_cost_usd_returns_none_when_unset():
         usage=usage_pb2.SamplingUsage(),
     )
     assert VideoResponse(proto).cost_usd is None
+
+
+def test_generate_passes_image_file_id(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(prompt="foo", model="grok-imagine-video", image_file_id="file_abc")
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("image")
+    assert request.image.file_id == "file_abc"
+    assert request.image.detail == image_pb2.ImageDetail.DETAIL_AUTO
+
+
+def test_generate_passes_video_file_id(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(prompt="foo", model="grok-imagine-video", video_file_id="file_abc")
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("video")
+    assert request.video.file_id == "file_abc"
+
+
+def test_generate_passes_reference_image_file_ids(client: Client):
+    server.clear_last_video_request()
+
+    ref_ids = ["file_abc", "file_def"]
+    client.video.generate(prompt="foo", model="grok-imagine-video", reference_image_file_ids=ref_ids)
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert len(request.reference_images) == 2
+    assert request.reference_images[0].file_id == ref_ids[0]
+    assert request.reference_images[0].detail == image_pb2.ImageDetail.DETAIL_AUTO
+    assert request.reference_images[1].file_id == ref_ids[1]
+    assert request.reference_images[1].detail == image_pb2.ImageDetail.DETAIL_AUTO
+
+
+def test_generate_rejects_image_url_and_file_id(client: Client):
+    with pytest.raises(ValueError, match="Only one of image_url or image_file_id can be set"):
+        client.video.generate(
+            prompt="foo",
+            model="grok-imagine-video",
+            image_url="https://example.com/image.jpg",
+            image_file_id="file_abc",
+        )
+
+
+def test_generate_rejects_video_url_and_file_id(client: Client):
+    with pytest.raises(ValueError, match="Only one of video_url or video_file_id can be set"):
+        client.video.generate(
+            prompt="foo",
+            model="grok-imagine-video",
+            video_url="https://example.com/video.mp4",
+            video_file_id="file_abc",
+        )
+
+
+def test_generate_passes_mixed_reference_image_urls_and_file_ids(client: Client):
+    """`reference_image_urls` and `reference_image_file_ids` can be combined; file IDs first."""
+    server.clear_last_video_request()
+
+    file_ids = ["file_abc", "file_def"]
+    urls = ["https://example.com/ref1.jpg", "https://example.com/ref2.jpg"]
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        reference_image_urls=urls,
+        reference_image_file_ids=file_ids,
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert len(request.reference_images) == 4
+    assert request.reference_images[0].file_id == "file_abc"
+    assert request.reference_images[1].file_id == "file_def"
+    assert request.reference_images[2].image_url == "https://example.com/ref1.jpg"
+    assert request.reference_images[3].image_url == "https://example.com/ref2.jpg"
+
+
+def test_extend_passes_video_file_id(client: Client):
+    server.clear_last_extend_video_request()
+
+    client.video.extend(
+        prompt="Continue the scene",
+        model="grok-imagine-video",
+        video_file_id="file_abc",
+    )
+
+    request = server.get_last_extend_video_request()
+    assert request is not None
+    assert request.HasField("video")
+    assert request.video.file_id == "file_abc"
+
+
+def test_extend_rejects_video_url_and_file_id(client: Client):
+    with pytest.raises(ValueError, match="Only one of video_url or video_file_id can be set"):
+        client.video.extend(
+            prompt="foo",
+            model="grok-imagine-video",
+            video_url="https://example.com/input.mp4",
+            video_file_id="file_abc",
+        )
+
+
+def test_extend_rejects_neither_video_url_nor_file_id(client: Client):
+    with pytest.raises(ValueError, match="One of video_url or video_file_id must be set"):
+        client.video.extend(
+            prompt="foo",
+            model="grok-imagine-video",
+        )
+
+
+def test_extend_start_passes_video_file_id(client: Client):
+    server.clear_last_extend_video_request()
+
+    client.video.extend_start(
+        prompt="Continue the scene",
+        model="grok-imagine-video",
+        video_file_id="file_abc",
+    )
+
+    request = server.get_last_extend_video_request()
+    assert request is not None
+    assert request.HasField("video")
+    assert request.video.file_id == "file_abc"
+
+
+def test_extend_start_rejects_video_url_and_file_id(client: Client):
+    with pytest.raises(ValueError, match="Only one of video_url or video_file_id can be set"):
+        client.video.extend_start(
+            prompt="foo",
+            model="grok-imagine-video",
+            video_url="https://example.com/input.mp4",
+            video_file_id="file_abc",
+        )
+
+
+def test_extend_start_rejects_neither_video_url_nor_file_id(client: Client):
+    with pytest.raises(ValueError, match="One of video_url or video_file_id must be set"):
+        client.video.extend_start(
+            prompt="foo",
+            model="grok-imagine-video",
+        )
+
+
+def test_prepare_passes_image_file_id(client: Client):
+    batch_req = client.video.prepare(
+        prompt="Animate this image",
+        model="grok-imagine-video",
+        image_file_id="file_abc",
+    )
+
+    assert batch_req.video_request.HasField("image")
+    assert batch_req.video_request.image.file_id == "file_abc"
+
+
+def test_prepare_passes_video_file_id(client: Client):
+    batch_req = client.video.prepare(
+        prompt="Edit this video",
+        model="grok-imagine-video",
+        video_file_id="file_abc",
+    )
+
+    assert batch_req.video_request.HasField("video")
+    assert batch_req.video_request.video.file_id == "file_abc"
+
+
+def test_prepare_passes_reference_image_file_ids(client: Client):
+    ref_ids = ["file_abc", "file_def"]
+    batch_req = client.video.prepare(
+        prompt="Generate from references",
+        model="grok-imagine-video",
+        reference_image_file_ids=ref_ids,
+    )
+
+    assert len(batch_req.video_request.reference_images) == 2
+    assert batch_req.video_request.reference_images[0].file_id == ref_ids[0]
+    assert batch_req.video_request.reference_images[1].file_id == ref_ids[1]
+
+
+def test_generate_passes_storage_options(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        storage_options={"filename": "my-video.mp4", "expires_after": 7200},
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "my-video.mp4"
+    assert request.storage_options.expires_after == 7200
+
+
+def test_generate_passes_storage_options_with_filename_only(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        storage_options={"filename": "test.mp4"},
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "test.mp4"
+
+
+def test_generate_omits_storage_options_by_default(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(prompt="foo", model="grok-imagine-video")
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert not request.HasField("storage_options")
+
+
+def test_extend_passes_storage_options(client: Client):
+    server.clear_last_extend_video_request()
+
+    client.video.extend(
+        prompt="Continue",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+        storage_options={"filename": "extended.mp4"},
+    )
+
+    request = server.get_last_extend_video_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "extended.mp4"
+
+
+def test_prepare_passes_storage_options(client: Client):
+    batch_req = client.video.prepare(
+        prompt="Generate video",
+        model="grok-imagine-video",
+        storage_options={"filename": "batch.mp4"},
+    )
+
+    assert batch_req.video_request.HasField("storage_options")
+    assert batch_req.video_request.storage_options.filename == "batch.mp4"
+
+
+def test_video_response_file_output_properties():
+    file_output = image_pb2.FileOutput(
+        file_id="file-xyz789",
+        filename="my-video.mp4",
+        expires_at=timestamp_pb2.Timestamp(seconds=1720000000),
+    )
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5, file_output=file_output),
+    )
+    response = VideoResponse(proto)
+    assert response.file_output is not None
+    assert response.file_output.file_id == "file-xyz789"
+    assert response.file_output.filename == "my-video.mp4"
+    assert response.file_output.expires_at == timestamp_pb2.Timestamp(seconds=1720000000)
+    assert response.storage_error is None
+
+
+def test_video_response_no_file_output():
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5),
+    )
+    response = VideoResponse(proto)
+    assert response.file_output is None
+    assert response.storage_error is None
+
+
+def test_video_response_storage_error():
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5, storage_error="quota exceeded"),
+    )
+    response = VideoResponse(proto)
+    assert response.storage_error == "quota exceeded"
+
+
+def test_generate_passes_storage_options_with_public_url(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        storage_options={"filename": "my-video.mp4", "public_url": {"expires_after": 86400}},
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "my-video.mp4"
+    assert request.storage_options.HasField("public_url")
+    assert request.storage_options.public_url.expires_after == 86400
+
+
+def test_generate_passes_storage_options_with_public_url_true(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        storage_options={"filename": "test.mp4", "public_url": True},
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "test.mp4"
+    assert request.storage_options.HasField("public_url")
+    assert not request.storage_options.public_url.HasField("expires_after")
+
+
+def test_generate_passes_storage_options_with_public_url_false(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        storage_options={"filename": "test.mp4", "public_url": False},
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "test.mp4"
+    assert not request.storage_options.HasField("public_url")
+
+
+def test_video_response_public_url_properties():
+    file_output = image_pb2.FileOutput(
+        file_id="file-xyz789",
+        filename="my-video.mp4",
+        public_url="https://files-cdn.x.ai/tok/file-xyz789.mp4",
+    )
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5, file_output=file_output),
+    )
+    response = VideoResponse(proto)
+    assert response.public_url == "https://files-cdn.x.ai/tok/file-xyz789.mp4"
+    assert response.public_url_error is None
+
+
+def test_video_response_public_url_error():
+    file_output = image_pb2.FileOutput(
+        file_id="file-xyz789",
+        filename="my-video.mp4",
+        public_url_error="content type not allowed",
+    )
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5, file_output=file_output),
+    )
+    response = VideoResponse(proto)
+    assert response.public_url is None
+    assert response.public_url_error == "content type not allowed"
+
+
+def test_video_response_public_url_none_when_no_file_output():
+    proto = video_pb2.VideoResponse(
+        video=video_pb2.GeneratedVideo(url="https://example.com/v.mp4", duration=5),
+    )
+    response = VideoResponse(proto)
+    assert response.public_url is None
+    assert response.public_url_error is None
+
+
+def test_prepare_extension_with_video_file_id(client: Client):
+    """Test that prepare_extension() accepts a video_file_id."""
+    batch_req = client.video.prepare_extension(
+        prompt="Continue the scene",
+        model="grok-imagine-video",
+        video_file_id="file_abc",
+    )
+
+    assert batch_req.video_extension_request.video.file_id == "file_abc"
+
+
+def test_prepare_extension_rejects_video_url_and_file_id(client: Client):
+    """Test that prepare_extension() rejects setting both video_url and video_file_id."""
+    with pytest.raises(ValueError, match="Only one of video_url or video_file_id can be set"):
+        client.video.prepare_extension(
+            prompt="foo",
+            model="grok-imagine-video",
+            video_url="https://example.com/input.mp4",
+            video_file_id="file_abc",
+        )
+
+
+def test_prepare_extension_passes_storage_options(client: Client):
+    """Test that prepare_extension() passes storage_options through to the request."""
+    batch_req = client.video.prepare_extension(
+        prompt="Continue the scene",
+        model="grok-imagine-video",
+        video_url="https://example.com/input.mp4",
+        storage_options={"filename": "output.mp4", "public_url": True},
+    )
+
+    request = batch_req.video_extension_request
+    assert request.HasField("storage_options")
+    assert request.storage_options.filename == "output.mp4"
+    assert request.storage_options.HasField("public_url")
