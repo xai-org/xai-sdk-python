@@ -14,6 +14,7 @@ from ..files import (
     _chunk_file_data,
     _chunk_file_from_fileobj,
     _chunk_file_from_path,
+    _expires_after_to_seconds,
     _order_to_pb,
     _sort_by_to_pb,
 )
@@ -237,6 +238,7 @@ class Client(BaseClient):
         order: Optional[Order] = None,
         sort_by: Optional[SortBy] = None,
         pagination_token: Optional[str] = None,
+        filter: Optional[str] = None,  # noqa: A002
     ) -> files_pb2.ListFilesResponse:
         """List files.
 
@@ -245,6 +247,18 @@ class Client(BaseClient):
             order: Sort order for the files. Either "asc" (ascending) or "desc" (descending).
             sort_by: Field to sort by. Either "created_at", "filename", or "size".
             pagination_token: Token for fetching the next page of results.
+            filter: Optional filter expression to narrow down results.
+                Supported fields: file_id, name (or file_name), size_bytes,
+                content_type, created_at, expires_at, upload_status,
+                user_defined_id, public_url, public_url_expires_at.
+                Operators: =, !=, >, >=, <, <=, AND, OR, NOT. Use ``null`` to
+                match unset fields. Examples::
+
+                    filter='content_type = "application/pdf"'
+                    filter='name = "report.pdf"'
+                    filter='size_bytes > 1048576'  # larger than 1 MiB
+                    filter='public_url != null'  # only files with a public URL
+                    filter='content_type = "image/png" AND created_at > "2026-03-15T00:00:00Z"'
 
         Returns:
             A ListFilesResponse containing the list of files and optional pagination token.
@@ -259,6 +273,8 @@ class Client(BaseClient):
             request.sort_by = _sort_by_to_pb(sort_by)
         if pagination_token is not None:
             request.pagination_token = pagination_token
+        if filter is not None and filter != "":
+            request.filter = filter
 
         return self._stub.ListFiles(request)
 
@@ -318,3 +334,66 @@ class Client(BaseClient):
             content_parts.append(chunk.data)
 
         return b"".join(content_parts)
+
+    def create_public_url(
+        self,
+        file_id: str,
+        *,
+        expires_after: Optional[Union[datetime.timedelta, int]] = None,
+    ) -> files_pb2.CreatePublicUrlResponse:
+        """Create a publicly shareable, unauthenticated URL for a file.
+
+        The returned URL can be shared with anyone and does not require
+        an API key to access. Only images, videos, and PDFs can be made
+        public. A file can have at most one public URL at a time; calling
+        this on a file that already has a public URL returns the existing
+        URL. To update the expiry, call again with a new ``expires_after``
+        value.
+
+        **Public URL expiry behavior:**
+
+        - If ``expires_after`` is set, the public URL expires that many
+          seconds from now, independently of the file's own TTL.
+        - If ``expires_after`` is omitted and the file has a TTL
+          (``expires_after`` was set at upload), the public URL
+          automatically inherits the file's expiry -- it will expire at
+          the same time as the file.
+        - If ``expires_after`` is omitted and the file has no TTL, the
+          public URL remains valid indefinitely (until explicitly revoked
+          or the file is deleted).
+
+        Args:
+            file_id: The ID of the file to create a public URL for.
+            expires_after: Seconds (or ``timedelta``) until the public URL expires.
+                If omitted, the public URL inherits the file's TTL, or
+                remains valid indefinitely if the file has no TTL.
+
+        Returns:
+            A ``CreatePublicUrlResponse`` containing ``public_url`` and optional ``expires_at``.
+        """
+        request = files_pb2.CreatePublicUrlRequest(
+            file_id=file_id,
+            expires_after=_expires_after_to_seconds(expires_after),
+        )
+        return self._stub.CreatePublicUrl(request)
+
+    def revoke_public_url(self, file_id: str) -> files_pb2.RevokePublicUrlResponse:
+        """Revoke the public URL for a file.
+
+        After revocation the URL is no longer accessible. The original
+        file remains available via authenticated endpoints. Succeeds
+        even if the file has no public URL (``revoked`` will be ``False``).
+
+        Args:
+            file_id: The ID of the file whose public URL to revoke.
+
+        Returns:
+            A ``RevokePublicUrlResponse`` with:
+            - ``file_id``: The file ID acted upon.
+            - ``revoked``: ``True`` if a public URL was actually revoked,
+              ``False`` if the file had no active public URL (no-op).
+            - ``public_url``: The URL that was revoked (only present when
+              ``revoked`` is ``True``).
+        """
+        request = files_pb2.RevokePublicUrlRequest(file_id=file_id)
+        return self._stub.RevokePublicUrl(request)

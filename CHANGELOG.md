@@ -4,6 +4,8 @@
 ### Added
 - **Imagine File Storage**: Image and video generation (sync and async) now accept a `storage_options` parameter to persist generated assets to the Files API. It takes a dict with a required `filename` and optional `expires_after` (an `int` in seconds or a `datetime.timedelta`) and `public_url` (`True` to create a public URL with default expiry, or `{"expires_after": <seconds>}` for an independent URL expiry). Image and video responses expose new `file_output`, `storage_error`, `public_url`, and `public_url_error` properties.
 - **File-ID Inputs for Generation**: Image and video generation now accept Files API `file_id` references as inputs alongside URLs/base64 — `image_file_id` / `image_file_ids` for `image.sample()` / `image.sample_batch()`, and `image_file_id` / `video_file_id` / `reference_image_file_ids` for `video.generate()` / `video.extend()` (and the batch `prepare` helpers). URL and file-ID lists may be mixed in the same multi-image request (file IDs are sent first).
+- **Public File URLs**: Added `client.files.create_public_url()` and `client.files.revoke_public_url()` (sync and async) to create and revoke publicly shareable, unauthenticated URLs for stored files. `create_public_url()` accepts an optional `expires_after` (an `int` in seconds or a `datetime.timedelta`).
+- **Files List Filter**: `client.files.list()` (sync and async) now accepts an optional `filter` parameter to narrow results server-side by fields such as `content_type`, `size_bytes`, `created_at`, `upload_status`, and `public_url` (e.g. `filter='public_url != null'`).
 
 ## [v1.14.0]
 ### Added
