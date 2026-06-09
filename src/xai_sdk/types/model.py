@@ -42,9 +42,13 @@ ChatModel: TypeAlias = Literal[
 ImageGenerationModel: TypeAlias = Literal[
     "grok-imagine-image",
     "grok-imagine-image-pro",
+    "grok-imagine-image-quality",
 ]
 
-VideoGenerationModel: TypeAlias = Literal["grok-imagine-video"]
+VideoGenerationModel: TypeAlias = Literal[
+    "grok-imagine-video",
+    "grok-imagine-video-1.5-preview",
+]
 
 AllModels: TypeAlias = Union[
     ChatModel,
