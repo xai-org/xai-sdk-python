@@ -1,9 +1,9 @@
 from google.protobuf import timestamp_pb2 as _timestamp_pb2
-from xai.api.v1 import deferred_pb2 as _deferred_pb2
-from xai.api.v1 import documents_pb2 as _documents_pb2
-from xai.api.v1 import image_pb2 as _image_pb2
-from xai.api.v1 import sample_pb2 as _sample_pb2
-from xai.api.v1 import usage_pb2 as _usage_pb2
+from . import deferred_pb2 as _deferred_pb2
+from . import documents_pb2 as _documents_pb2
+from . import image_pb2 as _image_pb2
+from . import sample_pb2 as _sample_pb2
+from . import usage_pb2 as _usage_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
