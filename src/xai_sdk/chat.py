@@ -13,6 +13,7 @@ from .meta import ProtoDecorator
 from .proto import chat_pb2, chat_pb2_grpc, image_pb2, sample_pb2, usage_pb2
 from .search import SearchParameters
 from .telemetry import should_disable_sensitive_attributes
+from .service_tier import service_tier_from_proto, service_tier_to_proto
 from .types import (
     AgentCount,
     AgentCountMap,
@@ -23,6 +24,7 @@ from .types import (
     IncludeOptionMap,
     ReasoningEffort,
     ResponseFormat,
+    ServiceTier,
     ToolMode,
 )
 
@@ -67,6 +69,7 @@ class BaseClient(abc.ABC, Generic[T]):
         include: Optional[Sequence[Union[IncludeOption, "chat_pb2.IncludeOption"]]] = None,
         agent_count: Optional[Union[AgentCount, "chat_pb2.AgentCount"]] = None,
         batch_request_id: Optional[str] = None,
+        service_tier: Optional[Union[ServiceTier, "usage_pb2.ServiceTier"]] = None,
     ) -> T:
         """Creates a new chat conversation.
 
@@ -175,6 +178,10 @@ class BaseClient(abc.ABC, Generic[T]):
             batch_request_id: An optional user-provided identifier for the batch request. **If provided, it must be
               unique within the batch.**Used to identify the corresponding result when the response is returned to the
               user.
+            service_tier: The processing tier for this request. Set to `"priority"` for higher
+                scheduling priority at a higher token price. Valid values: `"default"`,
+                `"priority"`. The response includes a `service_tier` field indicating
+                which tier was actually used.
 
         Returns:
             A new chat request bound to a client.
@@ -221,6 +228,8 @@ class BaseClient(abc.ABC, Generic[T]):
         else:
             agent_count_pb = agent_count
 
+        service_tier_pb = service_tier_to_proto(service_tier) if isinstance(service_tier, str) else service_tier
+
         return self._make_chat(
             conversation_id=conversation_id,
             batch_request_id=batch_request_id,
@@ -248,6 +257,7 @@ class BaseClient(abc.ABC, Generic[T]):
             max_turns=max_turns,
             include=include_pb,
             agent_count=agent_count_pb,
+            service_tier=service_tier_pb,
         )
 
     @abc.abstractmethod
@@ -1137,6 +1147,8 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
         self._proto.id = chunk.id
         self._proto.model = chunk.model
         self._proto.system_fingerprint = chunk.system_fingerprint
+        if chunk.service_tier:
+            self._proto.service_tier = chunk.service_tier
         self._proto.citations.extend(chunk.citations)
 
         # Make sure all chunk outputs has corresponding response outputs.
@@ -1285,6 +1297,15 @@ class Response(_ResponseProtoDecorator):
     def system_fingerprint(self) -> str:
         """Returns the system fingerprint of this response."""
         return self.proto.system_fingerprint
+
+    @property
+    def service_tier(self) -> ServiceTier:
+        """Returns the processing tier used for this request.
+
+        Returns ``"priority"`` if the request was served at the priority tier,
+        or ``"default"`` otherwise.
+        """
+        return service_tier_from_proto(self.proto.service_tier)
 
     @property
     def tool_calls(self) -> Sequence[chat_pb2.ToolCall]:
