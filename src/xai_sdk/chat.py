@@ -12,8 +12,8 @@ from .cost import cost_usd_from_usage
 from .meta import ProtoDecorator
 from .proto import chat_pb2, chat_pb2_grpc, image_pb2, sample_pb2, usage_pb2
 from .search import SearchParameters
-from .telemetry import should_disable_sensitive_attributes
 from .service_tier import service_tier_from_proto, service_tier_to_proto
+from .telemetry import should_disable_sensitive_attributes
 from .types import (
     AgentCount,
     AgentCountMap,
