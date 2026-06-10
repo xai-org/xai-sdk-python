@@ -23,7 +23,6 @@ class ServerSideTool(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SERVER_SIDE_TOOL_COLLECTIONS_SEARCH: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_MCP: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: _ClassVar[ServerSideTool]
-    SERVER_SIDE_TOOL_LOCATIONS_SEARCH: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_IMAGE_SEARCH: _ClassVar[ServerSideTool]
 SERVICE_TIER_UNSPECIFIED: ServiceTier
 SERVICE_TIER_DEFAULT: ServiceTier
@@ -37,11 +36,10 @@ SERVER_SIDE_TOOL_VIEW_X_VIDEO: ServerSideTool
 SERVER_SIDE_TOOL_COLLECTIONS_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_MCP: ServerSideTool
 SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: ServerSideTool
-SERVER_SIDE_TOOL_LOCATIONS_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_IMAGE_SEARCH: ServerSideTool
 
 class SamplingUsage(_message.Message):
-    __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used", "cost_in_nano_usd", "cost_in_usd_ticks", "num_input_images", "num_generated_images", "input_video_duration", "generated_video_duration", "generated_video_resolution", "context_prompt_tokens", "context_output_tokens")
+    __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used", "cost_in_usd_ticks")
     COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
     REASONING_TOKENS_FIELD_NUMBER: _ClassVar[int]
     PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -51,15 +49,7 @@ class SamplingUsage(_message.Message):
     PROMPT_IMAGE_TOKENS_FIELD_NUMBER: _ClassVar[int]
     NUM_SOURCES_USED_FIELD_NUMBER: _ClassVar[int]
     SERVER_SIDE_TOOLS_USED_FIELD_NUMBER: _ClassVar[int]
-    COST_IN_NANO_USD_FIELD_NUMBER: _ClassVar[int]
     COST_IN_USD_TICKS_FIELD_NUMBER: _ClassVar[int]
-    NUM_INPUT_IMAGES_FIELD_NUMBER: _ClassVar[int]
-    NUM_GENERATED_IMAGES_FIELD_NUMBER: _ClassVar[int]
-    INPUT_VIDEO_DURATION_FIELD_NUMBER: _ClassVar[int]
-    GENERATED_VIDEO_DURATION_FIELD_NUMBER: _ClassVar[int]
-    GENERATED_VIDEO_RESOLUTION_FIELD_NUMBER: _ClassVar[int]
-    CONTEXT_PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
-    CONTEXT_OUTPUT_TOKENS_FIELD_NUMBER: _ClassVar[int]
     completion_tokens: int
     reasoning_tokens: int
     prompt_tokens: int
@@ -69,16 +59,8 @@ class SamplingUsage(_message.Message):
     prompt_image_tokens: int
     num_sources_used: int
     server_side_tools_used: _containers.RepeatedScalarFieldContainer[ServerSideTool]
-    cost_in_nano_usd: int
     cost_in_usd_ticks: int
-    num_input_images: int
-    num_generated_images: int
-    input_video_duration: int
-    generated_video_duration: int
-    generated_video_resolution: int
-    context_prompt_tokens: int
-    context_output_tokens: int
-    def __init__(self, completion_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., prompt_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., prompt_text_tokens: _Optional[int] = ..., cached_prompt_text_tokens: _Optional[int] = ..., prompt_image_tokens: _Optional[int] = ..., num_sources_used: _Optional[int] = ..., server_side_tools_used: _Optional[_Iterable[_Union[ServerSideTool, str]]] = ..., cost_in_nano_usd: _Optional[int] = ..., cost_in_usd_ticks: _Optional[int] = ..., num_input_images: _Optional[int] = ..., num_generated_images: _Optional[int] = ..., input_video_duration: _Optional[int] = ..., generated_video_duration: _Optional[int] = ..., generated_video_resolution: _Optional[int] = ..., context_prompt_tokens: _Optional[int] = ..., context_output_tokens: _Optional[int] = ...) -> None: ...
+    def __init__(self, completion_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., prompt_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., prompt_text_tokens: _Optional[int] = ..., cached_prompt_text_tokens: _Optional[int] = ..., prompt_image_tokens: _Optional[int] = ..., num_sources_used: _Optional[int] = ..., server_side_tools_used: _Optional[_Iterable[_Union[ServerSideTool, str]]] = ..., cost_in_usd_ticks: _Optional[int] = ...) -> None: ...
 
 class EmbeddingUsage(_message.Message):
     __slots__ = ("num_text_embeddings", "num_image_embeddings")
