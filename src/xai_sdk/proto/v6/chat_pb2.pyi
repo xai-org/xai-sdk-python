@@ -24,6 +24,7 @@ class IncludeOption(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     INCLUDE_OPTION_MCP_CALL_OUTPUT: _ClassVar[IncludeOption]
     INCLUDE_OPTION_INLINE_CITATIONS: _ClassVar[IncludeOption]
     INCLUDE_OPTION_VERBOSE_STREAMING: _ClassVar[IncludeOption]
+    INCLUDE_OPTION_CODE_EXECUTION_FILES_OUTPUT: _ClassVar[IncludeOption]
 
 class MessageRole(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -96,6 +97,7 @@ INCLUDE_OPTION_ATTACHMENT_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_MCP_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_INLINE_CITATIONS: IncludeOption
 INCLUDE_OPTION_VERBOSE_STREAMING: IncludeOption
+INCLUDE_OPTION_CODE_EXECUTION_FILES_OUTPUT: IncludeOption
 INVALID_ROLE: MessageRole
 ROLE_USER: MessageRole
 ROLE_ASSISTANT: MessageRole
@@ -137,7 +139,7 @@ ON_SEARCH_MODE: SearchMode
 AUTO_SEARCH_MODE: SearchMode
 
 class GetCompletionsRequest(_message.Message):
-    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages", "use_encrypted_content", "max_turns", "include", "agent_count")
+    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages", "use_encrypted_content", "max_turns", "include", "agent_count", "service_tier")
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     USER_FIELD_NUMBER: _ClassVar[int]
@@ -163,6 +165,7 @@ class GetCompletionsRequest(_message.Message):
     MAX_TURNS_FIELD_NUMBER: _ClassVar[int]
     INCLUDE_FIELD_NUMBER: _ClassVar[int]
     AGENT_COUNT_FIELD_NUMBER: _ClassVar[int]
+    SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
     messages: _containers.RepeatedCompositeFieldContainer[Message]
     model: str
     user: str
@@ -188,10 +191,11 @@ class GetCompletionsRequest(_message.Message):
     max_turns: int
     include: _containers.RepeatedScalarFieldContainer[IncludeOption]
     agent_count: AgentCount
-    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ..., max_turns: _Optional[int] = ..., include: _Optional[_Iterable[_Union[IncludeOption, str]]] = ..., agent_count: _Optional[_Union[AgentCount, str]] = ...) -> None: ...
+    service_tier: _usage_pb2.ServiceTier
+    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ..., max_turns: _Optional[int] = ..., include: _Optional[_Iterable[_Union[IncludeOption, str]]] = ..., agent_count: _Optional[_Union[AgentCount, str]] = ..., service_tier: _Optional[_Union[_usage_pb2.ServiceTier, str]] = ...) -> None: ...
 
 class GetChatCompletionResponse(_message.Message):
-    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "settings", "debug_output")
+    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "settings", "debug_output", "output_files", "service_tier")
     ID_FIELD_NUMBER: _ClassVar[int]
     OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     CREATED_FIELD_NUMBER: _ClassVar[int]
@@ -201,6 +205,8 @@ class GetChatCompletionResponse(_message.Message):
     CITATIONS_FIELD_NUMBER: _ClassVar[int]
     SETTINGS_FIELD_NUMBER: _ClassVar[int]
     DEBUG_OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_FILES_FIELD_NUMBER: _ClassVar[int]
+    SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
     id: str
     outputs: _containers.RepeatedCompositeFieldContainer[CompletionOutput]
     created: _timestamp_pb2.Timestamp
@@ -210,10 +216,12 @@ class GetChatCompletionResponse(_message.Message):
     citations: _containers.RepeatedScalarFieldContainer[str]
     settings: RequestSettings
     debug_output: DebugOutput
-    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutput, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., settings: _Optional[_Union[RequestSettings, _Mapping]] = ..., debug_output: _Optional[_Union[DebugOutput, _Mapping]] = ...) -> None: ...
+    output_files: _containers.RepeatedCompositeFieldContainer[OutputFile]
+    service_tier: _usage_pb2.ServiceTier
+    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutput, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., settings: _Optional[_Union[RequestSettings, _Mapping]] = ..., debug_output: _Optional[_Union[DebugOutput, _Mapping]] = ..., output_files: _Optional[_Iterable[_Union[OutputFile, _Mapping]]] = ..., service_tier: _Optional[_Union[_usage_pb2.ServiceTier, str]] = ...) -> None: ...
 
 class GetChatCompletionChunk(_message.Message):
-    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "debug_output")
+    __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "debug_output", "output_files", "service_tier")
     ID_FIELD_NUMBER: _ClassVar[int]
     OUTPUTS_FIELD_NUMBER: _ClassVar[int]
     CREATED_FIELD_NUMBER: _ClassVar[int]
@@ -222,6 +230,8 @@ class GetChatCompletionChunk(_message.Message):
     USAGE_FIELD_NUMBER: _ClassVar[int]
     CITATIONS_FIELD_NUMBER: _ClassVar[int]
     DEBUG_OUTPUT_FIELD_NUMBER: _ClassVar[int]
+    OUTPUT_FILES_FIELD_NUMBER: _ClassVar[int]
+    SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
     id: str
     outputs: _containers.RepeatedCompositeFieldContainer[CompletionOutputChunk]
     created: _timestamp_pb2.Timestamp
@@ -230,7 +240,17 @@ class GetChatCompletionChunk(_message.Message):
     usage: _usage_pb2.SamplingUsage
     citations: _containers.RepeatedScalarFieldContainer[str]
     debug_output: DebugOutput
-    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutputChunk, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., debug_output: _Optional[_Union[DebugOutput, _Mapping]] = ...) -> None: ...
+    output_files: _containers.RepeatedCompositeFieldContainer[OutputFile]
+    service_tier: _usage_pb2.ServiceTier
+    def __init__(self, id: _Optional[str] = ..., outputs: _Optional[_Iterable[_Union[CompletionOutputChunk, _Mapping]]] = ..., created: _Optional[_Union[_timestamp_pb2.Timestamp, _Mapping]] = ..., model: _Optional[str] = ..., system_fingerprint: _Optional[str] = ..., usage: _Optional[_Union[_usage_pb2.SamplingUsage, _Mapping]] = ..., citations: _Optional[_Iterable[str]] = ..., debug_output: _Optional[_Union[DebugOutput, _Mapping]] = ..., output_files: _Optional[_Iterable[_Union[OutputFile, _Mapping]]] = ..., service_tier: _Optional[_Union[_usage_pb2.ServiceTier, str]] = ...) -> None: ...
+
+class OutputFile(_message.Message):
+    __slots__ = ("file_id", "name")
+    FILE_ID_FIELD_NUMBER: _ClassVar[int]
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    file_id: str
+    name: str
+    def __init__(self, file_id: _Optional[str] = ..., name: _Optional[str] = ...) -> None: ...
 
 class GetDeferredCompletionResponse(_message.Message):
     __slots__ = ("status", "response")

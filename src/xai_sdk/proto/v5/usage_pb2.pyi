@@ -6,6 +6,12 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Optional as _Op
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class ServiceTier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    SERVICE_TIER_UNSPECIFIED: _ClassVar[ServiceTier]
+    SERVICE_TIER_DEFAULT: _ClassVar[ServiceTier]
+    SERVICE_TIER_PRIORITY: _ClassVar[ServiceTier]
+
 class ServerSideTool(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     SERVER_SIDE_TOOL_INVALID: _ClassVar[ServerSideTool]
@@ -18,6 +24,9 @@ class ServerSideTool(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SERVER_SIDE_TOOL_MCP: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_IMAGE_SEARCH: _ClassVar[ServerSideTool]
+SERVICE_TIER_UNSPECIFIED: ServiceTier
+SERVICE_TIER_DEFAULT: ServiceTier
+SERVICE_TIER_PRIORITY: ServiceTier
 SERVER_SIDE_TOOL_INVALID: ServerSideTool
 SERVER_SIDE_TOOL_WEB_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_X_SEARCH: ServerSideTool
