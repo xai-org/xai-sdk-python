@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "xai-sdk-receipts"
 version = "0.1.0"
-description = "Audit harness for xAI SDK multimodal Collections roundtrips"
+description = "Collections indexing doctor and RAG readiness monitor for the xAI Python SDK"
 requires-python = ">=3.10"
 dependencies = [
   "xai-sdk",

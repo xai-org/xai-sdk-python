@@ -1,4 +1,4 @@
-"""CLI: python -m xai_sdk_receipts run --demo | --live"""
+"""CLI for xAI Collections Status."""
 
 from __future__ import annotations
 
@@ -8,30 +8,79 @@ import sys
 import tempfile
 from pathlib import Path
 
+from .dashboard import build_dashboard, export_dashboard
+from .doctor import diagnose_fleet
+from .probe import probe_channels
 from .receipt import build_demo_receipt, build_live_receipt, write_receipt
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="xAI SDK Reliability Receipts — multimodal Collections roundtrip audit",
+        description="xAI Collections Status — is your collection actually ready for search?",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    run = sub.add_parser("run", help="Execute roundtrip and emit receipt JSON")
+    probe = sub.add_parser("probe", help="Probe API + Management API channel health")
+    probe.add_argument("--demo", action="store_true", help="Offline demo probes")
+
+    doctor = sub.add_parser("doctor", help="Diagnose indexing health across collections")
+    doctor.add_argument("--demo", action="store_true", help="Offline demo fleet")
+    doctor.add_argument("--collection-id", help="Scope to one collection")
+    doctor.add_argument("--limit", type=int, default=100, help="Max documents to sample per collection")
+
+    dash = sub.add_parser("dashboard", help="Export full status dashboard JSON")
+    dash.add_argument("--demo", action="store_true", help="Offline demo dashboard")
+    dash.add_argument("-o", "--output", type=Path, required=True, help="Output JSON path")
+    dash.add_argument("--collection-id", help="Scope to one collection (live mode)")
+
+    run = sub.add_parser("run", help="Run multimodal roundtrip receipt (legacy)")
     mode = run.add_mutually_exclusive_group(required=True)
     mode.add_argument("--demo", action="store_true", help="Offline simulated roundtrip")
     mode.add_argument("--live", action="store_true", help="Live API roundtrip (needs XAI_API_KEY)")
     run.add_argument("--output", "-o", type=Path, help="Write receipt JSON to file")
     run.add_argument("--query", default="glossy red widget", help="Search query for live mode")
-    run.add_argument(
-        "--image",
-        type=Path,
-        help="Local image path for live mode (temp file created in demo if omitted)",
-    )
+    run.add_argument("--image", type=Path, help="Local image path for live mode")
     run.add_argument("--collection-id", help="Existing collection ID (live mode)")
     run.add_argument("--keep-collection", action="store_true", help="Do not delete temp collection")
 
     args = parser.parse_args(argv)
+
+    if args.command == "probe":
+        if args.demo:
+            payload = build_dashboard(demo=True)["probes"]
+        else:
+            from xai_sdk import Client
+
+            payload = probe_channels(Client())
+        print(json.dumps(payload, indent=2))
+        return 0 if payload.get("overall") == "healthy" else 2
+
+    if args.command == "doctor":
+        if args.demo:
+            payload = build_dashboard(demo=True)["fleet"]
+        else:
+            from xai_sdk import Client
+
+            payload = diagnose_fleet(Client(), collection_id=args.collection_id, document_limit=args.limit)
+        print(json.dumps(payload, indent=2))
+        health = payload.get("fleet_health", "healthy")
+        return 0 if health == "healthy" else 2
+
+    if args.command == "dashboard":
+        client = None
+        if not args.demo:
+            from xai_sdk import Client
+
+            client = Client()
+        path = export_dashboard(
+            args.output.expanduser().resolve(),
+            client,
+            collection_id=args.collection_id,
+            demo=args.demo,
+        )
+        print(f"Wrote {path}", file=sys.stderr)
+        payload = json.loads(path.read_text())
+        return 0 if payload.get("overall") in ("healthy", "warn") else 2
 
     if args.command == "run":
         if args.demo:
@@ -62,8 +111,8 @@ def main(argv: list[str] | None = None) -> int:
 
         print(json.dumps(receipt, indent=2))
         if args.output:
-            path = write_receipt(receipt, args.output.expanduser().resolve())
-            print(f"\nWrote {path}", file=sys.stderr)
+            out = write_receipt(receipt, args.output.expanduser().resolve())
+            print(f"\nWrote {out}", file=sys.stderr)
 
         return 0 if receipt["summary"]["overall"] == "pass" else 2
 
