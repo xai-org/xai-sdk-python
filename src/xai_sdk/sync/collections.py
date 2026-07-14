@@ -1,6 +1,7 @@
 import datetime
 import time
 import warnings
+from concurrent.futures import FIRST_EXCEPTION, ThreadPoolExecutor, wait
 from typing import Optional, Sequence, Union
 
 from opentelemetry.trace import SpanKind
@@ -8,11 +9,13 @@ from opentelemetry.trace import SpanKind
 from ..collections import (
     DEFAULT_INDEXING_POLL_INTERVAL,
     DEFAULT_INDEXING_TIMEOUT,
+    DEFAULT_UPLOAD_MAX_WORKERS,
     BaseClient,
     ChunkConfiguration,
     CollectionSortBy,
     DocumentRetrievalMode,
     DocumentSortBy,
+    DocumentUpload,
     FieldDefinition,
     FieldDefinitionUpdate,
     HNSWMetric,
@@ -437,6 +440,101 @@ class Client(BaseClient):
                         stacklevel=2,
                     )
                     time.sleep(timer.sleep_interval_or_raise())
+
+    def upload_documents(
+        self,
+        collection_id: str,
+        documents: Sequence[DocumentUpload],
+        *,
+        max_workers: int = DEFAULT_UPLOAD_MAX_WORKERS,
+        wait_for_indexing: bool = False,
+        poll_interval: Optional[datetime.timedelta] = None,
+        timeout: Optional[datetime.timedelta] = None,
+    ) -> Sequence[collections_pb2.DocumentMetadata]:
+        """Uploads multiple documents to a collection concurrently.
+
+        This is a convenience wrapper around `upload_document` that uploads the provided
+        documents using a bounded thread pool. Each upload is an independent, blocking
+        sequence of gRPC calls, so running them concurrently overlaps the network latency
+        of otherwise serial uploads. The concurrency is bounded by `max_workers` to avoid
+        overwhelming the service or tripping server-side rate limits.
+
+        Args:
+            collection_id: The ID of the collection to upload the documents to.
+            documents: The documents to upload. Each document is a mapping with a `name`,
+                `data` (raw bytes) and optional `fields`.
+            max_workers: The maximum number of concurrent uploads. Defaults to a
+                conservative value to respect server-side rate limits. Set this higher only
+                if you know the service can accommodate it.
+            wait_for_indexing: Whether to wait for every document to be indexed before
+                returning.
+            poll_interval: The interval to poll for when checking whether a document has been
+                indexed.
+            timeout: The total time to wait for each document to be indexed before returning.
+
+        Returns:
+            The metadata for the uploaded documents, in the same order as the input
+            `documents`.
+
+        Raises:
+            ValueError: If `documents` is empty or `max_workers` is not positive.
+            Exception: If any individual upload fails, the first encountered error is
+                re-raised after cancelling any not-yet-started uploads. Other errors are not
+                swallowed; they are surfaced as `__cause__`/`__context__` where the runtime
+                preserves them.
+        """
+        if not documents:
+            raise ValueError("documents must not be empty")
+        if max_workers < 1:
+            raise ValueError("max_workers must be a positive integer")
+
+        results: list[Optional[collections_pb2.DocumentMetadata]] = [None] * len(documents)
+
+        # Bound concurrency with a thread pool. The sync client performs blocking gRPC
+        # calls, so threads (which release the GIL during I/O) overlap upload latency.
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_index = {
+                executor.submit(
+                    self.upload_document,
+                    collection_id,
+                    document["name"],
+                    document["data"],
+                    document.get("fields"),
+                    # Indexing is awaited in a single batched pass below so we do not hold a
+                    # worker thread busy-polling per document.
+                    wait_for_indexing=False,
+                ): index
+                for index, document in enumerate(documents)
+            }
+
+            done, not_done = wait(future_to_index, return_when=FIRST_EXCEPTION)
+
+            # Fail fast: if any upload raised, cancel the uploads that have not started yet
+            # and re-raise the first error rather than silently returning partial results.
+            for future in done:
+                if future.exception() is not None:
+                    for pending in not_done:
+                        pending.cancel()
+                    raise future.exception()  # type: ignore[misc]
+
+            # All uploads succeeded; collect their results preserving input order.
+            for future, index in future_to_index.items():
+                results[index] = future.result()
+
+        ordered_results = [result for result in results if result is not None]
+
+        if wait_for_indexing:
+            return [
+                self._wait_for_indexing_to_complete(
+                    collection_id,
+                    result.file_metadata.file_id,
+                    poll_interval or DEFAULT_INDEXING_POLL_INTERVAL,
+                    timeout or DEFAULT_INDEXING_TIMEOUT,
+                )
+                for result in ordered_results
+            ]
+
+        return ordered_results
 
     def add_existing_document(
         self,
