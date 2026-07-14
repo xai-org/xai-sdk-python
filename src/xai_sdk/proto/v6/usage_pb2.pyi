@@ -25,6 +25,7 @@ class ServerSideTool(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SERVER_SIDE_TOOL_MCP: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_IMAGE_SEARCH: _ClassVar[ServerSideTool]
+    SERVER_SIDE_TOOL_IMAGE_GENERATION: _ClassVar[ServerSideTool]
 SERVICE_TIER_UNSPECIFIED: ServiceTier
 SERVICE_TIER_DEFAULT: ServiceTier
 SERVICE_TIER_PRIORITY: ServiceTier
@@ -38,9 +39,10 @@ SERVER_SIDE_TOOL_COLLECTIONS_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_MCP: ServerSideTool
 SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_IMAGE_SEARCH: ServerSideTool
+SERVER_SIDE_TOOL_IMAGE_GENERATION: ServerSideTool
 
 class SamplingUsage(_message.Message):
-    __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used", "cost_in_usd_ticks")
+    __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used", "cost_in_usd_ticks", "num_image_generations", "num_image_edits")
     COMPLETION_TOKENS_FIELD_NUMBER: _ClassVar[int]
     REASONING_TOKENS_FIELD_NUMBER: _ClassVar[int]
     PROMPT_TOKENS_FIELD_NUMBER: _ClassVar[int]
@@ -51,6 +53,8 @@ class SamplingUsage(_message.Message):
     NUM_SOURCES_USED_FIELD_NUMBER: _ClassVar[int]
     SERVER_SIDE_TOOLS_USED_FIELD_NUMBER: _ClassVar[int]
     COST_IN_USD_TICKS_FIELD_NUMBER: _ClassVar[int]
+    NUM_IMAGE_GENERATIONS_FIELD_NUMBER: _ClassVar[int]
+    NUM_IMAGE_EDITS_FIELD_NUMBER: _ClassVar[int]
     completion_tokens: int
     reasoning_tokens: int
     prompt_tokens: int
@@ -61,7 +65,9 @@ class SamplingUsage(_message.Message):
     num_sources_used: int
     server_side_tools_used: _containers.RepeatedScalarFieldContainer[ServerSideTool]
     cost_in_usd_ticks: int
-    def __init__(self, completion_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., prompt_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., prompt_text_tokens: _Optional[int] = ..., cached_prompt_text_tokens: _Optional[int] = ..., prompt_image_tokens: _Optional[int] = ..., num_sources_used: _Optional[int] = ..., server_side_tools_used: _Optional[_Iterable[_Union[ServerSideTool, str]]] = ..., cost_in_usd_ticks: _Optional[int] = ...) -> None: ...
+    num_image_generations: int
+    num_image_edits: int
+    def __init__(self, completion_tokens: _Optional[int] = ..., reasoning_tokens: _Optional[int] = ..., prompt_tokens: _Optional[int] = ..., total_tokens: _Optional[int] = ..., prompt_text_tokens: _Optional[int] = ..., cached_prompt_text_tokens: _Optional[int] = ..., prompt_image_tokens: _Optional[int] = ..., num_sources_used: _Optional[int] = ..., server_side_tools_used: _Optional[_Iterable[_Union[ServerSideTool, str]]] = ..., cost_in_usd_ticks: _Optional[int] = ..., num_image_generations: _Optional[int] = ..., num_image_edits: _Optional[int] = ...) -> None: ...
 
 class EmbeddingUsage(_message.Message):
     __slots__ = ("num_text_embeddings", "num_image_embeddings")

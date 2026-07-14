@@ -1,5 +1,5 @@
 import datetime
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from google.protobuf.timestamp_pb2 import Timestamp
 
@@ -170,6 +170,38 @@ def code_execution() -> chat_pb2.Tool:
     return chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
 
+def image_generation(action: Optional[Literal["auto", "generate", "edit"]] = None) -> chat_pb2.Tool:
+    """Creates a server-side tool for image generation, typically used in agentic requests.
+
+    This tool enables the model to generate images from text prompts and to edit images
+    (both previously generated ones and images provided in the conversation) as part of
+    generating responses.
+
+    Args:
+        action: Which image capabilities to expose to the model. One of "auto" (the
+            default; both generation and editing), "generate" (text-to-image only), or
+            "edit" (image editing only). Defaults to None, which the server treats
+            as "auto".
+
+    Returns:
+        A `chat_pb2.Tool` object configured for image generation.
+
+    Example:
+        ```
+        from xai_sdk.tools import image_generation
+
+        # Create an image generation tool with both generation and editing enabled
+        tool = image_generation()
+
+        # Restrict the tool to text-to-image generation only
+        tool = image_generation(action="generate")
+        ```
+    """
+    if action is None:
+        return chat_pb2.Tool(image_generation=chat_pb2.ImageGeneration())
+    return chat_pb2.Tool(image_generation=chat_pb2.ImageGeneration(action=action))
+
+
 def collections_search(
     collection_ids: list[str],
     limit: Optional[int] = None,
@@ -298,6 +330,7 @@ def get_tool_call_type(tool_call: chat_pb2.ToolCall) -> str:
 
     Returns:
         The type of the tool call as a string, valid values are: "client_side_tool", "web_search_tool",
-        "x_search_tool", "code_execution_tool", "collections_search_tool", "mcp_tool", "attachment_search_tool".
+        "x_search_tool", "code_execution_tool", "collections_search_tool", "mcp_tool", "attachment_search_tool",
+        "image_generation_tool".
     """
     return chat_pb2.ToolCallType.Name(tool_call.type).removeprefix("TOOL_CALL_TYPE_").lower()

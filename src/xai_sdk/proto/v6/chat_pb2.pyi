@@ -74,6 +74,7 @@ class ToolCallType(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_MCP_TOOL: _ClassVar[ToolCallType]
     TOOL_CALL_TYPE_ATTACHMENT_SEARCH_TOOL: _ClassVar[ToolCallType]
+    TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL: _ClassVar[ToolCallType]
 
 class ToolCallStatus(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -129,6 +130,7 @@ TOOL_CALL_TYPE_CODE_EXECUTION_TOOL: ToolCallType
 TOOL_CALL_TYPE_COLLECTIONS_SEARCH_TOOL: ToolCallType
 TOOL_CALL_TYPE_MCP_TOOL: ToolCallType
 TOOL_CALL_TYPE_ATTACHMENT_SEARCH_TOOL: ToolCallType
+TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL: ToolCallType
 TOOL_CALL_STATUS_IN_PROGRESS: ToolCallStatus
 TOOL_CALL_STATUS_COMPLETED: ToolCallStatus
 TOOL_CALL_STATUS_INCOMPLETE: ToolCallStatus
@@ -437,7 +439,7 @@ class ToolChoice(_message.Message):
     def __init__(self, mode: _Optional[_Union[ToolMode, str]] = ..., function_name: _Optional[str] = ...) -> None: ...
 
 class Tool(_message.Message):
-    __slots__ = ("function", "web_search", "x_search", "code_execution", "collections_search", "mcp", "attachment_search")
+    __slots__ = ("function", "web_search", "x_search", "code_execution", "collections_search", "mcp", "attachment_search", "image_generation")
     FUNCTION_FIELD_NUMBER: _ClassVar[int]
     WEB_SEARCH_FIELD_NUMBER: _ClassVar[int]
     X_SEARCH_FIELD_NUMBER: _ClassVar[int]
@@ -445,6 +447,7 @@ class Tool(_message.Message):
     COLLECTIONS_SEARCH_FIELD_NUMBER: _ClassVar[int]
     MCP_FIELD_NUMBER: _ClassVar[int]
     ATTACHMENT_SEARCH_FIELD_NUMBER: _ClassVar[int]
+    IMAGE_GENERATION_FIELD_NUMBER: _ClassVar[int]
     function: Function
     web_search: WebSearch
     x_search: XSearch
@@ -452,7 +455,8 @@ class Tool(_message.Message):
     collections_search: CollectionsSearch
     mcp: MCP
     attachment_search: AttachmentSearch
-    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., collections_search: _Optional[_Union[CollectionsSearch, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ..., attachment_search: _Optional[_Union[AttachmentSearch, _Mapping]] = ...) -> None: ...
+    image_generation: ImageGeneration
+    def __init__(self, function: _Optional[_Union[Function, _Mapping]] = ..., web_search: _Optional[_Union[WebSearch, _Mapping]] = ..., x_search: _Optional[_Union[XSearch, _Mapping]] = ..., code_execution: _Optional[_Union[CodeExecution, _Mapping]] = ..., collections_search: _Optional[_Union[CollectionsSearch, _Mapping]] = ..., mcp: _Optional[_Union[MCP, _Mapping]] = ..., attachment_search: _Optional[_Union[AttachmentSearch, _Mapping]] = ..., image_generation: _Optional[_Union[ImageGeneration, _Mapping]] = ...) -> None: ...
 
 class MCP(_message.Message):
     __slots__ = ("server_label", "server_description", "server_url", "allowed_tool_names", "authorization", "extra_headers")
@@ -522,6 +526,12 @@ class XSearch(_message.Message):
 class CodeExecution(_message.Message):
     __slots__ = ()
     def __init__(self) -> None: ...
+
+class ImageGeneration(_message.Message):
+    __slots__ = ("action",)
+    ACTION_FIELD_NUMBER: _ClassVar[int]
+    action: str
+    def __init__(self, action: _Optional[str] = ...) -> None: ...
 
 class CollectionsSearch(_message.Message):
     __slots__ = ("collection_ids", "limit", "instructions", "hybrid_retrieval", "semantic_retrieval", "keyword_retrieval")
