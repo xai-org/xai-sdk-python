@@ -30,7 +30,7 @@ from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2, usage_pb2
 from xai_sdk.proto import documents_pb2 as _documents_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
-from xai_sdk.tools import code_execution, collections_search, mcp, web_search, x_search
+from xai_sdk.tools import code_execution, collections_search, image_generation, mcp, web_search, x_search
 
 from .. import server
 
@@ -1430,11 +1430,12 @@ def test_chat_create_with_server_side_tools(client: Client):
                 allowed_tool_names=["chat", "completions"],
                 authorization="lin-1234567890",
             ),
+            image_generation(action="generate"),
         ],
     )
 
     chat_completion_request = chat.proto
-    assert len(chat_completion_request.tools) == 5
+    assert len(chat_completion_request.tools) == 6
 
     expected_from_date_pb = timestamp_pb2.Timestamp()
     expected_from_date_pb.FromDatetime(from_date)
@@ -1481,11 +1482,14 @@ def test_chat_create_with_server_side_tools(client: Client):
         )
     )
 
+    expected_image_generation_tool = chat_pb2.Tool(image_generation=chat_pb2.ImageGeneration(action="generate"))
+
     assert chat_completion_request.tools[0] == expected_web_search_tool
     assert chat_completion_request.tools[1] == expected_x_search_tool
     assert chat_completion_request.tools[2] == expected_code_execution_tool
     assert chat_completion_request.tools[3] == expected_collections_search_tool
     assert chat_completion_request.tools[4] == expected_mcp_tool
+    assert chat_completion_request.tools[5] == expected_image_generation_tool
 
 
 @pytest.mark.parametrize(

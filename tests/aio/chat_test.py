@@ -29,7 +29,7 @@ from xai_sdk.chat import (
 from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2, usage_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
-from xai_sdk.tools import code_execution, web_search, x_search
+from xai_sdk.tools import code_execution, image_generation, web_search, x_search
 
 from .. import server
 
@@ -1458,11 +1458,12 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
                 enable_video_understanding=True,
             ),
             code_execution(),
+            image_generation(),
         ],
     )
 
     chat_completion_request = chat.proto
-    assert len(chat_completion_request.tools) == 3
+    assert len(chat_completion_request.tools) == 4
 
     expected_from_date_pb = timestamp_pb2.Timestamp()
     expected_from_date_pb.FromDatetime(from_date)
@@ -1490,9 +1491,12 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
 
     expected_code_execution_tool = chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
+    expected_image_generation_tool = chat_pb2.Tool(image_generation=chat_pb2.ImageGeneration())
+
     assert chat_completion_request.tools[0] == expected_web_search_tool
     assert chat_completion_request.tools[1] == expected_x_search_tool
     assert chat_completion_request.tools[2] == expected_code_execution_tool
+    assert chat_completion_request.tools[3] == expected_image_generation_tool
 
 
 @pytest.mark.parametrize(
