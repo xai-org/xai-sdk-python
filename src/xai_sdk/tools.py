@@ -272,8 +272,6 @@ def mcp(
         server_url: The URL of the MCP server.
         server_label: Optional label of the MCP server. This will be used to prefix tool names if provided.
         server_description: Optional description of the MCP server.
-        server_label: The label of the MCP server. This will be used to prefix tool names if provided.
-        server_description: The description of the MCP server.
         allowed_tool_names: The names of the tools that the model is allowed to call. If empty, all tools are allowed.
         authorization: The authorization token for the MCP server.
         extra_headers: The extra headers for the MCP server.
