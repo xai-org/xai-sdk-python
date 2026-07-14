@@ -266,17 +266,32 @@ def mcp(
 ) -> chat_pb2.Tool:
     """Creates a server-side tool for connecting to a remote MCP server, typically used in agentic requests.
 
-    This tool enables the model to call tools on a remote MCP server
+    This tool enables the model to call tools on a remote MCP server.
 
     Args:
         server_url: The URL of the MCP server.
         server_label: Optional label of the MCP server. This will be used to prefix tool names if provided.
         server_description: Optional description of the MCP server.
-        server_label: The label of the MCP server. This will be used to prefix tool names if provided.
-        server_description: The description of the MCP server.
-        allowed_tool_names: The names of the tools that the model is allowed to call. If empty, all tools are allowed.
-        authorization: The authorization token for the MCP server.
-        extra_headers: The extra headers for the MCP server.
+        allowed_tool_names: Optional list of tool names that the model is allowed to call. If omitted,
+            all tools exposed by the MCP server are allowed.
+        authorization: Optional authorization token for the MCP server.
+        extra_headers: Optional extra headers to send to the MCP server.
+
+    Returns:
+        A `chat_pb2.Tool` object configured for the MCP server.
+
+    Example:
+        ```
+        from xai_sdk.tools import mcp
+
+        # Create an MCP tool that connects to a remote MCP server
+        tool = mcp(
+            server_url="https://mcp.example.com",
+            server_label="example",
+            allowed_tool_names=["search", "lookup"],
+            authorization="Bearer my-token",
+        )
+        ```
     """
     return chat_pb2.Tool(
         mcp=chat_pb2.MCP(
