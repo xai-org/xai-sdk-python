@@ -34,7 +34,7 @@ if version.parse(google.protobuf.__version__).major == 5:
         video_pb2,
         video_pb2_grpc,
     )
-elif version.parse(google.protobuf.__version__).major == 6:
+elif version.parse(google.protobuf.__version__).major >= 6:
     from .v6 import (
         auth_pb2,
         auth_pb2_grpc,
