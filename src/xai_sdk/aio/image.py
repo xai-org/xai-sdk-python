@@ -11,6 +11,7 @@ from ..image import (
     ImageAspectRatio,
     ImageFormat,
     ImageResolution,
+    _extract_request_id,
     _make_generate_request,
     _make_span_request_attributes,
     _make_span_response_attributes,
@@ -224,8 +225,10 @@ class Client(BaseClient):
             kind=SpanKind.CLIENT,
             attributes=_make_span_request_attributes(request),
         ) as span:
-            response_pb = await self._stub.GenerateImage(request)
-            image_response = ImageResponse(response_pb, 0)
+            call = self._stub.GenerateImage(request)
+            response_pb = await call
+            request_id = _extract_request_id(await call.initial_metadata())
+            image_response = ImageResponse(response_pb, 0, request_id)
             span.set_attributes(_make_span_response_attributes(request, [image_response]))
             return image_response
 
@@ -325,8 +328,10 @@ class Client(BaseClient):
             kind=SpanKind.CLIENT,
             attributes=_make_span_request_attributes(request),
         ) as span:
-            response_pb = await self._stub.GenerateImage(request)
-            image_responses = [ImageResponse(response_pb, i) for i in range(n)]
+            call = self._stub.GenerateImage(request)
+            response_pb = await call
+            request_id = _extract_request_id(await call.initial_metadata())
+            image_responses = [ImageResponse(response_pb, i, request_id) for i in range(n)]
             span.set_attributes(_make_span_response_attributes(request, image_responses))
             return image_responses
 

@@ -56,6 +56,27 @@ async def test_batch(client: AsyncClient, image_asset: bytes):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_sample_returns_request_id(client: AsyncClient):
+    response = await client.image.sample(prompt="foo", model="grok-2-image", image_format="url")
+
+    assert response.request_id == server.IMAGE_REQUEST_ID
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_batch_returns_request_id(client: AsyncClient):
+    responses = await client.image.sample_batch(prompt="foo", model="grok-2-image", n=2, image_format="url")
+
+    assert all(r.request_id == server.IMAGE_REQUEST_ID for r in responses)
+
+
+def test_image_response_request_id_defaults_to_none():
+    proto = image_pb2.ImageResponse(
+        images=[image_pb2.GeneratedImage(url="https://example.com/i.png")],
+    )
+    assert BaseImageResponse(proto, 0).request_id is None
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_sample_passes_aspect_ratio_and_resolution(client: AsyncClient):
     server.clear_last_image_request()
 

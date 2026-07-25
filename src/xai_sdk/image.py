@@ -38,20 +38,45 @@ class BaseClient:
         self._stub = image_pb2_grpc.ImageStub(channel)
 
 
+def _extract_request_id(metadata) -> Optional[str]:
+    """Extracts the x-request-id from gRPC initial metadata.
+
+    Args:
+        metadata: The gRPC initial metadata (result of call.initial_metadata() or await call.initial_metadata()).
+
+    Returns:
+        The x-request-id string if found in initial metadata, None otherwise.
+    """
+    if not metadata:
+        return None
+
+    # Handle sync metadata format (list of tuples)
+    if isinstance(metadata, list | tuple):
+        return dict(metadata).get("x-request-id")
+
+    # Handle async metadata format
+    if hasattr(metadata, "get"):
+        return metadata.get("x-request-id")
+
+    return None
+
+
 class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
     """Adds auxiliary functions for handling the image response proto."""
 
     _image: image_pb2.GeneratedImage
 
-    def __init__(self, proto: image_pb2.ImageResponse, index: int) -> None:
+    def __init__(self, proto: image_pb2.ImageResponse, index: int, request_id: Optional[str] = None) -> None:
         """Initializes a new instance of the `ImageResponse` class.
 
         Args:
             proto: The proto to wrap.
             index: The index of the image within that proto to expose.
+            request_id: The x-request-id from the gRPC initial metadata, used for tracing and debugging.
         """
         super().__init__(proto)
         self._image = proto.images[index]
+        self._request_id = request_id
 
     @property
     def model(self) -> str:
@@ -62,6 +87,15 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
     def usage(self) -> usage_pb2.SamplingUsage:
         """Token and tool usage for this request."""
         return self._proto.usage
+
+    @property
+    def request_id(self) -> Optional[str]:
+        """Returns the x-request-id from the gRPC initial metadata.
+
+        This is a unique identifier for the request, useful for tracing and debugging.
+        Returns None if no request ID was captured during the request.
+        """
+        return self._request_id
 
     @property
     def cost_usd(self) -> Optional[float]:

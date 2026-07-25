@@ -48,6 +48,8 @@ from xai_sdk.proto import (
 API_KEY = "123"
 MANAGEMENT_API_KEY = "456"
 IMAGE_PATH = "test.jpg"
+# x-request-id returned in the initial metadata of every GenerateImage response.
+IMAGE_REQUEST_ID = "test-image-request-id"
 
 _last_image_request_lock = threading.Lock()
 _last_video_request_lock = threading.Lock()
@@ -683,6 +685,7 @@ class ImageServicer(image_pb2_grpc.ImageServicer):
     def GenerateImage(self, request: image_pb2.GenerateImageRequest, context: grpc.ServicerContext):
         _check_auth(context)
         _record_last_image_request(request)
+        context.send_initial_metadata((("x-request-id", IMAGE_REQUEST_ID),))
 
         if request.format == image_pb2.ImageFormat.IMG_FORMAT_URL:
             return image_pb2.ImageResponse(
