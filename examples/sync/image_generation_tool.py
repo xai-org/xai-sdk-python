@@ -11,14 +11,18 @@ from xai_sdk.tools import image_generation
 def save_images(response, prefix: str) -> None:
     """Saves every image produced by image_generation tool calls in a response.
 
-    Image generation calls produce ROLE_TOOL outputs. Select them by the
-    tool-call type enum, then read the data URL out of the result envelope.
+    Image generation calls produce ROLE_TOOL outputs. Select the completed ones
+    by the tool-call type and status enums, then read the data URL out of the
+    result envelope. Failed calls carry an error payload instead of an image
+    envelope, so they are skipped.
     """
     image_outputs = [
         output
         for output in response.tool_outputs
         if any(
-            tool_call.type == chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL for tool_call in output.message.tool_calls
+            tool_call.type == chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL
+            and tool_call.status == chat_pb2.TOOL_CALL_STATUS_COMPLETED
+            for tool_call in output.message.tool_calls
         )
     ]
     for i, output in enumerate(image_outputs):
