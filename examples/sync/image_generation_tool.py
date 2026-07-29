@@ -5,7 +5,7 @@ import os
 from xai_sdk import Client
 from xai_sdk.chat import user
 from xai_sdk.proto import chat_pb2
-from xai_sdk.tools import image_generation
+from xai_sdk.tools import get_tool_call_type, image_generation, web_search
 
 
 def save_images(response, prefix: str) -> None:
@@ -85,6 +85,31 @@ def generate_then_edit_image(client: Client) -> None:
     print(follow_up_response.server_side_tool_usage)
 
 
+def search_and_generate_image(client: Client) -> None:
+    """Combines web search with image generation in a single agentic request.
+
+    The model first looks up live data with the web_search tool, then renders
+    what it found into a generated image.
+    """
+    chat = client.chat.create(
+        model="grok-4.5",
+        tools=[web_search(), image_generation()],
+    )
+    chat.append(
+        user(
+            "Generate an infographic image based on next week's temperature forecast in the UK, "
+            "with key city icons along with their forecast in the image"
+        )
+    )
+    response = chat.sample()
+
+    print(response.content)
+    for tool_call in response.tool_calls:
+        print(f"Tool call: {get_tool_call_type(tool_call)} ({tool_call.function.name})")
+    save_images(response, "uk_forecast_infographic")
+    print(response.server_side_tool_usage)
+
+
 def main() -> None:
     client = Client(api_key=os.getenv("XAI_API_KEY"))
 
@@ -92,6 +117,9 @@ def main() -> None:
 
     # Multi-turn: generate an image, then edit it in a follow-up turn.
     generate_then_edit_image(client)
+
+    # Combine web search with image generation.
+    search_and_generate_image(client)
 
 
 if __name__ == "__main__":
