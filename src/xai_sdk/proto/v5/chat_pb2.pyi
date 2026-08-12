@@ -42,6 +42,7 @@ class ReasoningEffort(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     EFFORT_MEDIUM: _ClassVar[ReasoningEffort]
     EFFORT_HIGH: _ClassVar[ReasoningEffort]
     EFFORT_NONE: _ClassVar[ReasoningEffort]
+    EFFORT_XHIGH: _ClassVar[ReasoningEffort]
 
 class AgentCount(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -109,6 +110,7 @@ EFFORT_LOW: ReasoningEffort
 EFFORT_MEDIUM: ReasoningEffort
 EFFORT_HIGH: ReasoningEffort
 EFFORT_NONE: ReasoningEffort
+EFFORT_XHIGH: ReasoningEffort
 AGENT_COUNT_UNSPECIFIED: AgentCount
 AGENT_COUNT_4: AgentCount
 AGENT_COUNT_16: AgentCount

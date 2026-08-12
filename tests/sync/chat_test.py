@@ -1321,10 +1321,12 @@ def test_multi_turn_conversation_creates_multiple_spans_with_same_conversation_i
         "low",
         "medium",
         "high",
+        "xhigh",
         chat_pb2.ReasoningEffort.EFFORT_NONE,
         chat_pb2.ReasoningEffort.EFFORT_LOW,
         chat_pb2.ReasoningEffort.EFFORT_MEDIUM,
         chat_pb2.ReasoningEffort.EFFORT_HIGH,
+        chat_pb2.ReasoningEffort.EFFORT_XHIGH,
     ],
 )
 def test_chat_create_with_reasoning(
@@ -1344,6 +1346,8 @@ def test_chat_create_with_reasoning(
         assert chat_completion_request.reasoning_effort == chat_pb2.ReasoningEffort.EFFORT_MEDIUM
     elif reasoning_effort == "high":
         assert chat_completion_request.reasoning_effort == chat_pb2.ReasoningEffort.EFFORT_HIGH
+    elif reasoning_effort == "xhigh":
+        assert chat_completion_request.reasoning_effort == chat_pb2.ReasoningEffort.EFFORT_XHIGH
     else:
         assert chat_completion_request.reasoning_effort == reasoning_effort
 
@@ -1354,7 +1358,9 @@ def test_chat_with_reasoning_invalid_value(client: Client):
             "grok-4.3",
             reasoning_effort="invalid",  # type: ignore
         )
-    assert str(e.value) == "Invalid reasoning effort: invalid. Must be one of: ('none', 'low', 'medium', 'high')"
+    assert (
+        str(e.value) == "Invalid reasoning effort: invalid. Must be one of: ('none', 'low', 'medium', 'high', 'xhigh')"
+    )
 
 
 def test_chat_create_with_tools(client: Client):
