@@ -141,8 +141,10 @@ class BaseClient(abc.ABC, Generic[T]):
             presence_penalty: Positive values penalize new tokens based on whether they appear in the text so far,
                 increasing the model's likelihood to talk about new topics.
             reasoning_effort: Constrains how hard a reasoning model thinks before responding. Possible values are
-                `none` (no reasoning), `low` (uses fewer reasoning tokens), `medium` (default), and `high`
-                (uses more reasoning tokens). Defaults to `medium`.
+                `none` (no reasoning), `low` (uses fewer reasoning tokens), `medium`, `high`
+                (uses more reasoning tokens), and `xhigh` (maximum reasoning depth; only supported by some
+                models, e.g. `grok-4.6`). The default varies by model (e.g. `grok-4.5` and `grok-4.6`
+                default to `high`).
             search_parameters: The parameters that control search behavior.
                 This includes settings like search mode, date range, sources (e.g., web, news, or X), and whether
                 to return citations. See `SearchParameters` for detailed configuration options.
@@ -921,6 +923,8 @@ def _reasoning_effort_to_proto(effort: ReasoningEffort) -> chat_pb2.ReasoningEff
             return chat_pb2.ReasoningEffort.EFFORT_MEDIUM
         case "high":
             return chat_pb2.ReasoningEffort.EFFORT_HIGH
+        case "xhigh":
+            return chat_pb2.ReasoningEffort.EFFORT_XHIGH
         case _:
             raise ValueError(f"Invalid reasoning effort: {effort}. Must be one of: {ReasoningEffort.__args__}")
 
