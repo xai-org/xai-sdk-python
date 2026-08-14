@@ -3,7 +3,7 @@ from typing import Optional, Sequence, Union
 import requests
 from opentelemetry.trace import SpanKind
 
-from ..__about__ import __version__
+from ..client import USER_AGENT
 from ..files import StorageOptions
 from ..image import (
     BaseClient,
@@ -361,7 +361,7 @@ class ImageResponse(BaseImageResponse):
         elif self._image.url:
             response = requests.get(
                 self.url,
-                headers={"User-Agent": f"XaiSdk/{__version__}"},
+                headers={"User-Agent": USER_AGENT},
                 timeout=5,  # 5 seconds
             )
             response.raise_for_status()

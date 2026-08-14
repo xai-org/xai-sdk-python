@@ -9,6 +9,8 @@ import grpc
 
 from .__about__ import __version__
 
+USER_AGENT = f"XaiSdk/{__version__}"
+
 # Retries if the service returns an UNAVAILABLE error.
 _DEFAULT_SERVICE_CONFIG_JSON = json.dumps(
     {
@@ -38,6 +40,7 @@ _DEFAULT_CHANNEL_OPTIONS: Sequence[tuple[str, Any]] = [
     ("grpc.keepalive_timeout_ms", 10000),
     ("grpc.keepalive_permit_without_calls", 1),
     ("grpc.http2.max_pings_without_data", 0),
+    ("grpc.primary_user_agent", USER_AGENT),
 ]
 
 _DEFAULT_RPC_TIMEOUT_SECONDS = 27 * 60
