@@ -267,6 +267,20 @@ class BaseClient(abc.ABC, Generic[T]):
         """Creates the proto wrapper for chat requests."""
 
 
+def _replay_tool_call_id(output_message: chat_pb2.CompletionMessage) -> Optional[str]:
+    """Recovers the `tool_call_id` for replaying a completion output as an input message.
+
+    `chat_pb2.CompletionMessage` does not carry a `tool_call_id` field, but server-side
+    tool outputs (ROLE_TOOL) echo the originating call in `tool_calls`. The server pairs
+    replayed tool turns with their calls via `Message.tool_call_id` (e.g. to re-hydrate
+    binary tool results such as generated images), so it must be set when appending a
+    response back onto the conversation.
+    """
+    if output_message.role == chat_pb2.MessageRole.ROLE_TOOL and output_message.tool_calls:
+        return output_message.tool_calls[0].id
+    return None
+
+
 class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
     """Utility class for simplifying the interaction with Chat requests and responses."""
 
@@ -377,16 +391,19 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
                             reasoning_content=output.message.reasoning_content,
                             encrypted_content=output.message.encrypted_content,
                             tool_calls=output.message.tool_calls,
+                            tool_call_id=_replay_tool_call_id(output.message),
                         )
                     )
             else:
+                output_message = message._get_output().message
                 self._proto.messages.append(
                     chat_pb2.Message(
-                        role=message._get_output().message.role,
+                        role=output_message.role,
                         content=[text(message.content)],
                         reasoning_content=message.reasoning_content,
                         encrypted_content=message.encrypted_content,
                         tool_calls=message.tool_calls,
+                        tool_call_id=_replay_tool_call_id(output_message),
                     )
                 )
         else:
