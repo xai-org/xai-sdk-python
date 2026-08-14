@@ -104,10 +104,10 @@ class ChatServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def CompactContext(self, request, context):
-        """Compacts a full responses input context and returns a compacted context.
+        """Compacts a full input context and returns a compacted context.
         The client sends the current input items and receives back a compacted
-        set of items (with an opaque compaction summary) suitable for use as
-        the input to the next /v1/responses call.
+        set of items (with an opaque compaction blob) suitable for use as
+        the input to the next request.
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')

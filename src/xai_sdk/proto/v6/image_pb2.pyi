@@ -83,13 +83,14 @@ IMG_RESOLUTION_1K: ImageResolution
 IMG_RESOLUTION_2K: ImageResolution
 
 class GenerateImageRequest(_message.Message):
-    __slots__ = ("prompt", "image", "model", "n", "user", "format", "aspect_ratio", "resolution", "images", "storage_options")
+    __slots__ = ("prompt", "image", "model", "n", "user", "format", "quality", "aspect_ratio", "resolution", "images", "storage_options")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     N_FIELD_NUMBER: _ClassVar[int]
     USER_FIELD_NUMBER: _ClassVar[int]
     FORMAT_FIELD_NUMBER: _ClassVar[int]
+    QUALITY_FIELD_NUMBER: _ClassVar[int]
     ASPECT_RATIO_FIELD_NUMBER: _ClassVar[int]
     RESOLUTION_FIELD_NUMBER: _ClassVar[int]
     IMAGES_FIELD_NUMBER: _ClassVar[int]
@@ -100,11 +101,12 @@ class GenerateImageRequest(_message.Message):
     n: int
     user: str
     format: ImageFormat
+    quality: ImageQuality
     aspect_ratio: ImageAspectRatio
     resolution: ImageResolution
     images: _containers.RepeatedCompositeFieldContainer[ImageUrlContent]
     storage_options: StorageOptions
-    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., user: _Optional[str] = ..., format: _Optional[_Union[ImageFormat, str]] = ..., aspect_ratio: _Optional[_Union[ImageAspectRatio, str]] = ..., resolution: _Optional[_Union[ImageResolution, str]] = ..., images: _Optional[_Iterable[_Union[ImageUrlContent, _Mapping]]] = ..., storage_options: _Optional[_Union[StorageOptions, _Mapping]] = ...) -> None: ...
+    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., n: _Optional[int] = ..., user: _Optional[str] = ..., format: _Optional[_Union[ImageFormat, str]] = ..., quality: _Optional[_Union[ImageQuality, str]] = ..., aspect_ratio: _Optional[_Union[ImageAspectRatio, str]] = ..., resolution: _Optional[_Union[ImageResolution, str]] = ..., images: _Optional[_Iterable[_Union[ImageUrlContent, _Mapping]]] = ..., storage_options: _Optional[_Union[StorageOptions, _Mapping]] = ...) -> None: ...
 
 class StorageOptions(_message.Message):
     __slots__ = ("filename", "expires_after", "public_url")

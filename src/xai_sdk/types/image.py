@@ -1,6 +1,6 @@
 from typing import Literal, TypeAlias
 
-__all__ = ["ImageAspectRatio", "ImageFormat", "ImageResolution"]
+__all__ = ["ImageAspectRatio", "ImageFormat", "ImageQuality", "ImageResolution"]
 
 ImageFormat: TypeAlias = Literal["base64", "url"]
 ImageAspectRatio: TypeAlias = Literal[
@@ -19,3 +19,4 @@ ImageAspectRatio: TypeAlias = Literal[
     "2:1",
 ]
 ImageResolution: TypeAlias = Literal["1k", "2k"]
+ImageQuality: TypeAlias = Literal["low", "medium"]

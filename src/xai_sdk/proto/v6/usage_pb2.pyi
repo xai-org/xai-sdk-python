@@ -25,6 +25,7 @@ class ServerSideTool(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     SERVER_SIDE_TOOL_MCP: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: _ClassVar[ServerSideTool]
     SERVER_SIDE_TOOL_IMAGE_SEARCH: _ClassVar[ServerSideTool]
+    SERVER_SIDE_TOOL_IMAGE_GENERATION: _ClassVar[ServerSideTool]
 SERVICE_TIER_UNSPECIFIED: ServiceTier
 SERVICE_TIER_DEFAULT: ServiceTier
 SERVICE_TIER_PRIORITY: ServiceTier
@@ -38,6 +39,7 @@ SERVER_SIDE_TOOL_COLLECTIONS_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_MCP: ServerSideTool
 SERVER_SIDE_TOOL_ATTACHMENT_SEARCH: ServerSideTool
 SERVER_SIDE_TOOL_IMAGE_SEARCH: ServerSideTool
+SERVER_SIDE_TOOL_IMAGE_GENERATION: ServerSideTool
 
 class SamplingUsage(_message.Message):
     __slots__ = ("completion_tokens", "reasoning_tokens", "prompt_tokens", "total_tokens", "prompt_text_tokens", "cached_prompt_text_tokens", "prompt_image_tokens", "num_sources_used", "server_side_tools_used", "cost_in_usd_ticks")

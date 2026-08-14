@@ -9,7 +9,7 @@ from .files import StorageOptions, _resolve_storage_options_pb
 from .meta import ProtoDecorator
 from .proto import image_pb2, image_pb2_grpc, usage_pb2
 from .telemetry import should_disable_sensitive_attributes
-from .types import ImageAspectRatio, ImageFormat, ImageGenerationModel, ImageResolution
+from .types import ImageAspectRatio, ImageFormat, ImageGenerationModel, ImageQuality, ImageResolution
 
 _IMAGE_ASPECT_RATIO_MAP: dict[ImageAspectRatio, image_pb2.ImageAspectRatio] = {
     "1:1": image_pb2.ImageAspectRatio.IMG_ASPECT_RATIO_1_1,
@@ -183,6 +183,7 @@ def _make_generate_request(
     image_format: ImageFormat | None = None,
     aspect_ratio: ImageAspectRatio | None = None,
     resolution: ImageResolution | None = None,
+    quality: ImageQuality | None = None,
     storage_options: Union[StorageOptions, image_pb2.StorageOptions, None] = None,
 ) -> image_pb2.GenerateImageRequest:
     _validate_image_inputs(image_url, image_file_id, image_urls, image_file_ids)
@@ -237,9 +238,22 @@ def _make_generate_request(
         request.aspect_ratio = convert_image_aspect_ratio_to_pb(aspect_ratio)
     if resolution is not None:
         request.resolution = convert_image_resolution_to_pb(resolution)
+    if quality is not None:
+        request.quality = convert_image_quality_to_pb(quality)
     if storage_options is not None:
         request.storage_options.CopyFrom(_resolve_storage_options_pb(storage_options))
     return request
+
+
+def _add_storage_span_attributes(attributes: dict[str, str | int], storage_options: image_pb2.StorageOptions) -> None:
+    """Adds storage-related span attributes for a request that persists its output."""
+    attributes["gen_ai.request.storage"] = True
+    if storage_options.filename:
+        attributes["gen_ai.request.storage.filename"] = storage_options.filename
+    if storage_options.expires_after:
+        attributes["gen_ai.request.storage.expires_after"] = storage_options.expires_after
+    if storage_options.HasField("public_url"):
+        attributes["gen_ai.request.storage.public_url"] = True
 
 
 def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> dict[str, str | int]:
@@ -260,13 +274,7 @@ def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> di
     attributes["gen_ai.prompt"] = request.prompt
 
     if request.HasField("storage_options"):
-        attributes["gen_ai.request.storage"] = True
-        if request.storage_options.filename:
-            attributes["gen_ai.request.storage.filename"] = request.storage_options.filename
-        if request.storage_options.expires_after:
-            attributes["gen_ai.request.storage.expires_after"] = request.storage_options.expires_after
-        if request.storage_options.HasField("public_url"):
-            attributes["gen_ai.request.storage.public_url"] = True
+        _add_storage_span_attributes(attributes, request.storage_options)
 
     if request.HasField("n"):
         attributes["gen_ai.request.image.count"] = request.n
@@ -275,6 +283,10 @@ def _make_span_request_attributes(request: image_pb2.GenerateImageRequest) -> di
     if request.HasField("resolution"):
         attributes["gen_ai.request.image.resolution"] = (
             image_pb2.ImageResolution.Name(request.resolution).removeprefix("IMG_RESOLUTION_").lower()
+        )
+    if request.HasField("quality"):
+        attributes["gen_ai.request.image.quality"] = (
+            image_pb2.ImageQuality.Name(request.quality).removeprefix("IMG_QUALITY_").lower()
         )
     if request.user:
         attributes["user_id"] = request.user
@@ -375,3 +387,14 @@ def convert_image_resolution_to_pb(resolution: ImageResolution) -> image_pb2.Ima
             return image_pb2.ImageResolution.IMG_RESOLUTION_2K
         case _:
             raise ValueError(f"Invalid image resolution {resolution}.")
+
+
+def convert_image_quality_to_pb(quality: ImageQuality) -> image_pb2.ImageQuality:
+    """Converts a string literal representation of an image quality to its protobuf enum variant."""
+    match quality:
+        case "low":
+            return image_pb2.ImageQuality.IMG_QUALITY_LOW
+        case "medium":
+            return image_pb2.ImageQuality.IMG_QUALITY_MEDIUM
+        case _:
+            raise ValueError(f"Invalid image quality {quality}.")

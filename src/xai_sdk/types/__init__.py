@@ -10,7 +10,7 @@ from .chat import (
     ToolMode,
 )
 from .common import ServiceTier
-from .image import ImageAspectRatio, ImageFormat, ImageResolution
+from .image import ImageAspectRatio, ImageFormat, ImageQuality, ImageResolution
 from .model import AllModels, ChatModel, ImageGenerationModel, VideoGenerationModel
 from .video import VideoAspectRatio, VideoResolution
 
@@ -24,6 +24,7 @@ __all__ = [
     "ImageDetail",
     "ImageFormat",
     "ImageGenerationModel",
+    "ImageQuality",
     "ImageResolution",
     "IncludeOption",
     "IncludeOptionMap",
