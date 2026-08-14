@@ -2,7 +2,9 @@ import grpc
 import pytest
 
 from xai_sdk import Client
+from xai_sdk.__about__ import __version__
 from xai_sdk.chat import user
+from xai_sdk.client import _DEFAULT_CHANNEL_OPTIONS, USER_AGENT
 
 from .. import server
 
@@ -17,6 +19,12 @@ def test_server_port():
 def test_management_server_port():
     with server.run_test_management_server() as port:
         yield port
+
+
+def test_default_user_agent():
+    assert USER_AGENT == f"XaiSdk/{__version__}"
+    options = dict(_DEFAULT_CHANNEL_OPTIONS)
+    assert options["grpc.primary_user_agent"] == USER_AGENT
 
 
 def test_client(test_server_port):

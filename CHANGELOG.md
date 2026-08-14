@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- Set a default gRPC User-Agent of `XaiSdk/{version}` via `grpc.primary_user_agent` (same string already used for image URL fetches; exposed as `xai_sdk.client.USER_AGENT`)
 - Added `reference_audios` and `generate_audio` parameters to video generation. `reference_audios` (on `client.video.generate` / `start` / `prepare`) is a list of audio sources for reference-to-video — each entry is a TypedDict such as `{"voice_id": "ara"}`; only supported for `grok-imagine-video-1.5`. `generate_audio` (on `generate` / `start` / `prepare`) controls whether the generated video includes audio (`true`) or is silent (`false`); when omitted the server defaults to `true`.
 - Added `"1080p"` as an accepted video `resolution` value (maps to `VIDEO_RESOLUTION_1080P`). Only supported on models that advertise 1080p (e.g. `grok-imagine-video-1.5` for image-to-video).
 - Added a `quality` parameter (`"low"`, `"medium"`) to image generation (`client.image.sample`, `sample_batch`, and batch `prepare`), mapping to the `GenerateImageRequest.quality` field. When omitted, the default is `"medium"`. Only supported for `grok-imagine-image-2.0`.
