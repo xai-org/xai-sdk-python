@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- Added `reference_audios` and `generate_audio` parameters to video generation. `reference_audios` (on `client.video.generate` / `start` / `prepare`) is a list of audio sources for reference-to-video — each entry is a TypedDict such as `{"voice_id": "ara"}`; only supported for `grok-imagine-video-1.5`. `generate_audio` (on `generate` / `start` / `prepare`) controls whether the generated video includes audio (`true`) or is silent (`false`); when omitted the server defaults to `true`.
+- Added `"1080p"` as an accepted video `resolution` value (maps to `VIDEO_RESOLUTION_1080P`). Only supported on models that advertise 1080p (e.g. `grok-imagine-video-1.5` for image-to-video).
 - Added a `quality` parameter (`"low"`, `"medium"`) to image generation (`client.image.sample`, `sample_batch`, and batch `prepare`), mapping to the `GenerateImageRequest.quality` field. When omitted, the default is `"medium"`. Only supported for `grok-imagine-image-2.0`.
 - Added `grok-imagine-image-2.0` to the `ImageGenerationModel` known-model type literal
 - **`xhigh` Reasoning Effort**: Added `"xhigh"` as an accepted `reasoning_effort` value (maps to `EFFORT_XHIGH`; supported by models such as `grok-4.6`)
@@ -10,6 +12,9 @@
 - **File-ID Inputs for Generation**: Image and video generation now accept Files API `file_id` references as inputs alongside URLs/base64 — `image_file_id` / `image_file_ids` for `image.sample()` / `image.sample_batch()`, and `image_file_id` / `video_file_id` / `reference_image_file_ids` for `video.generate()` / `video.extend()` (and the batch `prepare` helpers). URL and file-ID lists may be mixed in the same multi-image request (file IDs are sent first).
 - **Public File URLs**: Added `client.files.create_public_url()` and `client.files.revoke_public_url()` (sync and async) to create and revoke publicly shareable, unauthenticated URLs for stored files. `create_public_url()` accepts an optional `expires_after` (an `int` in seconds or a `datetime.timedelta`).
 - **Files List Filter**: `client.files.list()` (sync and async) now accepts an optional `filter` parameter to narrow results server-side by fields such as `content_type`, `size_bytes`, `created_at`, `upload_status`, and `public_url` (e.g. `filter='public_url != null'`).
+
+### Changed
+- Model type literals now match the current public model catalog: added `grok-imagine-video-1.5` and removed `grok-imagine-video-1.5-preview` (now an alias of `grok-imagine-video-1.5`) from `VideoGenerationModel`, and removed `grok-imagine-image-pro` (an alias of `grok-imagine-image-quality`) from `ImageGenerationModel`. These literals are type hints for editor autocomplete only — alias strings continue to work when passed to the API.
 
 ### Fixed
 - `chat.append(response)` now sets `tool_call_id` on replayed tool-role messages (recovered from the tool call echoed on the output), so servers can pair replayed tool turns with their originating calls. This fixes stateless multi-turn follow-ups to server-side tools whose results are re-hydrated by ID — e.g. editing a previously generated image in-memory without `previous_response_id`.

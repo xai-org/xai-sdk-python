@@ -25,6 +25,7 @@ class VideoResolution(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     VIDEO_RESOLUTION_UNSPECIFIED: _ClassVar[VideoResolution]
     VIDEO_RESOLUTION_480P: _ClassVar[VideoResolution]
     VIDEO_RESOLUTION_720P: _ClassVar[VideoResolution]
+    VIDEO_RESOLUTION_1080P: _ClassVar[VideoResolution]
 VIDEO_ASPECT_RATIO_UNSPECIFIED: VideoAspectRatio
 VIDEO_ASPECT_RATIO_1_1: VideoAspectRatio
 VIDEO_ASPECT_RATIO_16_9: VideoAspectRatio
@@ -36,6 +37,7 @@ VIDEO_ASPECT_RATIO_2_3: VideoAspectRatio
 VIDEO_RESOLUTION_UNSPECIFIED: VideoResolution
 VIDEO_RESOLUTION_480P: VideoResolution
 VIDEO_RESOLUTION_720P: VideoResolution
+VIDEO_RESOLUTION_1080P: VideoResolution
 
 class VideoUrlContent(_message.Message):
     __slots__ = ("url", "file_id")
