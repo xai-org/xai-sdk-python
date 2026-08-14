@@ -8,7 +8,12 @@ from opentelemetry.trace import SpanKind
 
 from xai_sdk import AsyncClient
 from xai_sdk.cost import USD_PER_TICK
-from xai_sdk.image import BaseImageResponse, ImageFormat
+from xai_sdk.image import (
+    BaseImageResponse,
+    ImageFormat,
+    _make_generate_request,
+    _make_span_request_attributes,
+)
 from xai_sdk.proto import batch_pb2, image_pb2, usage_pb2
 
 from .. import server
@@ -92,6 +97,53 @@ async def test_sample_batch_passes_aspect_ratio_and_resolution(client: AsyncClie
     assert request.aspect_ratio == image_pb2.ImageAspectRatio.IMG_ASPECT_RATIO_16_9
     assert request.HasField("resolution")
     assert request.resolution == image_pb2.ImageResolution.IMG_RESOLUTION_1K
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_passes_quality(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(prompt="foo", model="grok-imagine-image-2.0", quality="medium")
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("quality")
+    assert request.quality == image_pb2.ImageQuality.IMG_QUALITY_MEDIUM
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_batch_passes_quality(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample_batch(prompt="foo", model="grok-imagine-image-2.0", n=2, quality="low")
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert request.HasField("quality")
+    assert request.quality == image_pb2.ImageQuality.IMG_QUALITY_LOW
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_omits_quality_by_default(client: AsyncClient):
+    server.clear_last_image_request()
+
+    await client.image.sample(prompt="foo", model="grok-imagine-image-2.0")
+
+    request = server.get_last_image_request()
+    assert request is not None
+    assert not request.HasField("quality")
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_sample_rejects_invalid_quality(client: AsyncClient):
+    with pytest.raises(ValueError, match="Invalid image quality"):
+        await client.image.sample(prompt="foo", model="grok-imagine-image-2.0", quality="ultra")  # type: ignore[arg-type]
+
+
+def test_quality_included_in_span_request_attributes():
+    request = _make_generate_request(prompt="foo", model="grok-imagine-image-2.0", quality="medium")
+    attributes = _make_span_request_attributes(request)
+    assert attributes["gen_ai.request.image.quality"] == "medium"
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -469,6 +521,31 @@ async def test_prepare_passes_image_file_id(client: AsyncClient):
 
     assert batch_req.image_request.HasField("image")
     assert batch_req.image_request.image.file_id == "file_abc"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_prepare_passes_quality(client: AsyncClient):
+    batch_req = client.image.prepare(
+        prompt="foo",
+        model="grok-imagine-image-2.0",
+        quality="medium",
+    )
+
+    assert batch_req.image_request.HasField("quality")
+    assert batch_req.image_request.quality == image_pb2.ImageQuality.IMG_QUALITY_MEDIUM
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_prepare_omits_quality_by_default(client: AsyncClient):
+    batch_req = client.image.prepare(prompt="foo", model="grok-imagine-image-2.0")
+
+    assert not batch_req.image_request.HasField("quality")
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_prepare_rejects_invalid_quality(client: AsyncClient):
+    with pytest.raises(ValueError, match="Invalid image quality"):
+        client.image.prepare(prompt="foo", model="grok-imagine-image-2.0", quality="ultra")  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio(loop_scope="session")

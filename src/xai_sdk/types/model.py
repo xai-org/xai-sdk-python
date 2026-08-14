@@ -44,6 +44,7 @@ ChatModel: TypeAlias = Literal[
 
 ImageGenerationModel: TypeAlias = Literal[
     "grok-imagine-image",
+    "grok-imagine-image-2.0",
     "grok-imagine-image-pro",
     "grok-imagine-image-quality",
 ]

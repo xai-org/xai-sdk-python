@@ -46,8 +46,14 @@ class VideoUrlContent(_message.Message):
     file_id: str
     def __init__(self, url: _Optional[str] = ..., file_id: _Optional[str] = ...) -> None: ...
 
+class AudioUrlContent(_message.Message):
+    __slots__ = ("voice_id",)
+    VOICE_ID_FIELD_NUMBER: _ClassVar[int]
+    voice_id: str
+    def __init__(self, voice_id: _Optional[str] = ...) -> None: ...
+
 class GenerateVideoRequest(_message.Message):
-    __slots__ = ("prompt", "image", "model", "duration", "video", "aspect_ratio", "resolution", "reference_images", "storage_options")
+    __slots__ = ("prompt", "image", "model", "duration", "video", "aspect_ratio", "resolution", "reference_images", "storage_options", "reference_audios", "generate_audio")
     PROMPT_FIELD_NUMBER: _ClassVar[int]
     IMAGE_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
@@ -57,6 +63,8 @@ class GenerateVideoRequest(_message.Message):
     RESOLUTION_FIELD_NUMBER: _ClassVar[int]
     REFERENCE_IMAGES_FIELD_NUMBER: _ClassVar[int]
     STORAGE_OPTIONS_FIELD_NUMBER: _ClassVar[int]
+    REFERENCE_AUDIOS_FIELD_NUMBER: _ClassVar[int]
+    GENERATE_AUDIO_FIELD_NUMBER: _ClassVar[int]
     prompt: str
     image: _image_pb2.ImageUrlContent
     model: str
@@ -66,7 +74,9 @@ class GenerateVideoRequest(_message.Message):
     resolution: VideoResolution
     reference_images: _containers.RepeatedCompositeFieldContainer[_image_pb2.ImageUrlContent]
     storage_options: _image_pb2.StorageOptions
-    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., duration: _Optional[int] = ..., video: _Optional[_Union[VideoUrlContent, _Mapping]] = ..., aspect_ratio: _Optional[_Union[VideoAspectRatio, str]] = ..., resolution: _Optional[_Union[VideoResolution, str]] = ..., reference_images: _Optional[_Iterable[_Union[_image_pb2.ImageUrlContent, _Mapping]]] = ..., storage_options: _Optional[_Union[_image_pb2.StorageOptions, _Mapping]] = ...) -> None: ...
+    reference_audios: _containers.RepeatedCompositeFieldContainer[AudioUrlContent]
+    generate_audio: bool
+    def __init__(self, prompt: _Optional[str] = ..., image: _Optional[_Union[_image_pb2.ImageUrlContent, _Mapping]] = ..., model: _Optional[str] = ..., duration: _Optional[int] = ..., video: _Optional[_Union[VideoUrlContent, _Mapping]] = ..., aspect_ratio: _Optional[_Union[VideoAspectRatio, str]] = ..., resolution: _Optional[_Union[VideoResolution, str]] = ..., reference_images: _Optional[_Iterable[_Union[_image_pb2.ImageUrlContent, _Mapping]]] = ..., storage_options: _Optional[_Union[_image_pb2.StorageOptions, _Mapping]] = ..., reference_audios: _Optional[_Iterable[_Union[AudioUrlContent, _Mapping]]] = ..., generate_audio: bool = ...) -> None: ...
 
 class GetDeferredVideoRequest(_message.Message):
     __slots__ = ("request_id",)

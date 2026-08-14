@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- Added a `quality` parameter (`"low"`, `"medium"`) to image generation (`client.image.sample`, `sample_batch`, and batch `prepare`), mapping to the `GenerateImageRequest.quality` field. When omitted, the default is `"medium"`. Only supported for `grok-imagine-image-2.0`.
+- Added `grok-imagine-image-2.0` to the `ImageGenerationModel` known-model type literal
 - **`xhigh` Reasoning Effort**: Added `"xhigh"` as an accepted `reasoning_effort` value (maps to `EFFORT_XHIGH`; supported by models such as `grok-4.6`)
 - Added `grok-4.6` to the `ChatModel` known-model type literal
 - **Imagine File Storage**: Image and video generation (sync and async) now accept a `storage_options` parameter to persist generated assets to the Files API. It takes a dict with a required `filename` and optional `expires_after` (an `int` in seconds or a `datetime.timedelta`) and `public_url` (`True` to create a public URL with default expiry, or `{"expires_after": <seconds>}` for an independent URL expiry). Image and video responses expose new `file_output`, `storage_error`, `public_url`, and `public_url_error` properties.
