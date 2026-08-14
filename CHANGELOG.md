@@ -9,6 +9,9 @@
 - **Public File URLs**: Added `client.files.create_public_url()` and `client.files.revoke_public_url()` (sync and async) to create and revoke publicly shareable, unauthenticated URLs for stored files. `create_public_url()` accepts an optional `expires_after` (an `int` in seconds or a `datetime.timedelta`).
 - **Files List Filter**: `client.files.list()` (sync and async) now accepts an optional `filter` parameter to narrow results server-side by fields such as `content_type`, `size_bytes`, `created_at`, `upload_status`, and `public_url` (e.g. `filter='public_url != null'`).
 
+### Fixed
+- `chat.append(response)` now sets `tool_call_id` on replayed tool-role messages (recovered from the tool call echoed on the output), so servers can pair replayed tool turns with their originating calls. This fixes stateless multi-turn follow-ups to server-side tools whose results are re-hydrated by ID — e.g. editing a previously generated image in-memory without `previous_response_id`.
+
 ## [v1.14.0]
 ### Added
 - **Image Search**: Added `enable_image_search` parameter to `web_search()` to return image results that can be embedded in responses
