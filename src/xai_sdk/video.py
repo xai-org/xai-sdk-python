@@ -9,7 +9,14 @@ from .meta import ProtoDecorator
 from .proto import image_pb2, usage_pb2, video_pb2, video_pb2_grpc
 from .telemetry import should_disable_sensitive_attributes
 from .types import VideoGenerationModel
-from .types.video import VideoAspectRatio, VideoAspectRatioMap, VideoResolution, VideoResolutionMap
+from .types.video import (
+    ReferenceAudio,
+    ReferenceAudioValidator,
+    VideoAspectRatio,
+    VideoAspectRatioMap,
+    VideoResolution,
+    VideoResolutionMap,
+)
 
 DEFAULT_VIDEO_POLL_INTERVAL = datetime.timedelta(seconds=1)
 DEFAULT_VIDEO_TIMEOUT = datetime.timedelta(minutes=10)
@@ -146,6 +153,8 @@ def _make_generate_request(
     resolution: Optional[VideoResolution],
     reference_image_urls: Optional[Sequence[str]],
     reference_image_file_ids: Optional[Sequence[str]] = None,
+    reference_audios: Optional[Sequence[ReferenceAudio]] = None,
+    generate_audio: Optional[bool] = None,
     storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
 ) -> video_pb2.GenerateVideoRequest:
     _validate_video_inputs(
@@ -171,6 +180,9 @@ def _make_generate_request(
     if resolution is not None:
         request.resolution = convert_video_resolution_to_pb(resolution)
     _set_reference_images(request, reference_image_urls, reference_image_file_ids)
+    _set_reference_audios(request, reference_audios)
+    if generate_audio is not None:
+        request.generate_audio = generate_audio
     if storage_options is not None:
         request.storage_options.CopyFrom(_resolve_storage_options_pb(storage_options))
 
@@ -210,6 +222,26 @@ def _set_reference_images(
         )
 
 
+def _resolve_reference_audio(entry: ReferenceAudio) -> video_pb2.AudioUrlContent:
+    """Converts a public ``reference_audios`` entry into the request wire form.
+
+    Validates with :data:`~xai_sdk.types.video.ReferenceAudioValidator` (Pydantic).
+    Today only ``{"voice_id": ...}`` is supported; new source kinds should be
+    added here without changing the top-level ``reference_audios`` parameter.
+    """
+    validated = ReferenceAudioValidator.validate_python(entry)
+    return video_pb2.AudioUrlContent(voice_id=validated["voice_id"])
+
+
+def _set_reference_audios(
+    request: video_pb2.GenerateVideoRequest,
+    reference_audios: Optional[Sequence[ReferenceAudio]],
+) -> None:
+    """Populates `reference_audios` from validated TypedDict entries."""
+    if reference_audios is not None:
+        request.reference_audios.extend(_resolve_reference_audio(entry) for entry in reference_audios)
+
+
 def _make_span_request_attributes(request: video_pb2.GenerateVideoRequest) -> dict[str, Any]:
     """Creates the video generation span request attributes."""
     attributes: dict[str, Any] = {
@@ -244,6 +276,8 @@ def _make_span_request_attributes(request: video_pb2.GenerateVideoRequest) -> di
         attributes["gen_ai.request.video.resolution"] = (
             video_pb2.VideoResolution.Name(request.resolution).removeprefix("VIDEO_RESOLUTION_").lower()
         )
+    if request.HasField("generate_audio"):
+        attributes["gen_ai.request.video.generate_audio"] = request.generate_audio
 
     return attributes
 

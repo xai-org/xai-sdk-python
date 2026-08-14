@@ -1,6 +1,7 @@
 import warnings
 from unittest import mock
 
+import pydantic
 import pytest
 from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
@@ -8,7 +9,12 @@ from opentelemetry.trace import SpanKind
 from xai_sdk import Client
 from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.proto import batch_pb2, deferred_pb2, image_pb2, usage_pb2, video_pb2
-from xai_sdk.video import VideoGenerationError, VideoResponse
+from xai_sdk.video import (
+    VideoGenerationError,
+    VideoResponse,
+    _make_generate_request,
+    _make_span_request_attributes,
+)
 
 from .. import server
 
@@ -101,6 +107,161 @@ def test_prepare_with_reference_image_urls(client: Client):
     assert len(batch_req.video_request.reference_images) == 2
     assert batch_req.video_request.reference_images[0].image_url == ref_urls[0]
     assert batch_req.video_request.reference_images[1].image_url == ref_urls[1]
+
+
+def test_generate_passes_reference_audios(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        reference_audios=[{"voice_id": "ara"}, {"voice_id": "leo"}],
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert [audio.voice_id for audio in request.reference_audios] == ["ara", "leo"]
+
+
+def test_generate_strips_reference_audio_voice_id_whitespace(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video",
+        reference_audios=[{"voice_id": "  ara  "}],
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.reference_audios[0].voice_id == "ara"
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        pytest.param({"voice_id": ""}, id="empty"),
+        pytest.param({"voice_id": "   "}, id="whitespace"),
+        pytest.param({}, id="missing-voice_id"),
+        pytest.param({"voice_id": 123}, id="wrong-type"),
+    ],
+)
+def test_generate_rejects_invalid_reference_audio(client: Client, entry):
+    with pytest.raises(pydantic.ValidationError):
+        client.video.generate(
+            prompt="foo",
+            model="grok-imagine-video",
+            reference_audios=[entry],  # type: ignore[list-item]
+        )
+
+
+def test_generate_passes_generate_audio(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(prompt="foo", model="grok-imagine-video", generate_audio=False)
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.HasField("generate_audio")
+    assert request.generate_audio is False
+
+
+def test_generate_omits_reference_audios_and_generate_audio_by_default(client: Client):
+    server.clear_last_video_request()
+
+    client.video.generate(prompt="foo", model="grok-imagine-video")
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert len(request.reference_audios) == 0
+    assert not request.HasField("generate_audio")
+
+
+def test_prepare_passes_generate_audio(client: Client):
+    batch_req = client.video.prepare(
+        prompt="Generate with audio control",
+        model="grok-imagine-video",
+        generate_audio=True,
+    )
+
+    assert batch_req.video_request.HasField("generate_audio")
+    assert batch_req.video_request.generate_audio is True
+    assert len(batch_req.video_request.reference_audios) == 0
+
+
+def test_prepare_passes_reference_audios(client: Client):
+    batch_req = client.video.prepare(
+        prompt="Generate from references",
+        model="grok-imagine-video",
+        reference_audios=[{"voice_id": "ara"}, {"voice_id": "leo"}],
+    )
+
+    assert [audio.voice_id for audio in batch_req.video_request.reference_audios] == ["ara", "leo"]
+
+
+def test_prepare_strips_reference_audio_voice_id_whitespace(client: Client):
+    batch_req = client.video.prepare(
+        prompt="foo",
+        model="grok-imagine-video",
+        reference_audios=[{"voice_id": "  ara  "}],
+    )
+
+    assert batch_req.video_request.reference_audios[0].voice_id == "ara"
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        pytest.param({"voice_id": ""}, id="empty"),
+        pytest.param({"voice_id": "   "}, id="whitespace"),
+        pytest.param({}, id="missing-voice_id"),
+        pytest.param({"voice_id": 123}, id="wrong-type"),
+    ],
+)
+def test_prepare_rejects_invalid_reference_audio(client: Client, entry):
+    with pytest.raises(pydantic.ValidationError):
+        client.video.prepare(
+            prompt="foo",
+            model="grok-imagine-video",
+            reference_audios=[entry],  # type: ignore[list-item]
+        )
+
+
+def test_prepare_omits_reference_audios_by_default(client: Client):
+    batch_req = client.video.prepare(prompt="foo", model="grok-imagine-video")
+
+    assert len(batch_req.video_request.reference_audios) == 0
+
+
+def test_generate_audio_included_in_span_request_attributes():
+    request = _make_generate_request(
+        prompt="foo",
+        model="grok-imagine-video",
+        image_url=None,
+        video_url=None,
+        duration=None,
+        aspect_ratio=None,
+        resolution=None,
+        reference_image_urls=None,
+        generate_audio=False,
+    )
+    attributes = _make_span_request_attributes(request)
+    assert attributes["gen_ai.request.video.generate_audio"] is False
+
+
+def test_generate_audio_omitted_from_span_request_attributes_by_default():
+    request = _make_generate_request(
+        prompt="foo",
+        model="grok-imagine-video",
+        image_url=None,
+        video_url=None,
+        duration=None,
+        aspect_ratio=None,
+        resolution=None,
+        reference_image_urls=None,
+    )
+    attributes = _make_span_request_attributes(request)
+    assert "gen_ai.request.video.generate_audio" not in attributes
 
 
 @mock.patch("xai_sdk.sync.video.tracer")

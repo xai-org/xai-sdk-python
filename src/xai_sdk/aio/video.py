@@ -9,7 +9,7 @@ from ..files import StorageOptions
 from ..poll_timer import PollTimer
 from ..proto import batch_pb2, deferred_pb2, image_pb2, video_pb2
 from ..telemetry import get_tracer
-from ..types import VideoGenerationModel
+from ..types import ReferenceAudio, VideoGenerationModel
 from ..video import (
     DEFAULT_VIDEO_POLL_INTERVAL,
     DEFAULT_VIDEO_TIMEOUT,
@@ -47,6 +47,8 @@ class Client(BaseClient):
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
         reference_image_file_ids: Optional[Sequence[str]] = None,
+        reference_audios: Optional[Sequence[ReferenceAudio]] = None,
+        generate_audio: Optional[bool] = None,
         storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
     ) -> batch_pb2.BatchRequest:
         """Prepares a video generation request for batch processing.
@@ -81,6 +83,14 @@ class Client(BaseClient):
                 reference-to-video (R2V) generation. May be combined with
                 ``reference_image_urls`` to mix URL/base64 and file-ID references
                 in the same request.
+            reference_audios: Optional list of reference audio sources for
+                reference-to-video (R2V) generation. Each entry is a TypedDict
+                such as ``{"voice_id": "ara"}``. See the
+                `voice catalog <https://docs.x.ai/developers/model-capabilities/audio/text-to-speech#voices>`_
+                for available presets. At most three entries. Only supported
+                for ``grok-imagine-video-1.5``.
+            generate_audio: Whether the generated video includes an audio track.
+                Defaults to ``True``. Set to ``False`` for a silent video.
             storage_options: Persist the result to the Files API. Accepts a dict
                 with a required ``filename`` and optional ``expires_after`` and ``public_url`` keys.
                 Set ``public_url`` to also create a publicly shareable URL.
@@ -133,6 +143,8 @@ class Client(BaseClient):
             resolution=resolution,
             reference_image_urls=reference_image_urls,
             reference_image_file_ids=reference_image_file_ids,
+            reference_audios=reference_audios,
+            generate_audio=generate_audio,
             storage_options=storage_options,
         )
 
@@ -209,6 +221,8 @@ class Client(BaseClient):
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
         reference_image_file_ids: Optional[Sequence[str]] = None,
+        reference_audios: Optional[Sequence[ReferenceAudio]] = None,
+        generate_audio: Optional[bool] = None,
         storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
     ) -> deferred_pb2.StartDeferredResponse:
         """Starts a video generation request and returns a request_id for polling.
@@ -227,6 +241,8 @@ class Client(BaseClient):
             resolution=resolution,
             reference_image_urls=reference_image_urls,
             reference_image_file_ids=reference_image_file_ids,
+            reference_audios=reference_audios,
+            generate_audio=generate_audio,
             storage_options=storage_options,
         )
 
@@ -256,6 +272,8 @@ class Client(BaseClient):
         resolution: Optional[VideoResolution] = None,
         reference_image_urls: Optional[Sequence[str]] = None,
         reference_image_file_ids: Optional[Sequence[str]] = None,
+        reference_audios: Optional[Sequence[ReferenceAudio]] = None,
+        generate_audio: Optional[bool] = None,
         storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
         timeout: Optional[datetime.timedelta] = None,
         interval: Optional[datetime.timedelta] = None,
@@ -304,6 +322,14 @@ class Client(BaseClient):
                 reference-to-video (R2V) generation. May be combined with
                 `reference_image_urls` to mix URL/base64 and file-ID references
                 in the same request.
+            reference_audios: Optional list of reference audio sources for
+                reference-to-video (R2V) generation. Each entry is a TypedDict
+                such as ``{"voice_id": "ara"}``. See the
+                `voice catalog <https://docs.x.ai/developers/model-capabilities/audio/text-to-speech#voices>`_
+                for available presets. At most three entries. Only supported
+                for ``grok-imagine-video-1.5``.
+            generate_audio: Whether the generated video includes an audio track.
+                Defaults to `True`. Set to `False` for a silent video.
             storage_options: Persist the result to the Files API. Accepts a dict
                 with a required ``filename`` and optional ``expires_after`` and ``public_url`` keys.
                 Set ``public_url`` to also create a publicly shareable URL.
@@ -384,6 +410,8 @@ class Client(BaseClient):
             resolution=resolution,
             reference_image_urls=reference_image_urls,
             reference_image_file_ids=reference_image_file_ids,
+            reference_audios=reference_audios,
+            generate_audio=generate_audio,
             storage_options=storage_options,
         )
 

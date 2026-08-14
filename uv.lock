@@ -1835,6 +1835,7 @@ dependencies = [
     { name = "protobuf" },
     { name = "pydantic" },
     { name = "requests" },
+    { name = "typing-extensions" },
 ]
 
 [package.optional-dependencies]
@@ -1875,6 +1876,7 @@ requires-dist = [
     { name = "protobuf", specifier = ">=5.29.4,<7" },
     { name = "pydantic", specifier = ">=2.5.3,<3" },
     { name = "requests", specifier = ">=2.31.0,<3" },
+    { name = "typing-extensions", specifier = ">=4.14.0,<5" },
 ]
 provides-extras = ["telemetry-grpc", "telemetry-http"]
 
