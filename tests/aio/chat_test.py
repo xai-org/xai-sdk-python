@@ -430,6 +430,56 @@ async def test_agentic_tool_calling_non_streaming(client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_image_generation_tool_non_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[image_generation()],
+    )
+    chat.append(user("Generate an image of a corgi"))
+    response = await chat.sample()
+
+    image_outputs = response.image_outputs
+    assert len(image_outputs) == 1
+    output = image_outputs[0]
+    assert output.tool_call.function.name == "imagine_text_to_image"
+    assert output.tool_call.status == chat_pb2.TOOL_CALL_STATUS_COMPLETED
+    assert output.mime_type == "image/jpeg"
+    assert output.data_url.startswith("data:image/jpeg;base64,")
+    assert output.image_uuid == server.IMAGE_GENERATION_IMAGE_UUID
+    assert output.image == server.read_image()
+
+    assert response.content == "Here is your image."
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_image_generation_tool_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[image_generation()],
+    )
+    chat.append(user("Generate an image of a corgi"))
+
+    last_response = None
+    async for response, _chunk in chat.stream():
+        # Safe to access mid-stream: a completed call and its full envelope
+        # always arrive in the same chunk, so entries appear fully formed.
+        for output in response.image_outputs:
+            assert output.tool_call.type == chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL
+        last_response = response
+
+    assert last_response is not None
+    image_outputs = last_response.image_outputs
+    assert len(image_outputs) == 1
+    output = image_outputs[0]
+    assert output.tool_call.function.name == "imagine_text_to_image"
+    assert output.mime_type == "image/jpeg"
+    assert output.image_uuid == server.IMAGE_GENERATION_IMAGE_UUID
+    assert output.image == server.read_image()
+
+    assert last_response.content == "Here is your image."
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_structured_output_parse(client):
     class Weather(BaseModel):
         city: str

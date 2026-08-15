@@ -6,27 +6,28 @@ as part of a single agentic chat request. Generated images are exposed on the
 response via `response.image_outputs`.
 """
 
+import asyncio
 import os
 
-from xai_sdk import Client
+from xai_sdk import AsyncClient
 from xai_sdk.chat import Response, image, user
 from xai_sdk.tools import get_tool_call_type, image_generation, web_search
 
 
-def generate_image(client: Client) -> None:
+async def generate_image(client: AsyncClient) -> None:
     """Generates an image in a single turn."""
     chat = client.chat.create(
         model="grok-4.5",
         tools=[image_generation()],
     )
     chat.append(user("Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print"))
-    response = chat.sample()
+    response = await chat.sample()
     print(response.content)
     _save_images(response, "corgi_surfing")
     print(response.server_side_tool_usage)
 
 
-def edit_input_image(client: Client) -> None:
+async def edit_input_image(client: AsyncClient) -> None:
     """Edits an image attached to the chat context.
 
     With `action="edit"` (or the default `"auto"`), the model can edit any image
@@ -43,12 +44,12 @@ def edit_input_image(client: Client) -> None:
             image("https://docs.x.ai/assets/api-examples/images/style-realistic.png"),
         )
     )
-    response = chat.sample()
+    response = await chat.sample()
     print(response.content)
     _save_images(response, "watercolor")
 
 
-def generate_then_edit_image(client: Client) -> None:
+async def generate_then_edit_image(client: AsyncClient) -> None:
     """Generates an image, then edits it in a follow-up turn of the same chat."""
     chat = client.chat.create(
         model="grok-4.5",
@@ -59,7 +60,7 @@ def generate_then_edit_image(client: Client) -> None:
 
     # -- Turn 1: generate ----------------------------------------------------
     chat.append(user("Generate an image of a corgi surfing a big wave, in the style of a Japanese woodblock print"))
-    response = chat.sample()
+    response = await chat.sample()
     print(response.content)
     _save_images(response, "corgi_surfing")
 
@@ -67,12 +68,12 @@ def generate_then_edit_image(client: Client) -> None:
 
     # -- Turn 2: edit --------------------------------------------------------
     chat.append(user("Edit the image you just generated: make it night time, lit by a full moon"))
-    response = chat.sample()
+    response = await chat.sample()
     print(response.content)
     _save_images(response, "corgi_surfing_night")
 
 
-def search_and_generate_image(client: Client) -> None:
+async def search_and_generate_image(client: AsyncClient) -> None:
     """Combines web search with image generation in a single agentic request.
 
     The model first looks up live data with the web_search tool, then renders
@@ -88,13 +89,13 @@ def search_and_generate_image(client: Client) -> None:
             "with key city icons along with their forecast in the image"
         )
     )
-    response = chat.sample()
+    response = await chat.sample()
     print(response.content)
     _save_images(response, "uk_forecast_infographic")
     print(response.server_side_tool_usage)
 
 
-def stream_image_generation(client: Client) -> None:
+async def stream_image_generation(client: AsyncClient) -> None:
     """Streams a response that generates an image.
 
     With `include=["verbose_streaming"]`, tool-call activity and text deltas
@@ -110,7 +111,7 @@ def stream_image_generation(client: Client) -> None:
     chat.append(user("Generate an image of an origami fox in a paper forest"))
 
     last_response: Response | None = None
-    for response, chunk in chat.stream():
+    async for response, chunk in chat.stream():
         last_response = response
         for tool_call in chunk.tool_calls:
             if get_tool_call_type(tool_call) == "image_generation_tool":
@@ -138,23 +139,23 @@ def _save_images(response: Response, prefix: str) -> None:
         print(f"Saved {filename} ({output.tool_call.function.name}, image_uuid={output.image_uuid})")
 
 
-def main() -> None:
-    client = Client(api_key=os.getenv("XAI_API_KEY"))
+async def main() -> None:
+    client = AsyncClient(api_key=os.getenv("XAI_API_KEY"))
 
-    generate_image(client)
+    await generate_image(client)
 
     # Edit an image attached to the chat context.
-    # edit_input_image(client)
+    # await edit_input_image(client)
 
     # Multi-turn: generate an image, then edit it in a follow-up turn.
-    # generate_then_edit_image(client)
+    # await generate_then_edit_image(client)
 
     # Combine web search with image generation.
-    # search_and_generate_image(client)
+    # await search_and_generate_image(client)
 
     # Stream tool activity and text deltas while the image is generated.
-    # stream_image_generation(client)
+    # await stream_image_generation(client)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
