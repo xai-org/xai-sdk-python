@@ -274,6 +274,7 @@ The xAI SDK excels in advanced use cases, such as:
 - **Tokenization**: Tokenize text with the tokenizer API (see sync [tokenizer.py](/examples/sync/tokenizer.py) and async [tokenizer.py](/examples/aio/tokenizer.py)).
 - **Models**: Retrieve information on different models available to you, including, name, aliases, token price, max prompt length etc (see sync [models.py](/examples/sync/models.py) and async [models.py](/examples/aio/models.py))
 - **Agentic Tool Calling**: Let Grok autonomously decide when to search the web, 𝕏, or execute code to answer your questions with real-time information (e.g., "What was Arsenal's most recent game result?" triggers a web search automatically). See sync [server_side_tools.py](/examples/sync/server_side_tools.py) and async [server_side_tools.py](/examples/aio/server_side_tools.py)
+- **Safety Guard**: Protect agentic tool execution from prompt-injection RCE with `SafetyGuard` — a PEP 578 audit hook layer that intercepts dangerous operations (subprocess, exec/eval, network, filesystem) scoped to the current thread. See `xai_sdk.safety` for usage.
 - **Telemetry & Observability**: Export OpenTelemetry traces with rich metadata attributes to console or OTLP backends (see sync [telemetry.py](/examples/sync/telemetry.py) and async [telemetry.py](/examples/aio/telemetry.py))
 
 ## Telemetry & Observability
