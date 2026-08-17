@@ -3,6 +3,7 @@
 import base64
 import contextlib
 import http.server
+import json
 import os.path
 import threading
 import time
@@ -158,6 +159,112 @@ def _use_server_side_tools(request: chat_pb2.GetCompletionsRequest) -> bool:
     return any(tool.WhichOneof("tool") != "function" for tool in request.tools)
 
 
+def _use_image_generation(request: chat_pb2.GetCompletionsRequest) -> bool:
+    return any(tool.WhichOneof("tool") == "image_generation" for tool in request.tools)
+
+
+IMAGE_GENERATION_IMAGE_UUID = "img01"
+
+
+def image_generation_envelope() -> str:
+    """The serialized image generation result envelope carried by ROLE_TOOL outputs."""
+    encoded = base64.b64encode(read_image()).decode()
+    return json.dumps(
+        {
+            "__type": "image_generation_result",
+            "result": f"data:image/jpeg;base64,{encoded}",
+            "image_uuid": IMAGE_GENERATION_IMAGE_UUID,
+        }
+    )
+
+
+def _image_generation_tool_call() -> chat_pb2.ToolCall:
+    return chat_pb2.ToolCall(
+        id="test-image-tool-call",
+        type=chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL,
+        status=chat_pb2.TOOL_CALL_STATUS_COMPLETED,
+        function=chat_pb2.FunctionCall(
+            name="imagine_text_to_image",
+            arguments='{"prompt":"a corgi"}',
+        ),
+    )
+
+
+def _add_server_side_tool_outputs(
+    request: chat_pb2.GetCompletionsRequest, response: chat_pb2.GetChatCompletionResponse
+) -> None:
+    """Adds the agentic tool calling outputs to a completion response."""
+    if _use_image_generation(request):
+        _add_image_generation_outputs(response)
+        return
+    response.outputs.add(
+        index=0,
+        message=chat_pb2.CompletionMessage(
+            role=chat_pb2.ROLE_ASSISTANT,
+            tool_calls=[
+                chat_pb2.ToolCall(
+                    id="test-tool-call",
+                    function=chat_pb2.FunctionCall(
+                        name="web_search",
+                        arguments='{"query":"What is the weather in London?"}',
+                    ),
+                )
+            ],
+        ),
+    )
+    response.outputs.add(
+        index=1,
+        message=chat_pb2.CompletionMessage(
+            role=chat_pb2.ROLE_TOOL,
+            tool_calls=[
+                chat_pb2.ToolCall(
+                    id="test-tool-call",
+                    function=chat_pb2.FunctionCall(
+                        name="web_search",
+                        arguments='{"query":"What is the weather in London?"}',
+                    ),
+                )
+            ],
+            content="I am tool response",
+        ),
+    )
+    response.outputs.add(
+        index=2,
+        finish_reason=sample_pb2.FinishReason.REASON_STOP,
+        message=chat_pb2.CompletionMessage(
+            role=chat_pb2.ROLE_ASSISTANT,
+            content="I am searching.",
+        ),
+    )
+
+
+def _add_image_generation_outputs(response: chat_pb2.GetChatCompletionResponse) -> None:
+    """Adds the agentic image generation outputs to a completion response."""
+    response.outputs.add(
+        index=0,
+        message=chat_pb2.CompletionMessage(
+            role=chat_pb2.ROLE_ASSISTANT,
+            tool_calls=[_image_generation_tool_call()],
+        ),
+    )
+    response.outputs.add(
+        index=1,
+        message=chat_pb2.CompletionMessage(
+            role=chat_pb2.ROLE_TOOL,
+            tool_calls=[_image_generation_tool_call()],
+            content=image_generation_envelope(),
+        ),
+    )
+    response.outputs.add(
+        index=2,
+        finish_reason=sample_pb2.FinishReason.REASON_STOP,
+        message=chat_pb2.CompletionMessage(
+            role=chat_pb2.ROLE_ASSISTANT,
+            content="Here is your image.",
+        ),
+    )
+
+
 class AuthServicer(auth_pb2_grpc.AuthServicer):
     """A dummy implementation of the Auth service for testing."""
 
@@ -207,45 +314,7 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
 
         for i in range(request.n):
             if len(request.tools) > 0 and _use_server_side_tools(request):
-                response.outputs.add(
-                    index=0,
-                    message=chat_pb2.CompletionMessage(
-                        role=chat_pb2.ROLE_ASSISTANT,
-                        tool_calls=[
-                            chat_pb2.ToolCall(
-                                id="test-tool-call",
-                                function=chat_pb2.FunctionCall(
-                                    name="web_search",
-                                    arguments='{"query":"What is the weather in London?"}',
-                                ),
-                            )
-                        ],
-                    ),
-                )
-                response.outputs.add(
-                    index=1,
-                    message=chat_pb2.CompletionMessage(
-                        role=chat_pb2.ROLE_TOOL,
-                        tool_calls=[
-                            chat_pb2.ToolCall(
-                                id="test-tool-call",
-                                function=chat_pb2.FunctionCall(
-                                    name="web_search",
-                                    arguments='{"query":"What is the weather in London?"}',
-                                ),
-                            )
-                        ],
-                        content="I am tool response",
-                    ),
-                )
-                response.outputs.add(
-                    index=2,
-                    finish_reason=sample_pb2.FinishReason.REASON_STOP,
-                    message=chat_pb2.CompletionMessage(
-                        role=chat_pb2.ROLE_ASSISTANT,
-                        content="I am searching.",
-                    ),
-                )
+                _add_server_side_tool_outputs(request, response)
             elif len(request.tools) > 0:
                 response.outputs.add(
                     finish_reason=sample_pb2.FinishReason.REASON_TOOL_CALLS,
@@ -375,8 +444,32 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
             ".",
         ]
 
+        # The backend delivers a completed image generation call and its full
+        # result envelope in a single ROLE_TOOL chunk.
+        image_generation_chunks = [
+            chat_pb2.CompletionOutputChunk(
+                delta=chat_pb2.Delta(
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    tool_calls=[_image_generation_tool_call()],
+                ),
+                index=0,
+            ),
+            chat_pb2.CompletionOutputChunk(
+                delta=chat_pb2.Delta(
+                    role=chat_pb2.ROLE_TOOL,
+                    content=image_generation_envelope(),
+                    tool_calls=[_image_generation_tool_call()],
+                ),
+                index=1,
+            ),
+            "Here is",
+            " your image.",
+        ]
+
         chunks = normal_chunks if len(request.tools) == 0 else function_call_chunks
-        if len(request.tools) > 0 and _use_server_side_tools(request):
+        if len(request.tools) > 0 and _use_image_generation(request):
+            chunks = image_generation_chunks
+        elif len(request.tools) > 0 and _use_server_side_tools(request):
             # Agentic tool calling.
             chunks = agentic_tool_calling_chunks
         elif len(request.tools) == 0:

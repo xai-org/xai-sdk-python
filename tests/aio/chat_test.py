@@ -29,7 +29,7 @@ from xai_sdk.chat import (
 from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2, usage_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
-from xai_sdk.tools import code_execution, web_search, x_search
+from xai_sdk.tools import code_execution, image_generation, web_search, x_search
 
 from .. import server
 
@@ -427,6 +427,56 @@ async def test_agentic_tool_calling_non_streaming(client):
     assert response.role == "ROLE_ASSISTANT"
     assert response.tool_calls[0].function.name == "web_search"
     assert response.tool_calls[0].function.arguments == '{"query":"What is the weather in London?"}'
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_image_generation_tool_non_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[image_generation()],
+    )
+    chat.append(user("Generate an image of a corgi"))
+    response = await chat.sample()
+
+    image_outputs = response.image_outputs
+    assert len(image_outputs) == 1
+    output = image_outputs[0]
+    assert output.tool_call.function.name == "imagine_text_to_image"
+    assert output.tool_call.status == chat_pb2.TOOL_CALL_STATUS_COMPLETED
+    assert output.mime_type == "image/jpeg"
+    assert output.data_url.startswith("data:image/jpeg;base64,")
+    assert output.image_uuid == server.IMAGE_GENERATION_IMAGE_UUID
+    assert output.image == server.read_image()
+
+    assert response.content == "Here is your image."
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_image_generation_tool_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[image_generation()],
+    )
+    chat.append(user("Generate an image of a corgi"))
+
+    last_response = None
+    async for response, _chunk in chat.stream():
+        # Safe to access mid-stream: a completed call and its full envelope
+        # always arrive in the same chunk, so entries appear fully formed.
+        for output in response.image_outputs:
+            assert output.tool_call.type == chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL
+        last_response = response
+
+    assert last_response is not None
+    image_outputs = last_response.image_outputs
+    assert len(image_outputs) == 1
+    output = image_outputs[0]
+    assert output.tool_call.function.name == "imagine_text_to_image"
+    assert output.mime_type == "image/jpeg"
+    assert output.image_uuid == server.IMAGE_GENERATION_IMAGE_UUID
+    assert output.image == server.read_image()
+
+    assert last_response.content == "Here is your image."
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -1464,11 +1514,12 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
                 enable_video_understanding=True,
             ),
             code_execution(),
+            image_generation(),
         ],
     )
 
     chat_completion_request = chat.proto
-    assert len(chat_completion_request.tools) == 3
+    assert len(chat_completion_request.tools) == 4
 
     expected_from_date_pb = timestamp_pb2.Timestamp()
     expected_from_date_pb.FromDatetime(from_date)
@@ -1496,9 +1547,12 @@ def test_chat_create_with_server_side_tools(client: AsyncClient):
 
     expected_code_execution_tool = chat_pb2.Tool(code_execution=chat_pb2.CodeExecution())
 
+    expected_image_generation_tool = chat_pb2.Tool(image_generation=chat_pb2.ImageGeneration())
+
     assert chat_completion_request.tools[0] == expected_web_search_tool
     assert chat_completion_request.tools[1] == expected_x_search_tool
     assert chat_completion_request.tools[2] == expected_code_execution_tool
+    assert chat_completion_request.tools[3] == expected_image_generation_tool
 
 
 @pytest.mark.parametrize(

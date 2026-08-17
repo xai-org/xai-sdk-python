@@ -30,7 +30,7 @@ from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2, usage_pb2
 from xai_sdk.proto import documents_pb2 as _documents_pb2
 from xai_sdk.search import SearchParameters, news_source, rss_source, web_source, x_source
-from xai_sdk.tools import code_execution, collections_search, mcp, web_search, x_search
+from xai_sdk.tools import code_execution, collections_search, image_generation, mcp, web_search, x_search
 
 from .. import server
 
@@ -388,6 +388,104 @@ def test_agentic_tool_calling_non_streaming(client):
     assert response.role == "ROLE_ASSISTANT"
     assert response.tool_calls[0].function.name == "web_search"
     assert response.tool_calls[0].function.arguments == '{"query":"What is the weather in London?"}'
+
+
+def test_image_generation_tool_non_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[image_generation()],
+    )
+    chat.append(user("Generate an image of a corgi"))
+    response = chat.sample()
+
+    image_outputs = response.image_outputs
+    assert len(image_outputs) == 1
+    output = image_outputs[0]
+    assert output.tool_call.function.name == "imagine_text_to_image"
+    assert output.tool_call.status == chat_pb2.TOOL_CALL_STATUS_COMPLETED
+    assert output.mime_type == "image/jpeg"
+    assert output.data_url.startswith("data:image/jpeg;base64,")
+    assert output.image_uuid == server.IMAGE_GENERATION_IMAGE_UUID
+    assert output.image == server.read_image()
+
+    assert response.content == "Here is your image."
+
+
+def test_image_generation_tool_streaming(client):
+    chat = client.chat.create(
+        "grok-4-fast",
+        tools=[image_generation()],
+    )
+    chat.append(user("Generate an image of a corgi"))
+
+    last_response = None
+    for response, _chunk in chat.stream():
+        # Safe to access mid-stream: a completed call and its full envelope
+        # always arrive in the same chunk, so entries appear fully formed.
+        for output in response.image_outputs:
+            assert output.tool_call.type == chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL
+        last_response = response
+
+    assert last_response is not None
+    image_outputs = last_response.image_outputs
+    assert len(image_outputs) == 1
+    output = image_outputs[0]
+    assert output.tool_call.function.name == "imagine_text_to_image"
+    assert output.mime_type == "image/jpeg"
+    assert output.image_uuid == server.IMAGE_GENERATION_IMAGE_UUID
+    assert output.image == server.read_image()
+
+    assert last_response.content == "Here is your image."
+
+
+def test_image_outputs_omits_failed_image_generation_calls():
+    response_proto = chat_pb2.GetChatCompletionResponse(
+        outputs=[
+            chat_pb2.CompletionOutput(
+                index=0,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_TOOL,
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            id="failed-image-call",
+                            type=chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL,
+                            status=chat_pb2.TOOL_CALL_STATUS_FAILED,
+                            error_message="generation failed",
+                        )
+                    ],
+                    content='{"error": "generation failed"}',
+                ),
+            )
+        ]
+    )
+    response = Response(response_proto, index=None)
+    assert response.image_outputs == []
+
+
+def test_image_outputs_raises_on_malformed_envelope():
+    response_proto = chat_pb2.GetChatCompletionResponse(
+        outputs=[
+            chat_pb2.CompletionOutput(
+                index=0,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_TOOL,
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            id="completed-image-call",
+                            type=chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL,
+                            status=chat_pb2.TOOL_CALL_STATUS_COMPLETED,
+                        )
+                    ],
+                    content="not json",
+                ),
+            )
+        ]
+    )
+    response = Response(response_proto, index=None)
+    # A completed call always carries the full envelope, so a parse failure is a
+    # corrupt payload and raises as soon as the outputs are listed.
+    with pytest.raises(ValueError, match="image generation result envelope"):
+        _ = response.image_outputs
 
 
 def test_structured_output_parse(client: Client):
@@ -1436,11 +1534,12 @@ def test_chat_create_with_server_side_tools(client: Client):
                 allowed_tool_names=["chat", "completions"],
                 authorization="lin-1234567890",
             ),
+            image_generation(action="generate"),
         ],
     )
 
     chat_completion_request = chat.proto
-    assert len(chat_completion_request.tools) == 5
+    assert len(chat_completion_request.tools) == 6
 
     expected_from_date_pb = timestamp_pb2.Timestamp()
     expected_from_date_pb.FromDatetime(from_date)
@@ -1487,11 +1586,14 @@ def test_chat_create_with_server_side_tools(client: Client):
         )
     )
 
+    expected_image_generation_tool = chat_pb2.Tool(image_generation=chat_pb2.ImageGeneration(action="generate"))
+
     assert chat_completion_request.tools[0] == expected_web_search_tool
     assert chat_completion_request.tools[1] == expected_x_search_tool
     assert chat_completion_request.tools[2] == expected_code_execution_tool
     assert chat_completion_request.tools[3] == expected_collections_search_tool
     assert chat_completion_request.tools[4] == expected_mcp_tool
+    assert chat_completion_request.tools[5] == expected_image_generation_tool
 
 
 @pytest.mark.parametrize(

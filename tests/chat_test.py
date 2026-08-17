@@ -661,6 +661,35 @@ def test_server_side_tool_image_search_enum():
     assert usage_pb2.ServerSideTool.Name(usage_pb2.SERVER_SIDE_TOOL_IMAGE_SEARCH) == "SERVER_SIDE_TOOL_IMAGE_SEARCH"
 
 
+def test_image_generation_tool():
+    """Test that image_generation util function correctly creates an image generation tool."""
+    from xai_sdk.tools import image_generation
+
+    tool = image_generation()
+    assert isinstance(tool, chat_pb2.Tool)
+    assert tool.HasField("image_generation")
+    assert not tool.image_generation.HasField("action")
+
+    for action in ("auto", "generate", "edit"):
+        tool = image_generation(action=action)
+        assert tool.HasField("image_generation")
+        assert tool.image_generation.action == action
+
+
+def test_image_generation_tool_call_type():
+    """Test that image generation tool calls map to the expected type string."""
+    tool_call = chat_pb2.ToolCall(type=chat_pb2.ToolCallType.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL)
+    assert get_tool_call_type(tool_call) == "image_generation_tool"
+
+
+def test_server_side_tool_image_generation_enum():
+    assert usage_pb2.SERVER_SIDE_TOOL_IMAGE_GENERATION == 11
+    assert (
+        usage_pb2.ServerSideTool.Name(usage_pb2.SERVER_SIDE_TOOL_IMAGE_GENERATION)
+        == "SERVER_SIDE_TOOL_IMAGE_GENERATION"
+    )
+
+
 def test_developer_message():
     """Test that developer() creates a message with ROLE_DEVELOPER role."""
     # Simple string content
