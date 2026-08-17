@@ -11,6 +11,14 @@ from .proto import image_pb2, image_pb2_grpc, usage_pb2
 from .telemetry import should_disable_sensitive_attributes
 from .types import ImageAspectRatio, ImageFormat, ImageGenerationModel, ImageQuality, ImageResolution
 
+"""Seconds to wait when downloading an image returned as a URL.
+
+Shared by the sync and async `ImageResponse.image` accessors so the two
+transports cannot drift apart: `requests` has no default timeout and
+`aiohttp.request` defaults to 300s total, so each has to be told explicitly.
+"""
+IMAGE_DOWNLOAD_TIMEOUT_SECONDS = 5
+
 _IMAGE_ASPECT_RATIO_MAP: dict[ImageAspectRatio, image_pb2.ImageAspectRatio] = {
     "1:1": image_pb2.ImageAspectRatio.IMG_ASPECT_RATIO_1_1,
     "3:4": image_pb2.ImageAspectRatio.IMG_ASPECT_RATIO_3_4,

@@ -2,12 +2,14 @@ import datetime
 from unittest import mock
 
 import pytest
+import requests
 from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
 from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.image import (
+    IMAGE_DOWNLOAD_TIMEOUT_SECONDS,
     BaseImageResponse,
     ImageFormat,
     _make_generate_request,
@@ -43,6 +45,16 @@ def test_url(client: Client, image_asset: bytes):
     with pytest.warns(DeprecationWarning, match="BaseImageResponse.prompt is deprecated"):
         assert response.prompt == ""
     assert image_asset == response.image
+
+
+def test_url_download_uses_the_shared_timeout(client: Client, image_asset: bytes):
+    """The URL download must be bounded. `requests` has no default timeout, so
+    omitting it would hang the caller indefinitely on a stalled connection."""
+    with mock.patch("xai_sdk.sync.image.requests.get", wraps=requests.get) as get:
+        response = client.image.sample(prompt="foo", model="grok-2-image", image_format="url")
+        assert image_asset == response.image
+
+    assert get.call_args.kwargs["timeout"] == IMAGE_DOWNLOAD_TIMEOUT_SECONDS
 
 
 def test_batch(client: Client, image_asset: bytes):
