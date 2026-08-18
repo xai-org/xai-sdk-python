@@ -115,9 +115,9 @@ jobs:
       - name: Get latest version published on PyPI
         id: get_pypi_version
         run: |
-          response=$(curl -s ${{ env.PYPI_URL }}/${{ env.PACKAGE_NAME }}/json || echo "{}")
-          pypi_version=$(echo $response | jq --raw-output "select(.releases != null) | .releases | keys_unsorted | last")
-          if [ -z "$pypi_version" ]; then
+          # info.version is the current release; .releases keys are lexicographic, not semver
+          pypi_version=$(curl -s ${{ env.PYPI_URL }}/${{ env.PACKAGE_NAME }}/json | jq --raw-output ".info.version // empty")
+          if [ -z "$pypi_version" ] || [ "$pypi_version" = "null" ]; then
             echo "Package not found on PyPI."
             pypi_version="0.0.0"
           fi
