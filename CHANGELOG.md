@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [v1.19.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.19.0) - 2026-08-18
 ### Added
 - Set a default gRPC User-Agent of `XaiSdk/{version}` via `grpc.primary_user_agent` (same string already used for image URL fetches; exposed as `xai_sdk.client.USER_AGENT`)
 - Added `reference_audios` and `generate_audio` parameters to video generation. `reference_audios` (on `client.video.generate` / `start` / `prepare`) is a list of audio sources for reference-to-video — each entry is a TypedDict such as `{"voice_id": "ara"}`; only supported for `grok-imagine-video-1.5`. `generate_audio` (on `generate` / `start` / `prepare`) controls whether the generated video includes audio (`true`) or is silent (`false`); when omitted the server defaults to `true`.
