@@ -1158,3 +1158,84 @@ def test_update_document_creates_span_with_attributes(mock_tracer: mock.MagicMoc
     )
     mock_span.set_attribute.assert_any_call("document.id", document_metadata.file_metadata.file_id)
     mock_span.set_attribute.assert_any_call("document.name", new_name)
+
+
+def test_upload_documents_uploads_all_and_preserves_order(client: Client):
+    """Batch upload returns metadata for every document in input order."""
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+    assert collection_metadata.collection_id is not None
+
+    documents = [
+        {"name": f"doc-{i}.txt", "data": f"content {i}".encode(), "fields": {"idx": str(i)}} for i in range(5)
+    ]
+
+    results = client.collections.upload_documents(collection_metadata.collection_id, documents)
+
+    assert len(results) == len(documents)
+    # Order of results must match the order of the input documents, regardless of the
+    # non-deterministic completion order of the worker threads.
+    assert [r.file_metadata.name for r in results] == [d["name"] for d in documents]
+    for i, result in enumerate(results):
+        assert result.file_metadata.file_id is not None
+        assert result.fields == {"idx": str(i)}
+
+
+def test_upload_documents_single_worker(client: Client):
+    """max_workers=1 still works (sequential degenerate case)."""
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+
+    documents = [{"name": f"seq-{i}.txt", "data": b"x"} for i in range(3)]
+    results = client.collections.upload_documents(collection_metadata.collection_id, documents, max_workers=1)
+
+    assert [r.file_metadata.name for r in results] == [d["name"] for d in documents]
+
+
+def test_upload_documents_empty_raises(client: Client):
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+    with pytest.raises(ValueError, match="documents must not be empty"):
+        client.collections.upload_documents(collection_metadata.collection_id, [])
+
+
+def test_upload_documents_invalid_max_workers_raises(client: Client):
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+    with pytest.raises(ValueError, match="max_workers must be a positive integer"):
+        client.collections.upload_documents(
+            collection_metadata.collection_id, [{"name": "a.txt", "data": b"a"}], max_workers=0
+        )
+
+
+def test_upload_documents_propagates_first_error(client: Client):
+    """If an individual upload fails, the error is surfaced (not swallowed)."""
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+
+    documents = [{"name": f"err-{i}.txt", "data": b"x"} for i in range(6)]
+
+    original_upload_document = client.collections.upload_document
+
+    def flaky_upload_document(collection_id, name, data, fields=None, **kwargs):
+        if name == "err-3.txt":
+            raise RuntimeError("simulated upload failure")
+        return original_upload_document(collection_id, name, data, fields, **kwargs)
+
+    with mock.patch.object(client.collections, "upload_document", side_effect=flaky_upload_document):
+        with pytest.raises(RuntimeError, match="simulated upload failure"):
+            client.collections.upload_documents(collection_metadata.collection_id, documents, max_workers=2)
+
+
+def test_upload_documents_wait_for_indexing_failure(client: Client):
+    """wait_for_indexing surfaces a failed document's indexing error."""
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+
+    documents = [
+        {"name": "ok.txt", "data": b"x"},
+        {"name": "test-failed", "data": b"x"},
+    ]
+
+    with pytest.raises(ValueError, match="Document indexing failed"):
+        client.collections.upload_documents(
+            collection_metadata.collection_id,
+            documents,
+            wait_for_indexing=True,
+            poll_interval=datetime.timedelta(milliseconds=50),
+            timeout=datetime.timedelta(seconds=2),
+        )

@@ -1,6 +1,7 @@
 # ruff noqa: DTZ005
 
 
+import datetime
 import uuid
 from typing import Union
 from unittest import mock
@@ -1078,3 +1079,77 @@ async def test_update_document_creates_span_with_attributes(mock_tracer: mock.Ma
     )
     mock_span.set_attribute.assert_any_call("document.id", document_metadata.file_metadata.file_id)
     mock_span.set_attribute.assert_any_call("document.name", new_name)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_upload_documents_uploads_all_and_preserves_order(client: AsyncClient):
+    """Batch upload returns metadata for every document in input order."""
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+    assert collection_metadata.collection_id is not None
+
+    documents = [
+        {"name": f"doc-{i}.txt", "data": f"content {i}".encode(), "fields": {"idx": str(i)}} for i in range(5)
+    ]
+
+    results = await client.collections.upload_documents(collection_metadata.collection_id, documents)
+
+    assert len(results) == len(documents)
+    assert [r.file_metadata.name for r in results] == [d["name"] for d in documents]
+    for i, result in enumerate(results):
+        assert result.file_metadata.file_id is not None
+        assert result.fields == {"idx": str(i)}
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_upload_documents_empty_raises(client: AsyncClient):
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+    with pytest.raises(ValueError, match="documents must not be empty"):
+        await client.collections.upload_documents(collection_metadata.collection_id, [])
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_upload_documents_invalid_max_workers_raises(client: AsyncClient):
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+    with pytest.raises(ValueError, match="max_workers must be a positive integer"):
+        await client.collections.upload_documents(
+            collection_metadata.collection_id, [{"name": "a.txt", "data": b"a"}], max_workers=0
+        )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_upload_documents_propagates_first_error(client: AsyncClient):
+    """If an individual upload fails, the error is surfaced (not swallowed)."""
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+
+    documents = [{"name": f"err-{i}.txt", "data": b"x"} for i in range(6)]
+
+    original_upload_document = client.collections.upload_document
+
+    async def flaky_upload_document(collection_id, name, data, fields=None, **kwargs):
+        if name == "err-3.txt":
+            raise RuntimeError("simulated upload failure")
+        return await original_upload_document(collection_id, name, data, fields, **kwargs)
+
+    with mock.patch.object(client.collections, "upload_document", side_effect=flaky_upload_document):
+        with pytest.raises(RuntimeError, match="simulated upload failure"):
+            await client.collections.upload_documents(collection_metadata.collection_id, documents, max_workers=2)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_upload_documents_wait_for_indexing_failure(client: AsyncClient):
+    """wait_for_indexing surfaces a failed document's indexing error."""
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+
+    documents = [
+        {"name": "ok.txt", "data": b"x"},
+        {"name": "test-failed", "data": b"x"},
+    ]
+
+    with pytest.raises(ValueError, match="Document indexing failed"):
+        await client.collections.upload_documents(
+            collection_metadata.collection_id,
+            documents,
+            wait_for_indexing=True,
+            poll_interval=datetime.timedelta(milliseconds=50),
+            timeout=datetime.timedelta(seconds=2),
+        )
