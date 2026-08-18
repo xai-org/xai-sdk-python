@@ -6,6 +6,7 @@ from opentelemetry.trace import SpanKind
 from ..client import USER_AGENT
 from ..files import StorageOptions
 from ..image import (
+    IMAGE_DOWNLOAD_TIMEOUT_SECONDS,
     BaseClient,
     BaseImageResponse,
     ImageAspectRatio,
@@ -363,6 +364,7 @@ class ImageResponse(BaseImageResponse):
                 "GET",
                 self.url,
                 headers={"User-Agent": USER_AGENT},
+                timeout=aiohttp.ClientTimeout(total=IMAGE_DOWNLOAD_TIMEOUT_SECONDS),
             ) as session:
                 session.raise_for_status()
                 return await session.read()
