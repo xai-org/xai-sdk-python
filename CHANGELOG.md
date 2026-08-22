@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- `stream_batch` now materializes each chunk's content into the shared response proto before yielding, so every response (not just the first) shows accumulated content when read during streaming or in any read order.
 
 ## [v1.19.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.19.0) - 2026-08-18
 ### Added
