@@ -24,7 +24,11 @@ class PollTimer:
             context: A description of what is being waited on (e.g. "waiting for document to be indexed").
                 Included in the TimeoutError message for easier debugging.
         """
-        self._start = time.time()
+        # A monotonic clock is required for duration accounting: time.time()
+        # is a wall clock, so NTP corrections, manual clock changes or VM
+        # suspend/restore can make a healthy poll time out immediately (or
+        # poll far beyond the caller's timeout).
+        self._start = time.monotonic()
         self._timeout = timeout or datetime.timedelta(minutes=10)
         self._interval = interval or datetime.timedelta(seconds=1)
         self._context = context
@@ -38,7 +42,7 @@ class PollTimer:
         Raises:
             TimeoutError when the total polling time is used up.
         """
-        runtime = time.time() - self._start
+        runtime = time.monotonic() - self._start
         if runtime > self._timeout.total_seconds():
             message = f"Polling timed out after {runtime:.1f}s"
             if self._context:
