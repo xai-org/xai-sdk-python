@@ -1384,12 +1384,35 @@ class BatchMgmtServicer(batch_pb2_grpc.BatchMgmtServicer):
 
         return batch
 
+    @staticmethod
+    def _request_model_name(req: batch_pb2.BatchRequest) -> str:
+        """Best-effort model name for a batch request (chat/image/video)."""
+        which = req.WhichOneof("request")
+        if which == "completion_request":
+            return req.completion_request.model
+        if which == "image_request":
+            return req.image_request.model
+        if which == "video_request":
+            return req.video_request.model
+        if which == "video_extension_request":
+            return getattr(req.video_extension_request, "model", "") or ""
+        return ""
+
     def AddBatchRequests(self, request: batch_pb2.AddBatchRequestsRequest, context: grpc.ServicerContext):
         _check_auth(context)
 
         batch_id = request.batch_id
         if batch_id not in self._batches:
             return context.abort(grpc.StatusCode.NOT_FOUND, f"Cannot find batch with ID {batch_id}")
+
+        # Mirror server-side batch model eligibility (see issue #176).
+        for req in request.batch_requests:
+            model = self._request_model_name(req)
+            if model.startswith("grok-4.5"):
+                return context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    f"Model {model} is not supported for batch processing.",
+                )
 
         # Add requests and mark them as pending
         num_new_requests = len(request.batch_requests)

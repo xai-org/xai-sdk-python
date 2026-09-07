@@ -1,10 +1,19 @@
+import datetime
+import time
 from typing import Optional, Sequence, Union
 
+import grpc
+
 from ..batch import (
+    DEFAULT_BATCH_POLL_INTERVAL,
+    DEFAULT_BATCH_TIMEOUT,
     BaseClient,
     ListBatchResultsResponse,
+    is_batch_complete,
+    map_add_batch_error,
 )
 from ..chat import BaseChat
+from ..poll_timer import PollTimer
 from ..proto import batch_pb2
 
 
@@ -52,6 +61,11 @@ class Client(BaseClient):
     ) -> None:
         """Add a list of batch requests to the batch with the given ID.
 
+        Not every chat model is eligible for batch processing. The allowlist is
+        enforced by the server; when a model is rejected, this method raises
+        ``BatchUnsupportedModelError`` with guidance (see issue #176). Prefer models
+        used in the SDK batch examples such as ``grok-4.20`` or ``grok-4.3``.
+
         Args:
             batch_id: The ID of the batch to add the requests to.
             batch_requests: A sequence of requests to add to the batch for processing. Each request can be either a
@@ -59,6 +73,12 @@ class Client(BaseClient):
               desired request parameters as well as appended messages. When using chat objects, you can optionally
               specify a `batch_request_id` to help identify and match responses with their corresponding requests
               when retrieving batch results.
+
+        Raises:
+            BatchUnsupportedModelError: If the server rejects a request model as
+                unsupported for batch processing.
+            ValueError: If a request has an unsupported Python type.
+            grpc.RpcError: For other gRPC failures (for example, unknown batch ID).
 
         Examples:
             ```
@@ -98,7 +118,49 @@ class Client(BaseClient):
             else:
                 raise ValueError(f"Unsupported request type: {type(request)}")
 
-        self._stub.AddBatchRequests(batch_pb2.AddBatchRequestsRequest(batch_id=batch_id, batch_requests=requests))
+        try:
+            self._stub.AddBatchRequests(batch_pb2.AddBatchRequestsRequest(batch_id=batch_id, batch_requests=requests))
+        except grpc.RpcError as exc:
+            mapped = map_add_batch_error(exc)
+            if mapped is exc:
+                raise
+            raise mapped from exc
+
+    def wait(
+        self,
+        batch_id: str,
+        *,
+        timeout: Optional[datetime.timedelta] = None,
+        interval: Optional[datetime.timedelta] = None,
+    ) -> batch_pb2.Batch:
+        """Poll until the batch has no pending requests.
+
+        Completes when every request has succeeded, failed, or been cancelled
+        (``state.num_pending == 0``). Uses ``PollTimer`` for timeout accounting.
+
+        Args:
+            batch_id: The ID of the batch to wait on.
+            timeout: Maximum time to wait before raising ``TimeoutError``.
+                Defaults to 24 hours.
+            interval: Time to sleep between ``get`` polls. Defaults to 3 seconds.
+
+        Returns:
+            The latest ``Batch`` proto once no requests remain pending.
+
+        Raises:
+            TimeoutError: If the batch does not finish within ``timeout``.
+            grpc.RpcError: If fetching the batch fails.
+        """
+        timer = PollTimer(
+            timeout if timeout is not None else DEFAULT_BATCH_TIMEOUT,
+            interval if interval is not None else DEFAULT_BATCH_POLL_INTERVAL,
+            context=f"waiting for batch {batch_id} to complete",
+        )
+        while True:
+            batch = self.get(batch_id)
+            if is_batch_complete(batch):
+                return batch
+            time.sleep(timer.sleep_interval_or_raise())
 
     def get(self, batch_id: str) -> batch_pb2.Batch:
         """Get the details of a batch with the given batch ID.
