@@ -32,6 +32,15 @@ from .types import (
 T = TypeVar("T")
 
 
+def _tool_arguments_for_telemetry(arguments: str) -> Any:
+    """Preserve incomplete tool arguments without failing telemetry collection."""
+    try:
+        return json.loads(arguments)
+    except json.JSONDecodeError:
+        # Model output can end before its JSON is complete, for example at a token limit.
+        return arguments
+
+
 class BaseClient(abc.ABC, Generic[T]):
     """Base Client for interacting with the `Chat` API."""
 
@@ -533,7 +542,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
                                 "type": "function",
                                 "function": {
                                     "name": tool_call.function.name,
-                                    "arguments": json.loads(tool_call.function.arguments),
+                                    "arguments": _tool_arguments_for_telemetry(tool_call.function.arguments),
                                 },
                             }
                             for tool_call in message.tool_calls
@@ -602,7 +611,7 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
                             "type": "function",
                             "function": {
                                 "name": tool_call.function.name,
-                                "arguments": json.loads(tool_call.function.arguments),
+                                "arguments": _tool_arguments_for_telemetry(tool_call.function.arguments),
                             },
                         }
                         for tool_call in response.tool_calls
