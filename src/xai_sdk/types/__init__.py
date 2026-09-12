@@ -12,6 +12,7 @@ from .chat import (
 from .common import ServiceTier
 from .image import ImageAspectRatio, ImageFormat, ImageQuality, ImageResolution
 from .model import AllModels, ChatModel, ImageGenerationModel, VideoGenerationModel
+from .tts import TtsBitRate, TtsCodec, TtsLanguage, TtsOptimizeStreamingLatency, TtsSampleRate
 from .video import ReferenceAudio, ReferenceAudioValidator, VideoAspectRatio, VideoResolution, VoiceAudioRef
 
 __all__ = [
@@ -34,6 +35,11 @@ __all__ = [
     "ResponseFormat",
     "ServiceTier",
     "ToolMode",
+    "TtsBitRate",
+    "TtsCodec",
+    "TtsLanguage",
+    "TtsOptimizeStreamingLatency",
+    "TtsSampleRate",
     "VideoAspectRatio",
     "VideoGenerationModel",
     "VideoResolution",

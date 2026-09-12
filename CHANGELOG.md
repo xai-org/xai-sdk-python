@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- **Text to Speech (TTS)**: Added first-class sync and async TTS clients (`client.tts`) for the public REST Voice/TTS APIs — `synthesize` (`POST /v1/tts`), `list_voices` / `get_voice` (`GET /v1/tts/voices`), typed response models, client-side validation, and support for raw audio bytes or `with_timestamps` JSON envelopes.
+
 ## [v1.19.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.19.0) - 2026-08-18
 ### Added
 - Set a default gRPC User-Agent of `XaiSdk/{version}` via `grpc.primary_user_agent` (same string already used for image URL fetches; exposed as `xai_sdk.client.USER_AGENT`)

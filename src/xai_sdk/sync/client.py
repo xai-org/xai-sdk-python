@@ -8,7 +8,7 @@ from ..client import (
     create_channel_credentials,
 )
 from ..interceptors import AuthInterceptor, TimeoutInterceptor
-from . import auth, batch, chat, collections, files, image, models, tokenizer, video
+from . import auth, batch, chat, collections, files, image, models, tokenizer, tts, video
 
 
 class Client(BaseClient):
@@ -22,6 +22,7 @@ class Client(BaseClient):
     image: "image.Client"
     models: "models.Client"
     tokenize: "tokenizer.Client"
+    tts: "tts.Client"
     video: "video.Client"
 
     def _init(
@@ -73,6 +74,13 @@ class Client(BaseClient):
         self.image = image.Client(self._api_channel)
         self.models = models.Client(self._api_channel)
         self.tokenize = tokenizer.Client(self._api_channel)
+        self.tts = tts.Client(
+            api_key,
+            api_host,
+            timeout=timeout,
+            metadata=metadata,
+            use_insecure_channel=use_insecure_channel,
+        )
         self.video = video.Client(self._api_channel)
 
     def _make_grpc_channel(
