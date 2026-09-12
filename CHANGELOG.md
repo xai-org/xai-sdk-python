@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Added a `safety_identifier` parameter to `client.chat.create`. It is an opaque, stable string that your application assigns to the end user behind a request, so xAI can attribute a policy violation to that user instead of to your whole API key. Send a hash of your internal user ID, never an email address or display name. Same field as OpenAI's `safety_identifier`. The legacy `user` parameter is still accepted.
+- **Text to Speech (TTS)**: Added first-class sync and async TTS clients (`client.tts`) for the public REST Voice/TTS APIs — `synthesize` (`POST /v1/tts`), `list_voices` / `get_voice` (`GET /v1/tts/voices`), typed response models, client-side validation, and support for raw audio bytes or `with_timestamps` JSON envelopes.
 
 ## [v1.20.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.20.0) - 2026-09-24
 ### Added
