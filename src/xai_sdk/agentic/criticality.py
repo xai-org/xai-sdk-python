@@ -41,7 +41,7 @@ class PhiCriticalityGate:
         are Frobenius-closed, indicating the agent can verify its own actions.
 
         Gate 2 opens when winding_depth >= 7 — enough trajectory depth for
-        slow dynamics to emerge. This is the structural K_slow (Ç_@) condition.
+        slow dynamics to emerge. This is the structural K_slow (𐑧) condition.
 
         Args:
             frobenius_ratio: Fraction of Frobenius-closed cycles (0.0-1.0).

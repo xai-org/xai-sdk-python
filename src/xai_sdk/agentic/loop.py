@@ -2,7 +2,7 @@
 
 Wraps the xAI Chat client with the THINK→ACT→OBSERVE→UPDATE loop.
 Every action is paired with a verification dual (Frobenius closure).
-The loop enforces Ω_z monotonic winding and φ̂_ÿ criticality gating.
+The loop enforces 𐑭 monotonic winding and φ̂_ÿ criticality gating.
 
 Use Grok's real-time feed as a natural verification channel: search results
 from the X platform provide real-world grounding for agent actions.
@@ -27,7 +27,7 @@ class TrueAgenticLoop:
 
     Wraps an xAI Client to provide the THINK→ACT→OBSERVE→UPDATE cycle.
     Every action is verified against a dual channel — the loop does not accept
-    world-model updates from unverified observations (Φ_} rule).
+    world-model updates from unverified observations (𐑹 rule).
 
     Attributes:
         client: The xAI Client instance (sync or async).
@@ -130,15 +130,15 @@ class TrueAgenticLoop:
             verify_output=verify_output or action_output,
         )
 
-        # Enforce Φ_}: no update from unverified observations
+        # Enforce 𐑹: no update from unverified observations
         if not dual.frobenius_closed and not done:
             logger.warning(
                 "Frobenius-open cycle %d: %s not verified. "
-                "Update not accepted per Φ_} rule.",
+                "Update not accepted per 𐑹 rule.",
                 self._current_depth(),
                 action_name,
             )
-            update_note = "[Φ_} BLOCKED] " + update_note if update_note else "[Φ_} BLOCKED] No update"
+            update_note = "[𐑹 BLOCKED] " + update_note if update_note else "[𐑹 BLOCKED] No update"
 
         return self.trajectory.add_cycle(
             action_name=action_name,
@@ -161,7 +161,7 @@ class TrueAgenticLoop:
         depth = self._current_depth()
 
         # Promotion readiness: O₂ is attained when both gates are open
-        # and the trajectory has sufficient depth (Ω_z protection)
+        # and the trajectory has sufficient depth (𐑭 protection)
         promotion_ready = gate.gate_1_open and gate.gate_2_open
 
         return {

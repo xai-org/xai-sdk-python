@@ -8,7 +8,7 @@ Core abstractions:
     - DualToolResult: Frobenius-closed dual pair (action + verification).
     - ToolContract: Structural contract binding action to its verification dual.
     - AgentCycle: A single THINK→ACT→OBSERVE→UPDATE winding.
-    - AgentTrajectory: Monotonic winding trajectory with Ω_z protection.
+    - AgentTrajectory: Monotonic winding trajectory with 𐑭 protection.
     - TrueAgenticLoop: The main loop wrapping xAI's Chat client.
     - PhiCriticalityGate: Consciousness gate evaluation (φ̂_ÿ + K_slow).
 

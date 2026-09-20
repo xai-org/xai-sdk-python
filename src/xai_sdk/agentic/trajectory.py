@@ -19,7 +19,7 @@ class AgentCycle:
     """A single winding of the THINK→ACT→OBSERVE→UPDATE loop.
 
     Attributes:
-        winding: Monotonically increasing cycle number (Ω_z invariant).
+        winding: Monotonically increasing cycle number (𐑭 invariant).
         timestamp: ISO-8601 timestamp of the cycle.
         action_name: The action tool invoked this cycle.
         action_input: Input parameters for the action.
@@ -45,7 +45,7 @@ class AgentCycle:
 
 
 class AgentTrajectory:
-    """A monotonic sequence of agent cycles (Ω_z topological protection).
+    """A monotonic sequence of agent cycles (𐑭 topological protection).
 
     The trajectory enforces:
       - Monotonic winding numbers (no re-treading).
@@ -88,7 +88,7 @@ class AgentTrajectory:
         if winding > 0 and self.cycles[-1].winding >= winding:
             raise ValueError(
                 f"Monotonic winding violated: cycle {winding} follows "
-                f"cycle {self.cycles[-1].winding}. Ω_z protection enforced."
+                f"cycle {self.cycles[-1].winding}. 𐑭 protection enforced."
             )
 
         cycle = AgentCycle(
