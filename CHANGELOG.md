@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Added first & last frame pinning to video generation. `last_frame_url` / `last_frame_file_id` (on `client.video.generate` / `start` / `prepare`) pin the exact last frame of the clip; combined with `image_url` / `image_file_id`, the video interpolates between a pinned first and last frame. `image_url` / `image_file_id` combined with reference inputs, a last frame, or keyframes now pins the exact first frame. Only supported for `grok-imagine-video-1.5`.
+- Added a `keyframes` parameter to video generation (`generate` / `start` / `prepare`) that pins images at chosen moments inside the clip. Each entry is a TypedDict such as `{"image_url": "https://...", "timestamp": 2.0}` or `{"image_file_id": "file_...", "timestamp": 2.0}`, with `timestamp` in seconds; timestamps must fall strictly inside the clip, at most four entries. Only supported for `grok-imagine-video-1.5`.
 
 ## [v1.19.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.19.0) - 2026-08-18
 ### Added

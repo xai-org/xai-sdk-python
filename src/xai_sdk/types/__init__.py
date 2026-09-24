@@ -12,7 +12,17 @@ from .chat import (
 from .common import ServiceTier
 from .image import ImageAspectRatio, ImageFormat, ImageQuality, ImageResolution
 from .model import AllModels, ChatModel, ImageGenerationModel, VideoGenerationModel
-from .video import ReferenceAudio, ReferenceAudioValidator, VideoAspectRatio, VideoResolution, VoiceAudioRef
+from .video import (
+    FileIdKeyframe,
+    Keyframe,
+    KeyframeValidator,
+    ReferenceAudio,
+    ReferenceAudioValidator,
+    UrlKeyframe,
+    VideoAspectRatio,
+    VideoResolution,
+    VoiceAudioRef,
+)
 
 __all__ = [
     "AgentCount",
@@ -20,6 +30,7 @@ __all__ = [
     "AllModels",
     "ChatModel",
     "Content",
+    "FileIdKeyframe",
     "ImageAspectRatio",
     "ImageDetail",
     "ImageFormat",
@@ -28,12 +39,15 @@ __all__ = [
     "ImageResolution",
     "IncludeOption",
     "IncludeOptionMap",
+    "Keyframe",
+    "KeyframeValidator",
     "ReasoningEffort",
     "ReferenceAudio",
     "ReferenceAudioValidator",
     "ResponseFormat",
     "ServiceTier",
     "ToolMode",
+    "UrlKeyframe",
     "VideoAspectRatio",
     "VideoGenerationModel",
     "VideoResolution",

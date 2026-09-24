@@ -250,6 +250,141 @@ async def test_prepare_omits_reference_audios_by_default(client: AsyncClient):
     assert len(batch_req.video_request.reference_audios) == 0
 
 
+@pytest.mark.asyncio(loop_scope="session")
+async def test_generate_passes_first_and_last_frame(client: AsyncClient):
+    server.clear_last_video_request()
+
+    await client.video.generate(
+        prompt="",
+        model="grok-imagine-video-1.5",
+        image_url="https://example.com/first.jpg",
+        last_frame_url="https://example.com/last.jpg",
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert request.image == image_pb2.ImageUrlContent(
+        image_url="https://example.com/first.jpg", detail=image_pb2.ImageDetail.DETAIL_AUTO
+    )
+    assert request.last_frame == image_pb2.ImageUrlContent(
+        image_url="https://example.com/last.jpg", detail=image_pb2.ImageDetail.DETAIL_AUTO
+    )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_generate_passes_last_frame_file_id(client: AsyncClient):
+    server.clear_last_video_request()
+
+    await client.video.generate(prompt="foo", model="grok-imagine-video-1.5", last_frame_file_id="file_last")
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert not request.HasField("image")
+    assert request.last_frame == image_pb2.ImageUrlContent(
+        file_id="file_last", detail=image_pb2.ImageDetail.DETAIL_AUTO
+    )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_generate_rejects_last_frame_url_and_file_id(client: AsyncClient):
+    with pytest.raises(ValueError, match="Only one of last_frame_url or last_frame_file_id can be set"):
+        await client.video.generate(
+            prompt="foo",
+            model="grok-imagine-video-1.5",
+            last_frame_url="https://example.com/last.jpg",
+            last_frame_file_id="file_last",
+        )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_generate_passes_keyframes(client: AsyncClient):
+    server.clear_last_video_request()
+
+    await client.video.generate(
+        prompt="foo",
+        model="grok-imagine-video-1.5",
+        duration=8,
+        keyframes=[
+            {"image_url": "https://example.com/kf1.jpg", "timestamp": 2.5},
+            {"image_file_id": "file_kf2", "timestamp": 5},
+        ],
+    )
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert list(request.keyframes) == [
+        video_pb2.VideoKeyframe(
+            image=image_pb2.ImageUrlContent(
+                image_url="https://example.com/kf1.jpg", detail=image_pb2.ImageDetail.DETAIL_AUTO
+            ),
+            timestamp_s=2.5,
+        ),
+        video_pb2.VideoKeyframe(
+            image=image_pb2.ImageUrlContent(file_id="file_kf2", detail=image_pb2.ImageDetail.DETAIL_AUTO),
+            timestamp_s=5.0,
+        ),
+    ]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize(
+    "entry",
+    [
+        pytest.param(
+            {"image_url": "https://example.com/a.jpg", "image_file_id": "file_a", "timestamp": 1.0}, id="both-sources"
+        ),
+        pytest.param({"timestamp": 1.0}, id="missing-source"),
+        pytest.param({"image_url": "https://example.com/a.jpg"}, id="missing-timestamp"),
+        pytest.param({"image_url": "   ", "timestamp": 1.0}, id="blank-url"),
+        pytest.param({"image_url": "https://example.com/a.jpg", "timestamp": "soon"}, id="wrong-timestamp-type"),
+        pytest.param({"image_url": "https://example.com/a.jpg", "timestamp": 1.0, "detail": "high"}, id="unknown-key"),
+        pytest.param({"image_url": "https://example.com/a.jpg", "timestamp_s": 1.0}, id="rest-timestamp-key"),
+    ],
+)
+async def test_generate_rejects_invalid_keyframe(client: AsyncClient, entry):
+    with pytest.raises(pydantic.ValidationError):
+        await client.video.generate(
+            prompt="foo",
+            model="grok-imagine-video-1.5",
+            keyframes=[entry],  # type: ignore[list-item]
+        )
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_generate_omits_last_frame_and_keyframes_by_default(client: AsyncClient):
+    server.clear_last_video_request()
+
+    await client.video.generate(prompt="foo", model="grok-imagine-video")
+
+    request = server.get_last_video_request()
+    assert request is not None
+    assert not request.HasField("last_frame")
+    assert len(request.keyframes) == 0
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_prepare_passes_last_frame_and_keyframes(client: AsyncClient):
+    batch_req = client.video.prepare(
+        prompt="foo",
+        model="grok-imagine-video-1.5",
+        image_file_id="file_first",
+        last_frame_url="https://example.com/last.jpg",
+        keyframes=[{"image_url": "https://example.com/kf.jpg", "timestamp": 3.0}],
+    )
+
+    request = batch_req.video_request
+    assert request.image.file_id == "file_first"
+    assert request.last_frame.image_url == "https://example.com/last.jpg"
+    assert list(request.keyframes) == [
+        video_pb2.VideoKeyframe(
+            image=image_pb2.ImageUrlContent(
+                image_url="https://example.com/kf.jpg", detail=image_pb2.ImageDetail.DETAIL_AUTO
+            ),
+            timestamp_s=3.0,
+        ),
+    ]
+
+
 def test_generate_audio_included_in_span_request_attributes():
     request = _make_generate_request(
         prompt="foo",
