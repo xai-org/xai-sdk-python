@@ -1,13 +1,17 @@
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal, TypeAlias, Union
 
-from pydantic import StringConstraints, TypeAdapter
+from pydantic import ConfigDict, StringConstraints, TypeAdapter
 from typing_extensions import TypedDict
 
 from ..proto import video_pb2
 
 __all__ = [
+    "FileIdKeyframe",
+    "Keyframe",
+    "KeyframeValidator",
     "ReferenceAudio",
     "ReferenceAudioValidator",
+    "UrlKeyframe",
     "VideoAspectRatio",
     "VideoAspectRatioMap",
     "VideoResolution",
@@ -51,6 +55,36 @@ ReferenceAudio: TypeAlias = VoiceAudioRef
 
 # Runtime validation for public ``reference_audios`` entries.
 ReferenceAudioValidator = TypeAdapter(ReferenceAudio)
+
+
+class UrlKeyframe(TypedDict):
+    """Mid-video keyframe whose image is given as a URL or base64-encoded data URL.
+
+    The video passes through ``image_url`` exactly ``timestamp`` seconds into the
+    clip, which must fall strictly inside it (``0 < timestamp < duration``).
+    """
+
+    image_url: _NonEmptyStr
+    timestamp: float
+
+
+class FileIdKeyframe(TypedDict):
+    """Mid-video keyframe whose image is a file ID from the Files API.
+
+    The video passes through the image exactly ``timestamp`` seconds into the
+    clip, which must fall strictly inside it (``0 < timestamp < duration``).
+    """
+
+    image_file_id: _NonEmptyStr
+    timestamp: float
+
+
+# Structured keyframe entry for ``keyframes``: exactly one image source plus a timestamp.
+Keyframe: TypeAlias = Union[UrlKeyframe, FileIdKeyframe]
+
+# Runtime validation for public ``keyframes`` entries. Forbidding extra keys rejects
+# entries that set both ``image_url`` and ``image_file_id``.
+KeyframeValidator = TypeAdapter(Keyframe, config=ConfigDict(extra="forbid"))
 
 
 VideoAspectRatioMap: dict[VideoAspectRatio, "video_pb2.VideoAspectRatio"] = {

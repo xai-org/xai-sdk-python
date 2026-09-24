@@ -9,7 +9,7 @@ from ..files import StorageOptions
 from ..poll_timer import PollTimer
 from ..proto import batch_pb2, deferred_pb2, image_pb2, video_pb2
 from ..telemetry import get_tracer
-from ..types import ReferenceAudio, VideoGenerationModel
+from ..types import Keyframe, ReferenceAudio, VideoGenerationModel
 from ..video import (
     DEFAULT_VIDEO_POLL_INTERVAL,
     DEFAULT_VIDEO_TIMEOUT,
@@ -40,6 +40,9 @@ class Client(BaseClient):
         batch_request_id: Optional[str] = None,
         image_url: Optional[str] = None,
         image_file_id: Optional[str] = None,
+        last_frame_url: Optional[str] = None,
+        last_frame_file_id: Optional[str] = None,
+        keyframes: Optional[Sequence[Keyframe]] = None,
         video_url: Optional[str] = None,
         video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
@@ -66,6 +69,16 @@ class Client(BaseClient):
                 Cannot be set together with ``image_file_id``.
             image_file_id: The file ID of an input image to use as a starting frame.
                 Cannot be set together with ``image_url``.
+            last_frame_url: The URL of an image to pin as the exact last frame.
+                Cannot be set together with ``last_frame_file_id``. Only supported
+                for ``grok-imagine-video-1.5``.
+            last_frame_file_id: The file ID of an image to pin as the exact last frame.
+                Cannot be set together with ``last_frame_url``. Only supported
+                for ``grok-imagine-video-1.5``.
+            keyframes: Optional list of mid-video keyframes. Each entry is a TypedDict
+                such as ``{"image_url": "https://...", "timestamp": 2.0}`` or
+                ``{"image_file_id": "file_...", "timestamp": 2.0}``. At most four
+                entries. Only supported for ``grok-imagine-video-1.5``.
             video_url: The URL of an input video to use as a starting point.
                 Cannot be set together with ``video_file_id``.
             video_file_id: The file ID of an input video to use as a starting point.
@@ -74,8 +87,8 @@ class Client(BaseClient):
             aspect_ratio: The aspect ratio of the video to generate.
             resolution: The video resolution to generate.
             reference_image_urls: Optional list of reference image URLs for
-                reference-to-video (R2V) generation. When provided (and `image_url`
-                is not set), generates video using these images as style/content references.
+                reference-to-video (R2V) generation. When provided, generates video using
+                these images as style/content references.
                 May be combined with ``reference_image_file_ids`` to mix URL/base64
                 and file-ID references in the same request; file IDs are appended
                 first in that case.
@@ -136,6 +149,9 @@ class Client(BaseClient):
             model,
             image_url=image_url,
             image_file_id=image_file_id,
+            last_frame_url=last_frame_url,
+            last_frame_file_id=last_frame_file_id,
+            keyframes=keyframes,
             video_url=video_url,
             video_file_id=video_file_id,
             duration=duration,
@@ -214,6 +230,9 @@ class Client(BaseClient):
         *,
         image_url: Optional[str] = None,
         image_file_id: Optional[str] = None,
+        last_frame_url: Optional[str] = None,
+        last_frame_file_id: Optional[str] = None,
+        keyframes: Optional[Sequence[Keyframe]] = None,
         video_url: Optional[str] = None,
         video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
@@ -234,6 +253,9 @@ class Client(BaseClient):
             model,
             image_url=image_url,
             image_file_id=image_file_id,
+            last_frame_url=last_frame_url,
+            last_frame_file_id=last_frame_file_id,
+            keyframes=keyframes,
             video_url=video_url,
             video_file_id=video_file_id,
             duration=duration,
@@ -265,6 +287,9 @@ class Client(BaseClient):
         *,
         image_url: Optional[str] = None,
         image_file_id: Optional[str] = None,
+        last_frame_url: Optional[str] = None,
+        last_frame_file_id: Optional[str] = None,
+        keyframes: Optional[Sequence[Keyframe]] = None,
         video_url: Optional[str] = None,
         video_file_id: Optional[str] = None,
         duration: Optional[int] = None,
@@ -293,14 +318,36 @@ class Client(BaseClient):
         - **Video editing**: A `video_url` or `video_file_id` is provided; the video is edited
           based on the prompt.
 
+        On ``grok-imagine-video-1.5``, reference-to-video can also pin exact frames:
+        `last_frame_url` / `last_frame_file_id` pins the last frame, `keyframes` pins
+        images at chosen timestamps inside the clip, and `image_url` / `image_file_id`
+        then pins the first frame. The prompt may be empty when a frame is pinned.
+
         Args:
             prompt: The text prompt to generate a video from.
             model: The model to use for video generation.
             image_url: The URL or base64-encoded data URL of an input image to use as
                 the first frame (image-to-video). Cannot be combined with `image_file_id`
-                or `video_url`.
+                or `video_url`. On ``grok-imagine-video-1.5``, combining it with reference
+                inputs, `last_frame_url`, or `keyframes` pins it as the exact first frame.
             image_file_id: The file ID of an input image to use as the first frame
                 (image-to-video). Cannot be combined with `image_url`.
+            last_frame_url: The URL or base64-encoded data URL of an image to pin as the
+                exact last frame; the video ends arriving on it. Set together with
+                `image_url` or `image_file_id` to interpolate between a pinned first and
+                last frame. Cannot be combined with `last_frame_file_id`. Only supported
+                for ``grok-imagine-video-1.5``.
+            last_frame_file_id: The file ID of an image to pin as the exact last frame.
+                Cannot be combined with `last_frame_url`. Only supported for
+                ``grok-imagine-video-1.5``.
+            keyframes: Optional list of mid-video keyframes that pin images at chosen
+                moments inside the clip. Each entry is a TypedDict such as
+                ``{"image_url": "https://...", "timestamp": 2.0}`` or
+                ``{"image_file_id": "file_...", "timestamp": 2.0}``. Each ``timestamp`` is
+                in seconds and must fall strictly inside the clip (``0 < timestamp < duration``),
+                and keyframes must be at least 1/3 second apart. Pin the endpoints with
+                `image_url` / `last_frame_url` instead. At most four entries. Only
+                supported for ``grok-imagine-video-1.5``.
             video_url: The URL or base64-encoded data URL of an input video to edit
                 based on the prompt (video-to-video). Cannot be combined with `video_file_id`
                 or `image_url`.
@@ -313,8 +360,8 @@ class Client(BaseClient):
             resolution: The video resolution to generate.
                 Defaults to ``"480p"`` if not specified.
             reference_image_urls: Optional list of reference image URLs for
-                reference-to-video (R2V) generation. When provided (and `image_url`
-                is not set), generates video using these images as style/content references.
+                reference-to-video (R2V) generation. When provided, generates video using
+                these images as style/content references.
                 May be combined with `reference_image_file_ids` to mix URL/base64
                 and file-ID references in the same request; file IDs are appended
                 first in that case.
@@ -391,6 +438,28 @@ class Client(BaseClient):
                 video_url="https://example.com/my-video.mp4",
             )
             print(response.url)
+
+            # First & last frame
+            response = client.video.generate(
+                prompt="The camera dollies from the sunlit doorway to the window",
+                model="grok-imagine-video-1.5",
+                image_url="https://example.com/first-frame.jpg",
+                last_frame_url="https://example.com/last-frame.jpg",
+            )
+            print(response.url)
+
+            # Keyframes
+            response = client.video.generate(
+                prompt="The sketch on the bench becomes a clay model, then a finished bronze",
+                model="grok-imagine-video-1.5",
+                image_url="https://example.com/sketch.jpg",
+                keyframes=[
+                    {"image_url": "https://example.com/clay.jpg", "timestamp": 3.0},
+                    {"image_url": "https://example.com/bronze.jpg", "timestamp": 6.0},
+                ],
+                duration=8,
+            )
+            print(response.url)
             ```
         """
         timer = PollTimer(
@@ -403,6 +472,9 @@ class Client(BaseClient):
             model,
             image_url=image_url,
             image_file_id=image_file_id,
+            last_frame_url=last_frame_url,
+            last_frame_file_id=last_frame_file_id,
+            keyframes=keyframes,
             video_url=video_url,
             video_file_id=video_file_id,
             duration=duration,

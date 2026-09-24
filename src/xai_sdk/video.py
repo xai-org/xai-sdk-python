@@ -10,6 +10,8 @@ from .proto import image_pb2, usage_pb2, video_pb2, video_pb2_grpc
 from .telemetry import should_disable_sensitive_attributes
 from .types import VideoGenerationModel
 from .types.video import (
+    Keyframe,
+    KeyframeValidator,
     ReferenceAudio,
     ReferenceAudioValidator,
     VideoAspectRatio,
@@ -132,12 +134,16 @@ def _validate_video_inputs(
     image_file_id: Optional[str] = None,
     video_url: Optional[str] = None,
     video_file_id: Optional[str] = None,
+    last_frame_url: Optional[str] = None,
+    last_frame_file_id: Optional[str] = None,
 ) -> None:
     """Validates mutual exclusion constraints on video input parameters."""
     if image_url is not None and image_file_id is not None:
         raise ValueError("Only one of image_url or image_file_id can be set for a request.")
     if video_url is not None and video_file_id is not None:
         raise ValueError("Only one of video_url or video_file_id can be set for a request.")
+    if last_frame_url is not None and last_frame_file_id is not None:
+        raise ValueError("Only one of last_frame_url or last_frame_file_id can be set for a request.")
 
 
 def _make_generate_request(
@@ -146,6 +152,9 @@ def _make_generate_request(
     *,
     image_url: Optional[str],
     image_file_id: Optional[str] = None,
+    last_frame_url: Optional[str] = None,
+    last_frame_file_id: Optional[str] = None,
+    keyframes: Optional[Sequence[Keyframe]] = None,
     video_url: Optional[str],
     video_file_id: Optional[str] = None,
     duration: Optional[int],
@@ -158,7 +167,12 @@ def _make_generate_request(
     storage_options: Optional[Union[StorageOptions, image_pb2.StorageOptions]] = None,
 ) -> video_pb2.GenerateVideoRequest:
     _validate_video_inputs(
-        image_url=image_url, image_file_id=image_file_id, video_url=video_url, video_file_id=video_file_id
+        image_url=image_url,
+        image_file_id=image_file_id,
+        video_url=video_url,
+        video_file_id=video_file_id,
+        last_frame_url=last_frame_url,
+        last_frame_file_id=last_frame_file_id,
     )
 
     request = video_pb2.GenerateVideoRequest(prompt=prompt, model=model)
@@ -169,6 +183,8 @@ def _make_generate_request(
         request.image.CopyFrom(
             image_pb2.ImageUrlContent(file_id=image_file_id, detail=image_pb2.ImageDetail.DETAIL_AUTO)
         )
+    _set_last_frame(request, last_frame_url, last_frame_file_id)
+    _set_keyframes(request, keyframes)
     if video_url is not None:
         request.video.CopyFrom(video_pb2.VideoUrlContent(url=video_url))
     elif video_file_id is not None:
@@ -240,6 +256,44 @@ def _set_reference_audios(
     """Populates `reference_audios` from validated TypedDict entries."""
     if reference_audios is not None:
         request.reference_audios.extend(_resolve_reference_audio(entry) for entry in reference_audios)
+
+
+def _set_last_frame(
+    request: video_pb2.GenerateVideoRequest,
+    url: Optional[str],
+    file_id: Optional[str],
+) -> None:
+    """Populates `last_frame` from a URL/base64 string or a file ID."""
+    if url is not None:
+        request.last_frame.CopyFrom(image_pb2.ImageUrlContent(image_url=url, detail=image_pb2.ImageDetail.DETAIL_AUTO))
+    elif file_id is not None:
+        request.last_frame.CopyFrom(
+            image_pb2.ImageUrlContent(file_id=file_id, detail=image_pb2.ImageDetail.DETAIL_AUTO)
+        )
+
+
+def _resolve_keyframe(entry: Keyframe) -> video_pb2.VideoKeyframe:
+    """Converts a public ``keyframes`` entry into the request wire form.
+
+    Validates with :data:`~xai_sdk.types.video.KeyframeValidator` (Pydantic).
+    Timestamp bounds and grid spacing depend on the requested duration and are
+    enforced server-side.
+    """
+    validated = KeyframeValidator.validate_python(entry)
+    if "image_url" in validated:
+        image = image_pb2.ImageUrlContent(image_url=validated["image_url"], detail=image_pb2.ImageDetail.DETAIL_AUTO)
+    else:
+        image = image_pb2.ImageUrlContent(file_id=validated["image_file_id"], detail=image_pb2.ImageDetail.DETAIL_AUTO)
+    return video_pb2.VideoKeyframe(image=image, timestamp_s=validated["timestamp"])
+
+
+def _set_keyframes(
+    request: video_pb2.GenerateVideoRequest,
+    keyframes: Optional[Sequence[Keyframe]],
+) -> None:
+    """Populates `keyframes` from validated TypedDict entries."""
+    if keyframes is not None:
+        request.keyframes.extend(_resolve_keyframe(entry) for entry in keyframes)
 
 
 def _make_span_request_attributes(request: video_pb2.GenerateVideoRequest) -> dict[str, Any]:
