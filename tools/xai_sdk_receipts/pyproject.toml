@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "xai-sdk-receipts"
+version = "0.1.0"
+description = "Collections indexing doctor and RAG readiness monitor for the xAI Python SDK"
+requires-python = ">=3.10"
+dependencies = [
+  "xai-sdk",
+]
+
+[project.scripts]
+xai-sdk-receipts = "xai_sdk_receipts.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["xai_sdk_receipts"]
+
+[tool.uv.sources]
+xai-sdk = { path = "../..", editable = true }
+
+[tool.uv]
+dev-dependencies = [
+  "pytest>=8.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
