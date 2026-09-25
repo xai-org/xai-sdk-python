@@ -314,6 +314,10 @@ class Chat(BaseChat):
                     first_chunk_received = True
 
                 responses[0].process_chunk(chunk)
+                # All chunk deltas for every output index accumulate in the first
+                # response's buffers; materialize them into the shared proto so
+                # every response sees current content regardless of read order.
+                responses[0]._sync_buffers_to_proto()
                 yield responses, [Chunk(chunk, i) for i in range(n)]
 
             span.set_attributes(self._make_span_response_attributes(responses))

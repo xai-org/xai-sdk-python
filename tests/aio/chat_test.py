@@ -137,6 +137,27 @@ async def test_streaming_batch(client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_streaming_batch_each_response_populated_during_stream(client):
+    """Reading a later response's content during the stream must show accumulated content.
+
+    Regression: stream_batch accumulated all deltas in the first response's
+    buffers and only materialized them into the shared proto when response[0]
+    was read (or the telemetry span closed). A caller streaming per-option
+    content from response[1] alone got an empty string for the whole stream.
+    """
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("test message"))
+    stream = chat.stream_batch(2)
+
+    observed = []
+    async for responses, _ in stream:
+        observed.append(responses[1].content)
+
+    assert observed
+    assert observed[-1] == "Hello, this is a test response!"
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_deferred(client):
     chat = client.chat.create("grok-3-latest")
     chat.append(user("test message"))
