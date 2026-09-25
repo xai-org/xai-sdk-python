@@ -372,7 +372,7 @@ async def _async_chunk_file_from_path(
     )
 
     # Use asyncio to read file without blocking
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     def read_chunk(f):
         return f.read(_CHUNK_SIZE)
@@ -430,7 +430,7 @@ async def _async_chunk_file_from_fileobj(
     )
 
     # Use asyncio to read file without blocking
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
 
     def read_chunk():
         return file_obj.read(_CHUNK_SIZE)
