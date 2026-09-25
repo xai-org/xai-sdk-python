@@ -1,8 +1,46 @@
+from typing import TYPE_CHECKING
+
 from packaging import version
 
 import google.protobuf
 
-if version.parse(google.protobuf.__version__).major == 5:
+if TYPE_CHECKING:
+    # Type checkers cannot evaluate the runtime protobuf-version gate below, so
+    # they infer a v5|v6 union across the whole SDK surface. The v5 and v6 pb2
+    # modules are structurally identical (same class sets), so pinning one arm
+    # for typing is correct; runtime behavior is unchanged by the elif/else.
+    from .v6 import (
+        auth_pb2,
+        auth_pb2_grpc,
+        batch_pb2,
+        batch_pb2_grpc,
+        chat_pb2,
+        chat_pb2_grpc,
+        collections_pb2,
+        collections_pb2_grpc,
+        deferred_pb2,
+        deferred_pb2_grpc,
+        documents_pb2,
+        documents_pb2_grpc,
+        embed_pb2,
+        embed_pb2_grpc,
+        files_pb2,
+        files_pb2_grpc,
+        image_pb2,
+        image_pb2_grpc,
+        models_pb2,
+        models_pb2_grpc,
+        sample_pb2,
+        sample_pb2_grpc,
+        shared_pb2,
+        tokenize_pb2,
+        tokenize_pb2_grpc,
+        types_pb2,
+        usage_pb2,
+        video_pb2,
+        video_pb2_grpc,
+    )
+elif version.parse(google.protobuf.__version__).major == 5:
     from .v5 import (
         auth_pb2,
         auth_pb2_grpc,
