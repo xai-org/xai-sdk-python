@@ -1,6 +1,7 @@
 import datetime
 from unittest import mock
 
+import aiohttp
 import pytest
 import pytest_asyncio
 from google.protobuf import timestamp_pb2
@@ -9,6 +10,7 @@ from opentelemetry.trace import SpanKind
 from xai_sdk import AsyncClient
 from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.image import (
+    IMAGE_DOWNLOAD_TIMEOUT_SECONDS,
     BaseImageResponse,
     ImageFormat,
     _make_generate_request,
@@ -46,6 +48,20 @@ async def test_url(client: AsyncClient, image_asset: bytes):
     with pytest.warns(DeprecationWarning, match="BaseImageResponse.prompt is deprecated"):
         assert response.prompt == ""
     assert image_asset == await response.image
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_url_download_uses_the_shared_timeout(client: AsyncClient, image_asset: bytes):
+    """The async download must use the same bound as the sync one. `aiohttp.request`
+    defaults to 300s total, so without an explicit timeout the two transports differ
+    by 60x for the same call."""
+    real_request = aiohttp.request
+    with mock.patch("xai_sdk.aio.image.aiohttp.request", wraps=real_request) as request:
+        response = await client.image.sample(prompt="foo", model="grok-2-image", image_format="url")
+        assert image_asset == await response.image
+
+    timeout = request.call_args.kwargs["timeout"]
+    assert timeout.total == IMAGE_DOWNLOAD_TIMEOUT_SECONDS
 
 
 @pytest.mark.asyncio(loop_scope="session")
