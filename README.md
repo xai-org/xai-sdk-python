@@ -131,7 +131,7 @@ if __name__ == "__main__":
 
 ### Streaming
 
-The xAI SDK supports streaming responses, allowing you to process model outputs in real-time, which is ideal for interactive applications like chatbots. The `stream` method returns a tuple containing `response` and `chunk`. The chunks contain the text deltas from the stream, while the `response` variable automatically accumulates the response as the stream progresses.
+The xAI SDK supports streaming responses, allowing you to process model outputs in real-time, which is ideal for interactive applications like chatbots. The `stream` method yields tuples containing `response` and `chunk`. The chunks contain the text deltas from the stream, while the `response` variable automatically accumulates the response as the stream progresses.
 
 ```python
 from xai_sdk import Client
@@ -150,6 +150,17 @@ while True:
         print(chunk.content, end="", flush=True)
     print()
     chat.append(response)
+```
+
+Async streams expose a handle that can stop the underlying request when you no longer need more chunks.
+
+```python
+stream = chat.stream()
+async for response, chunk in stream:
+    print(chunk.content, end="", flush=True)
+    if should_stop_early(chunk):
+        stream.cancel()
+        break
 ```
 
 ### Image Understanding
