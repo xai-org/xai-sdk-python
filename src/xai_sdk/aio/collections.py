@@ -1,7 +1,8 @@
 import asyncio
 import datetime
+import os
 import warnings
-from typing import Optional, Sequence, Union
+from typing import BinaryIO, Optional, Sequence, Union
 
 from opentelemetry.trace import SpanKind
 
@@ -25,7 +26,12 @@ from ..collections import (
     _hnsw_metric_to_pb,
     _order_to_pb,
 )
-from ..files import _async_chunk_file_data
+from ..files import (
+    ProgressCallback,
+    _async_chunk_file_data,
+    _async_chunk_file_from_fileobj,
+    _async_chunk_file_from_path,
+)
 from ..poll_timer import PollTimer
 from ..proto import collections_pb2, documents_pb2, shared_pb2, types_pb2
 from ..telemetry import get_tracer
@@ -375,6 +381,92 @@ class Client(BaseClient):
         )
 
         # Either wait for indexing to complete or return the current metadata.
+        if wait_for_indexing:
+            return await self._wait_for_indexing(
+                collection_id,
+                uploaded_file.id,
+                poll_interval or DEFAULT_INDEXING_POLL_INTERVAL,
+                timeout or DEFAULT_INDEXING_TIMEOUT,
+            )
+
+        return await self.get_document(
+            uploaded_file.id,
+            collection_id,
+        )
+
+    async def upload_document_file(
+        self,
+        collection_id: str,
+        file: Union[str, BinaryIO],
+        *,
+        filename: Optional[str] = None,
+        fields: Optional[dict[str, str]] = None,
+        wait_for_indexing: bool = False,
+        poll_interval: Optional[datetime.timedelta] = None,
+        timeout: Optional[datetime.timedelta] = None,
+        on_progress: Optional[ProgressCallback] = None,
+        expires_after: Optional[Union[datetime.timedelta, int]] = None,
+    ) -> collections_pb2.DocumentMetadata:
+        """Streams a file to xAI and adds it to a collection.
+
+        Args:
+            collection_id: The ID of the collection to upload the document to.
+            file: A path or binary file-like object to upload.
+            filename: Name to use for the uploaded file. Required when `file` is a
+                file-like object without a `.name` attribute.
+            fields: Additional metadata fields to store with the document.
+            wait_for_indexing: Whether to wait for the document to be indexed.
+            poll_interval: The interval to poll for when checking whether the document has been indexed.
+            timeout: The total time to wait for the document to be indexed before returning.
+            on_progress: Optional callback invoked after each chunk is uploaded.
+            expires_after: Optional time-to-live for the uploaded file.
+
+        Returns:
+            The metadata for the uploaded document.
+        """
+        if isinstance(file, str):
+            if not os.path.exists(file):
+                raise FileNotFoundError(f"File not found: {file}")
+            upload_chunks = _async_chunk_file_from_path(
+                file_path=file,
+                progress=on_progress,
+                expires_after=expires_after,
+            )
+        elif hasattr(file, "read"):
+            if filename is None:
+                if hasattr(file, "name") and isinstance(file.name, str):
+                    filename = os.path.basename(file.name)
+                else:
+                    raise ValueError("filename is required when uploading a file-like object without a .name attribute")
+            upload_chunks = _async_chunk_file_from_fileobj(
+                file_obj=file,
+                filename=filename,
+                progress=on_progress,
+                expires_after=expires_after,
+            )
+        else:
+            raise ValueError(f"Unsupported file type: {type(file)}")
+
+        with tracer.start_as_current_span(
+            name="collections.upload_document_file",
+            kind=SpanKind.CLIENT,
+            attributes={
+                "operation.name": "upload_document_file",
+                "provider.name": "xai",
+            },
+        ) as span:
+            uploaded_file = await self._files_stub.UploadFile(upload_chunks)
+            span.set_attribute("file.id", uploaded_file.id)
+            span.set_attribute("file.name", uploaded_file.filename)
+
+        await self._collections_stub.AddDocumentToCollection(
+            collections_pb2.AddDocumentToCollectionRequest(
+                collection_id=collection_id,
+                file_id=uploaded_file.id,
+                fields=fields,
+            )
+        )
+
         if wait_for_indexing:
             return await self._wait_for_indexing(
                 collection_id,
