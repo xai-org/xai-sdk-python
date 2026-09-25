@@ -528,18 +528,18 @@ When using the xAI SDK, you may encounter various error codes returned by the AP
 
 Below is a table of common gRPC status codes you might encounter when using the xAI SDK:
 
-| gRPC Status Code          | Meaning                                                                | xAI SDK/API Context                                                                                     |
-|---------------------------|------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------|
-| `UNKNOWN`                 | An unknown error occurred.                                             | An unexpected issue occurred on the server side, not specifically related to the request.               |
-| `INVALID_ARGUMENT`        | The client specified an invalid argument.                              | An invalid argument was provided to the model/endpoint, such as incorrect parameters or malformed input.|
-| `DEADLINE_EXCEEDED`       | The deadline for the request expired before the operation completed.   | Raised if the request exceeds the timeout specified by the client (default is 1620 seconds, configurable during client instantiation). |
-| `NOT_FOUND`               | A specified resource was not found.                                    | A requested model or resource does not exist.                                                           |
-| `PERMISSION_DENIED`       | The caller does not have permission to execute the specified operation.| The API key is disabled, blocked, or lacks sufficient permissions to access a specific model or feature. |
-| `UNAUTHENTICATED`         | The request does not have valid authentication credentials.            | The API key is missing, invalid, or expired.                                                            |
-| `RESOURCE_EXHAUSTED`      | A resource quota has been exceeded (e.g., rate limits).                | The user has exceeded their API usage quota or rate limits for requests.                                |
-| `INTERNAL`                | An internal error occurred.                                            | An internal server error occurred on the xAI API side.                                                  |
-| `UNAVAILABLE`             | The service is currently unavailable. This is often a transient error. | The model or endpoint invoked is temporarily down or there are connectivity issues. The SDK defaults to automatically retrying errors with this status code. |
-| `DATA_LOSS`               | Unrecoverable data loss or corruption occurred.                        | Occurs when a user provides an image via URL in API calls (e.g., in a chat conversation) and the server fails to fetch the image from that URL. |
+| gRPC Status Code      | Meaning                                                              | xAI SDK/API Context                                                                                        |
+|-----------------------|----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `UNKNOWN`             | An unknown error occurred.                                           | An unexpected issue occurred on the server side, not specifically related to the request.                  |
+| `INVALID_ARGUMENT`    | The client specified an invalid argument.                            | An invalid argument was provided to the model/endpoint, such as incorrect parameters or malformed input.   |
+| `DEADLINE_EXCEEDED`   | The deadline for the request expired before the operation completed. | Raised if the request exceeds the timeout specified by the client (default is 1620 seconds, configurable during client instantiation). |
+| `NOT_FOUND`           | A specified resource was not found.                                  | A requested model or resource does not exist.                                                              |
+| `PERMISSION_DENIED`   | The caller does not have permission to execute the specified operation. | The API key is disabled, blocked, or lacks sufficient permissions to access a specific model or feature.  |
+| `UNAUTHENTICATED`     | The request does not have valid authentication credentials.          | The API key is missing, invalid, or expired.                                                               |
+| `RESOURCE_EXHAUSTED`  | A resource quota has been exceeded (e.g., rate limits).              | The user has exceeded their API usage quota or rate limits for requests.                                   |
+| `INTERNAL`            | An internal error occurred.                                          | An internal server error occurred on the xAI API side.                                                     |
+| `UNAVAILABLE`         | The service is currently unavailable. This is often a transient error. | The model or endpoint invoked is temporarily down or there are connectivity issues. The SDK defaults to automatically retrying errors with this status code. |
+| `DATA_LOSS`           | Unrecoverable data loss or corruption occurred.                      | Occurs when a user provides an image via URL in API calls (e.g., in a chat conversation) and the server fails to fetch the image from that URL. |
 
 These error codes can help diagnose issues with API requests. When handling errors, ensure you check the specific status code to understand the nature of the problem and take appropriate action.
 
