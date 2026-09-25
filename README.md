@@ -117,7 +117,7 @@ async def main():
     )
 
     while True:
-        prompt = input("You: ")
+        prompt = await asyncio.to_thread(input, "You: ")
         if prompt.lower() == "exit":
             break
         chat.append(user(prompt))
