@@ -6,6 +6,7 @@ from opentelemetry.trace import SpanKind
 from ..client import USER_AGENT
 from ..files import StorageOptions
 from ..image import (
+    IMAGE_DOWNLOAD_TIMEOUT_SECONDS,
     BaseClient,
     BaseImageResponse,
     ImageAspectRatio,
@@ -362,7 +363,7 @@ class ImageResponse(BaseImageResponse):
             response = requests.get(
                 self.url,
                 headers={"User-Agent": USER_AGENT},
-                timeout=5,  # 5 seconds
+                timeout=IMAGE_DOWNLOAD_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
             return response.content
