@@ -310,6 +310,12 @@ def mcp(
         authorization: The authorization token for the MCP server.
         extra_headers: The extra headers for the MCP server.
     """
+    if allowed_tool_names is not None:
+        if not isinstance(allowed_tool_names, list):
+            raise TypeError("allowed_tool_names must be a list of strings or None")
+        if any(not isinstance(name, str) for name in allowed_tool_names):
+            raise TypeError("allowed_tool_names must contain only strings")
+
     return chat_pb2.Tool(
         mcp=chat_pb2.MCP(
             server_label=server_label,
