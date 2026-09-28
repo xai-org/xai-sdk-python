@@ -48,6 +48,7 @@ class BaseClient(abc.ABC, Generic[T]):
         conversation_id: Optional[str] = None,
         messages: Optional[Sequence[chat_pb2.Message]] = None,
         user: Optional[str] = None,
+        safety_identifier: Optional[str] = None,
         max_tokens: Optional[int] = None,
         seed: Optional[int] = None,
         stop: Optional[Sequence[str]] = None,
@@ -104,6 +105,11 @@ class BaseClient(abc.ABC, Generic[T]):
             messages: A list of messages that make up the the chat conversation. Different models support different
                 message types, such as image and text.
             user: A unique identifier representing your end-user, which can help xAI to monitor and detect abuse.
+                Prefer `safety_identifier`.
+            safety_identifier: An opaque, stable string that your application assigns to the end user behind
+                this request. When a request violates the usage policies, xAI attributes it to this identifier
+                instead of to your whole API key. Send a hash of your internal user ID, never an email address
+                or display name. Same field as OpenAI's `safety_identifier`.
             max_tokens: The maximum number of tokens that can be generated in the chat completion.
             seed: If specified, our system will make a best effort to sample deterministically, such that repeated
                 requests with the same seed and parameters should return the same result.
@@ -239,6 +245,7 @@ class BaseClient(abc.ABC, Generic[T]):
             model=model,
             messages=messages,
             user=user,
+            safety_identifier=safety_identifier,
             max_tokens=max_tokens,
             seed=seed,
             stop=stop,

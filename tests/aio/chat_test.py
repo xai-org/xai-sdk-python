@@ -1454,6 +1454,20 @@ def test_chat_with_reasoning_invalid_value(client: AsyncClient):
     )
 
 
+def test_chat_create_with_safety_identifier(client: AsyncClient):
+    chat = client.chat.create("grok-4.3", safety_identifier="sha256-of-end-user-id")
+
+    assert chat.proto.HasField("safety_identifier")
+    assert chat.proto.safety_identifier == "sha256-of-end-user-id"
+
+
+def test_chat_create_without_safety_identifier_leaves_field_unset(client: AsyncClient):
+    chat = client.chat.create("grok-4.3", user="legacy-user")
+
+    assert not chat.proto.HasField("safety_identifier")
+    assert chat.proto.user == "legacy-user"
+
+
 def test_chat_create_with_tools(client: AsyncClient):
     chat = client.chat.create(
         "grok-3",
