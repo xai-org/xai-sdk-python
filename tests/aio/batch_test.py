@@ -1,8 +1,13 @@
+import datetime
+from unittest import mock
+
 import grpc
 import pytest
 import pytest_asyncio
 
 from xai_sdk import AsyncClient
+from xai_sdk.aio import batch as aio_batch
+from xai_sdk.batch import BatchUnsupportedModelError
 from xai_sdk.chat import Response, user
 from xai_sdk.proto import batch_pb2, chat_pb2
 
@@ -321,3 +326,136 @@ async def test_add_to_nonexistent_batch(client: AsyncClient):
 
     assert e.value.code() == grpc.StatusCode.NOT_FOUND  # type: ignore
     assert e.value.details() == "Cannot find batch with ID nonexistent_batch_id"  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_add_unsupported_batch_model(client: AsyncClient):
+    """Unsupported batch models raise BatchUnsupportedModelError with guidance."""
+    batch = await client.batch.create("unsupported_model_batch")
+    chat = client.chat.create(model="grok-4.5", batch_request_id="bad_model")
+    chat.append(user("Say OK"))
+
+    with pytest.raises(BatchUnsupportedModelError) as exc_info:
+        await client.batch.add(batch.batch_id, [chat])
+
+    err = exc_info.value
+    assert err.model == "grok-4.5"
+    assert "not supported for batch processing" in err.details
+    assert "grok-4.20" in str(err)
+    assert "grok-4.3" in str(err)
+
+
+@pytest.mark.asyncio
+async def test_wait_returns_when_batch_already_complete(client: AsyncClient):
+    """wait() returns immediately when there are no pending requests."""
+    batch = await client.batch.create("empty_wait_batch")
+    finished = await client.batch.wait(
+        batch.batch_id,
+        timeout=datetime.timedelta(seconds=5),
+        interval=datetime.timedelta(milliseconds=10),
+    )
+    assert finished.batch_id == batch.batch_id
+    assert finished.state.num_pending == 0
+
+
+@pytest.mark.asyncio
+async def test_wait_completes_after_cancel(client: AsyncClient):
+    """wait() finishes once cancel clears pending requests."""
+    batch = await client.batch.create("cancel_wait_batch")
+    chat = client.chat.create(model="grok-3", batch_request_id="req_0")
+    chat.append(user("hello"))
+    await client.batch.add(batch.batch_id, [chat])
+    await client.batch.cancel(batch.batch_id)
+
+    finished = await client.batch.wait(
+        batch.batch_id,
+        timeout=datetime.timedelta(seconds=5),
+        interval=datetime.timedelta(milliseconds=10),
+    )
+    assert finished.state.num_pending == 0
+    assert finished.state.num_cancelled == 1
+
+
+@pytest.mark.asyncio
+async def test_wait_polls_until_complete_with_mocked_stub():
+    """Unit test: async wait polls GetBatch until num_pending reaches zero."""
+    pending = batch_pb2.Batch(
+        batch_id="batch_wait",
+        state=batch_pb2.BatchState(num_requests=1, num_pending=1),
+    )
+    done = batch_pb2.Batch(
+        batch_id="batch_wait",
+        state=batch_pb2.BatchState(num_requests=1, num_pending=0, num_success=1),
+    )
+
+    async def get_side_effect(_request):
+        return get_side_effect.responses.pop(0)
+
+    get_side_effect.responses = [pending, done]
+
+    stub = mock.MagicMock()
+    stub.GetBatch = mock.AsyncMock(side_effect=get_side_effect)
+    client = aio_batch.Client.__new__(aio_batch.Client)
+    client._stub = stub
+
+    with mock.patch("xai_sdk.aio.batch.asyncio.sleep", new_callable=mock.AsyncMock) as sleep_mock:
+        result = await client.wait(
+            "batch_wait",
+            timeout=datetime.timedelta(seconds=5),
+            interval=datetime.timedelta(milliseconds=1),
+        )
+
+    assert result.state.num_pending == 0
+    assert result.state.num_success == 1
+    assert stub.GetBatch.await_count == 2
+    sleep_mock.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_wait_timeout_with_mocked_stub():
+    """Unit test: async wait raises TimeoutError when the batch never completes."""
+    pending = batch_pb2.Batch(
+        batch_id="batch_timeout",
+        state=batch_pb2.BatchState(num_requests=1, num_pending=1),
+    )
+
+    async def get_pending(_request):
+        return pending
+
+    stub = mock.MagicMock()
+    stub.GetBatch = mock.AsyncMock(side_effect=get_pending)
+    client = aio_batch.Client.__new__(aio_batch.Client)
+    client._stub = stub
+
+    with mock.patch("xai_sdk.aio.batch.asyncio.sleep", new_callable=mock.AsyncMock):
+        with pytest.raises(TimeoutError, match="waiting for batch batch_timeout to complete"):
+            await client.wait(
+                "batch_timeout",
+                timeout=datetime.timedelta(milliseconds=5),
+                interval=datetime.timedelta(milliseconds=1),
+            )
+
+
+@pytest.mark.asyncio
+async def test_add_unsupported_model_with_mocked_stub():
+    """Unit test: async add() wraps stub INVALID_ARGUMENT into BatchUnsupportedModelError."""
+
+    class FakeRpcError(grpc.RpcError):
+        def code(self):
+            return grpc.StatusCode.INVALID_ARGUMENT
+
+        def details(self):
+            return "Model grok-4.5 is not supported for batch processing."
+
+    stub = mock.MagicMock()
+    stub.AddBatchRequests = mock.AsyncMock(side_effect=FakeRpcError())
+    client = aio_batch.Client.__new__(aio_batch.Client)
+    client._stub = stub
+
+    request = batch_pb2.BatchRequest(
+        batch_request_id="req_0",
+        completion_request=chat_pb2.GetCompletionsRequest(model="grok-4.5"),
+    )
+    with pytest.raises(BatchUnsupportedModelError) as exc_info:
+        await client.add("batch_id", [request])
+    assert exc_info.value.model == "grok-4.5"
