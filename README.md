@@ -176,7 +176,7 @@ print(f"Grok: {response.content}")
 
 ### Video Generation
 
-Generate videos from text prompts using the `grok-imagine-video` model. The SDK handles the asynchronous polling workflow automatically — you submit a prompt and receive the completed video response.
+Generate videos from text prompts using the `grok-imagine-video` model. The SDK handles the asynchronous polling workflow automatically you submit a prompt and receive the completed video response.
 
 ```python
 from xai_sdk import Client
@@ -248,7 +248,7 @@ response = client.video.extend(
 print(f"Video URL: {response.url}")
 ```
 
-Extensions can be chained — feed the returned URL back as input:
+Extensions can be chained feed the returned URL back as input:
 
 ```python
 response = client.video.extend(
