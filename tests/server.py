@@ -268,17 +268,23 @@ def _add_image_generation_outputs(response: chat_pb2.GetChatCompletionResponse) 
 class AuthServicer(auth_pb2_grpc.AuthServicer):
     """A dummy implementation of the Auth service for testing."""
 
-    def __init__(self, initial_failures: int, response_delay_seconds: int = 0):
+    def __init__(
+        self,
+        initial_failures: int,
+        response_delay_seconds: int = 0,
+        initial_failure_code: grpc.StatusCode = grpc.StatusCode.UNAVAILABLE,
+    ):
         self._initial_failures = initial_failures
         self._response_delay_seconds = response_delay_seconds
+        self._initial_failure_code = initial_failure_code
 
     def get_api_key_info(self, request, context: grpc.ServicerContext) -> auth_pb2.ApiKey:
         """Returns some information about an API key."""
         del request
         if self._initial_failures > 0:
             self._initial_failures -= 1
-            context.set_code(grpc.StatusCode.UNAVAILABLE)
-            context.abort(grpc.StatusCode.UNAVAILABLE, "RPC failed on purpose.")
+            context.set_code(self._initial_failure_code)
+            context.abort(self._initial_failure_code, "RPC failed on purpose.")
 
         _check_auth(context)
 
@@ -1620,6 +1626,7 @@ class TestServer(threading.Thread):
         response_delay_seconds: int = 0,
         model_library: Optional[ModelLibrary] = None,
         in_memory_store: Optional[InMemoryStore] = None,
+        initial_failure_code: grpc.StatusCode = grpc.StatusCode.UNAVAILABLE,
         *args,
         **kwargs,
     ):
@@ -1632,7 +1639,9 @@ class TestServer(threading.Thread):
         self._image_port = portpicker.pick_unused_port()
         self._image_server = http.server.HTTPServer(("", self._image_port), ImageHandler)
 
-        auth_pb2_grpc.add_AuthServicer_to_server(AuthServicer(initial_failures), self._server)
+        auth_pb2_grpc.add_AuthServicer_to_server(
+            AuthServicer(initial_failures, initial_failure_code=initial_failure_code), self._server
+        )
         batch_pb2_grpc.add_BatchMgmtServicer_to_server(BatchMgmtServicer(), self._server)
         chat_pb2_grpc.add_ChatServicer_to_server(ChatServicer(response_delay_seconds), self._server)
         models_pb2_grpc.add_ModelsServicer_to_server(ModelServicer(model_library), self._server)
@@ -1677,10 +1686,13 @@ def run_test_server(
     response_delay_seconds: int = 0,
     model_library: Optional[ModelLibrary] = None,
     in_memory_store: Optional[InMemoryStore] = None,
+    initial_failure_code: grpc.StatusCode = grpc.StatusCode.UNAVAILABLE,
 ) -> Generator[int, None, None]:
     """Runs the test server in a dedicated thread and yields the port that the server runs on."""
     port = portpicker.pick_unused_port()
-    server = TestServer(port, initial_failures, response_delay_seconds, model_library, in_memory_store)
+    server = TestServer(
+        port, initial_failures, response_delay_seconds, model_library, in_memory_store, initial_failure_code
+    )
     try:
         server.start()
         yield port

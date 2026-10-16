@@ -421,18 +421,58 @@ The xAI SDK has retries enabled by default for certain types of failed requests.
 - **Maximum Backoff**: 1 second
 - **Backoff Multiplier**: 2
 
-This means that after an initial failure, the SDK will wait 0.1 seconds before the first retry, then 0.2 seconds, 0.4 seconds, and so on, up to a maximum of 1 second between attempts, for a total of up to 5 attempts.
+This means that after an initial failure, the SDK will wait up to 0.1 seconds before the first retry, then up to 0.2 seconds, 0.4 seconds, and so on, up to a maximum of 1 second between attempts, for a total of up to 5 attempts. Retries are performed by gRPC, which picks a random delay below each of these limits to avoid many clients retrying at the same time.
 
-You can disable retries by setting the `grpc.enable_retries` channel option to `0` when initializing the client:
+#### Custom Retry Policy
+
+You can configure your own retry policy by passing a `RetryPolicy` to the `retry_policy` parameter when creating the `Client` or `AsyncClient`. For example, to also retry requests that hit a rate limit (`RESOURCE_EXHAUSTED`):
 
 ```python
-from xai_sdk import Client
+import grpc
+from xai_sdk import Client, RetryPolicy
 
-# Disable retries
-sync_client = Client(channel_options=[("grpc.enable_retries", 0)])
+sync_client = Client(
+    retry_policy=RetryPolicy(
+        max_attempts=3,         # Reduced number of attempts (gRPC allows at most 5)
+        initial_backoff=0.5,    # Longer initial wait, in seconds
+        max_backoff=2.0,        # Longer maximum wait, in seconds
+        backoff_multiplier=1.5, # Slower increase in wait time
+        retryable_status_codes=(grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.RESOURCE_EXHAUSTED),
+    )
+)
 ```
 
 Similarly, for the asynchronous client:
+
+```python
+import grpc
+from xai_sdk import AsyncClient, RetryPolicy
+
+async_client = AsyncClient(
+    retry_policy=RetryPolicy(
+        max_attempts=3,
+        initial_backoff=0.5,
+        max_backoff=2.0,
+        backoff_multiplier=1.5,
+        retryable_status_codes=(grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.RESOURCE_EXHAUSTED),
+    )
+)
+```
+
+Any `RetryPolicy` field you don't set keeps the default value listed above. An invalid policy, such as more than 5 attempts or a non-positive backoff, raises a `ValueError` when the `RetryPolicy` is created.
+
+#### Disabling Retries
+
+You can disable retries by using a policy with a single attempt:
+
+```python
+from xai_sdk import Client, RetryPolicy
+
+# Disable retries
+sync_client = Client(retry_policy=RetryPolicy(max_attempts=1))
+```
+
+Setting the `grpc.enable_retries` channel option to `0` has the same effect:
 
 ```python
 from xai_sdk import AsyncClient
@@ -441,63 +481,33 @@ from xai_sdk import AsyncClient
 async_client = AsyncClient(channel_options=[("grpc.enable_retries", 0)])
 ```
 
-#### Custom Retry Policy
+#### Advanced: gRPC Service Config
 
-You can configure your own retry policy by setting the `grpc.service_config` channel option with a JSON string that defines the retry behavior. The JSON structure should follow the gRPC service config format. Here's an example of how to set a custom retry policy:
+For full control, such as using different retry policies for different methods, you can set the `grpc.service_config` channel option to a JSON string following the [gRPC service config](https://github.com/grpc/grpc/blob/master/doc/service_config.md) format. This works the same way for the `Client` and the `AsyncClient`:
 
 ```python
 import json
 from xai_sdk import Client
 
-# Define a custom retry policy
 custom_retry_policy = json.dumps({
     "methodConfig": [{
         "name": [{}], # Applies to all methods
         "retryPolicy": {
-            "maxAttempts": 3,         # Reduced number of attempts
-            "initialBackoff": "0.5s", # Longer initial wait
-            "maxBackoff": "2s",       # Longer maximum wait
-            "backoffMultiplier": 1.5, # Slower increase in wait time
-            "retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"] # Additional status code for retry
+            "maxAttempts": 3,
+            "initialBackoff": "0.5s",
+            "maxBackoff": "2s",
+            "backoffMultiplier": 1.5,
+            "retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"]
         }
     }]
 })
 
-# Initialize client with custom retry policy
 sync_client = Client(channel_options=[
     ("grpc.service_config", custom_retry_policy)
 ])
 ```
 
-Similarly, for the asynchronous client:
-
-```python
-import json
-from xai_sdk import AsyncClient
-
-# Define a custom retry policy
-custom_retry_policy = json.dumps({
-    "methodConfig": [{
-        "name": [{}], # Applies to all methods
-        "retryPolicy": {
-            "maxAttempts": 3,         # Reduced number of attempts
-            "initialBackoff": "0.5s", # Longer initial wait
-            "maxBackoff": "2s",       # Longer maximum wait
-            "backoffMultiplier": 1.5, # Slower increase in wait time
-            "retryableStatusCodes": ["UNAVAILABLE", "RESOURCE_EXHAUSTED"] # Additional status code for retry
-        }
-    }]
-})
-
-# Initialize async client with custom retry policy
-async_client = AsyncClient(channel_options=[
-    ("grpc.service_config", custom_retry_policy)
-])
-```
-
-In this example, the custom policy reduces the maximum number of attempts to 3, increases the initial backoff to 0.5 seconds, sets a maximum backoff of 2 seconds, uses a smaller backoff multiplier of 1.5, and allows retries on both `UNAVAILABLE` and `RESOURCE_EXHAUSTED` status codes.
-
-Note that when setting a custom `grpc.service_config`, it will override the default retry policy.
+Note that when setting a custom `grpc.service_config`, it will override the default retry policy. The `grpc.enable_retries` and `grpc.service_config` channel options can't be combined with the `retry_policy` parameter, since they configure the same behavior.
 
 ## Accessing Underlying Proto Objects
 
