@@ -201,8 +201,9 @@ class BaseClient(abc.ABC, Generic[T]):
                 `violence`, `self_harm`, `illicit`, and `profanity`, and each may appear at most once. Every
                 category accepts `decline`. Only `self_harm` also accepts `offer_support`. A category you omit
                 keeps the model's default behavior. An unknown category or behavior raises `ValueError`. The
-                API rejects an unsupported pair, a repeated category, or a model that cannot apply guidelines
-                with `INVALID_ARGUMENT`.
+                API rejects an unsupported pair, a repeated category, or a request it cannot apply them to,
+                such as one for a multi-agent model, with `stop`, or deferred with `defer()`, with
+                `INVALID_ARGUMENT`.
 
         Returns:
             A new chat request bound to a client.
