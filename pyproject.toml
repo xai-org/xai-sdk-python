@@ -43,6 +43,9 @@ classifiers = [
   "Typing :: Typed",
 ]
 
+[project.scripts]
+xai = "xai_sdk.cli:main"
+
 [project.urls]
 Homepage = "https://github.com/xai-org/xai-sdk-python"
 Documentation = "https://docs.x.ai"
@@ -139,6 +142,7 @@ known-first-party = ["xai_sdk"]
 ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
+"src/xai_sdk/cli.py" = ["T201"]
 "tests/**/*" = [
   "D",
   "DTZ005",

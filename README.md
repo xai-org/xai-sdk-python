@@ -259,6 +259,50 @@ response = client.video.extend(
 print(f"Extended Video URL: {response.url}")
 ```
 
+## Command-Line Interface (CLI)
+
+The xAI SDK includes a built-in command-line tool accessible via `xai` or `python -m xai_sdk.cli`. Ensure your `XAI_API_KEY` environment variable is set (or provide `--api-key`).
+
+### Multi-Turn Chat & Single Prompts
+
+```bash
+# Single prompt mode with streaming response
+xai chat "Explain quantum computing in 3 sentences" --model grok-4.6
+
+# Interactive multi-turn terminal chat session
+xai chat --interactive --system "You are a senior DevOps assistant"
+
+# Pipe input from shell commands
+cat error.log | xai chat "Analyze this traceback"
+
+# Multimodal analysis with image URL or local file
+xai chat "Describe what is in this image" --image screenshot.png
+```
+
+### Models
+
+```bash
+# List available models (language, image, embedding, or all)
+xai models list --type language
+
+# Inspect details of a specific model
+xai models get grok-4.6
+```
+
+### Image Generation
+
+```bash
+# Generate image and save to file
+xai image generate "A serene mountain lake at sunrise" -o lake.jpg
+```
+
+### Video Generation
+
+```bash
+# Generate video from prompt
+xai video generate "Drone shot over foggy pine forest" --duration 5
+```
+
 ## Advanced Features
 
 The xAI SDK excels in advanced use cases, such as:
