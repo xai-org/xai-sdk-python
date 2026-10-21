@@ -1,6 +1,5 @@
 from typing import Literal, TypeAlias, Union
 
-from pydantic import TypeAdapter
 from typing_extensions import TypedDict
 
 from ..proto import chat_pb2
@@ -14,7 +13,6 @@ __all__ = [
     "GuidelineBehaviorMap",
     "GuidelineCategory",
     "GuidelineCategoryMap",
-    "GuidelineValidator",
     "ImageDetail",
     "IncludeOption",
     "IncludeOptionMap",
@@ -75,8 +73,6 @@ class Guideline(TypedDict):
     category: GuidelineCategory
     behavior: GuidelineBehavior
 
-
-GuidelineValidator = TypeAdapter(Guideline)
 
 GuidelineCategoryMap: dict[GuidelineCategory, "chat_pb2.GuidelineCategory"] = {
     "sexual": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_SEXUAL,

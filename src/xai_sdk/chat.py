@@ -6,7 +6,7 @@ from collections import Counter, defaultdict
 from typing import Any, Generic, Optional, Sequence, TypeVar, Union, overload
 
 import grpc
-from pydantic import BaseModel
+from pydantic import BaseModel, TypeAdapter
 from typing_extensions import Self
 
 from .cost import cost_usd_from_usage
@@ -23,7 +23,6 @@ from .types import (
     Guideline,
     GuidelineBehaviorMap,
     GuidelineCategoryMap,
-    GuidelineValidator,
     ImageDetail,
     IncludeOption,
     IncludeOptionMap,
@@ -201,9 +200,8 @@ class BaseClient(abc.ABC, Generic[T]):
                 `violence`, `self_harm`, `illicit`, and `profanity`, and each may appear at most once. Every
                 category accepts `decline`. Only `self_harm` also accepts `offer_support`. A category you omit
                 keeps the model's default behavior. An unknown category or behavior raises `ValueError`. The
-                API rejects an unsupported pair, a repeated category, or a request it cannot apply them to,
-                such as one for a multi-agent model, with `stop`, or deferred with `defer()`, with
-                `INVALID_ARGUMENT`.
+                API returns `INVALID_ARGUMENT` for an unsupported pair, a repeated category, or a request that
+                cannot use guidelines, such as a multi-agent model, `stop`, or `defer()`.
 
         Returns:
             A new chat request bound to a client.
@@ -977,11 +975,14 @@ def _include_option_to_proto(include_option: IncludeOption) -> chat_pb2.IncludeO
     raise ValueError(f"Invalid include option: {include_option}. Must be one of: {IncludeOptionMap.keys()}")
 
 
+_GuidelineValidator = TypeAdapter(Guideline)
+
+
 def _guideline_to_proto(guideline: Union[Guideline, chat_pb2.Guideline]) -> chat_pb2.Guideline:
     """Converts a `Guideline` dict to a proto."""
     if isinstance(guideline, chat_pb2.Guideline):
         return guideline
-    validated = GuidelineValidator.validate_python(guideline)
+    validated = _GuidelineValidator.validate_python(guideline)
     return chat_pb2.Guideline(
         policy=chat_pb2.PolicyGuideline(
             category=GuidelineCategoryMap[validated["category"]],
