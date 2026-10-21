@@ -1475,6 +1475,57 @@ def test_chat_create_without_safety_identifier_leaves_field_unset(client: Client
     assert chat.proto.user == "legacy-user"
 
 
+def test_chat_create_with_guidelines(client: Client):
+    chat = client.chat.create(
+        "grok-4.3",
+        guidelines=[
+            {"type": "policy", "category": "violence", "behavior": "decline"},
+            {"type": "policy", "category": "self_harm", "behavior": "offer_support"},
+        ],
+    )
+
+    assert list(chat.proto.guidelines) == [
+        chat_pb2.Guideline(
+            policy=chat_pb2.PolicyGuideline(
+                category=chat_pb2.GUIDELINE_CATEGORY_VIOLENCE,
+                behavior=chat_pb2.GUIDELINE_BEHAVIOR_DECLINE,
+            )
+        ),
+        chat_pb2.Guideline(
+            policy=chat_pb2.PolicyGuideline(
+                category=chat_pb2.GUIDELINE_CATEGORY_SELF_HARM,
+                behavior=chat_pb2.GUIDELINE_BEHAVIOR_OFFER_SUPPORT,
+            )
+        ),
+    ]
+
+
+def test_chat_create_with_guideline_proto(client: Client):
+    guideline = chat_pb2.Guideline(
+        policy=chat_pb2.PolicyGuideline(
+            category=chat_pb2.GUIDELINE_CATEGORY_PROFANITY,
+            behavior=chat_pb2.GUIDELINE_BEHAVIOR_DECLINE,
+        )
+    )
+    chat = client.chat.create("grok-4.3", guidelines=[guideline])
+
+    assert list(chat.proto.guidelines) == [guideline]
+
+
+def test_chat_create_without_guidelines_sends_none(client: Client):
+    chat = client.chat.create("grok-4.3")
+
+    assert len(chat.proto.guidelines) == 0
+
+
+def test_chat_create_rejects_unknown_guideline_category(client: Client):
+    with pytest.raises(ValueError, match="Input should be 'sexual', 'violence', 'self_harm', 'illicit' or 'profanity'"):
+        client.chat.create(
+            "grok-4.3",
+            guidelines=[{"type": "policy", "category": "hate", "behavior": "decline"}],  # type: ignore[list-item]
+        )
+
+
 def test_chat_create_with_tools(client: Client):
     chat = client.chat.create(
         "grok-3",

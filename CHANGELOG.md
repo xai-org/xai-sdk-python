@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- Added a `guidelines` parameter to `client.chat.create` for custom moderation controls. Each entry is a dict such as `{"type": "policy", "category": "violence", "behavior": "decline"}`, the same shape as the REST `guidelines` field. The categories are `sexual`, `violence`, `self_harm`, `illicit`, and `profanity`. Every category accepts `decline`, and `self_harm` also accepts `offer_support`. A category you omit keeps the model's default behavior. An unknown category or behavior raises `ValueError`. The API rejects an unsupported pair, a repeated category, or a model that cannot apply guidelines with `INVALID_ARGUMENT`.
 - Added a `safety_identifier` parameter to `client.chat.create`. It is an opaque, stable string that your application assigns to the end user behind a request, so xAI can attribute a policy violation to that user instead of to your whole API key. Send a hash of your internal user ID, never an email address or display name. Same field as OpenAI's `safety_identifier`. The legacy `user` parameter is still accepted.
 
 ## [v1.20.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.20.0) - 2026-09-24

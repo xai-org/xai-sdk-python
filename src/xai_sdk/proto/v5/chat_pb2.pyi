@@ -12,6 +12,21 @@ from typing import ClassVar as _ClassVar, Iterable as _Iterable, Mapping as _Map
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
+class GuidelineCategory(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    GUIDELINE_CATEGORY_INVALID: _ClassVar[GuidelineCategory]
+    GUIDELINE_CATEGORY_SEXUAL: _ClassVar[GuidelineCategory]
+    GUIDELINE_CATEGORY_VIOLENCE: _ClassVar[GuidelineCategory]
+    GUIDELINE_CATEGORY_SELF_HARM: _ClassVar[GuidelineCategory]
+    GUIDELINE_CATEGORY_ILLICIT: _ClassVar[GuidelineCategory]
+    GUIDELINE_CATEGORY_PROFANITY: _ClassVar[GuidelineCategory]
+
+class GuidelineBehavior(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    GUIDELINE_BEHAVIOR_INVALID: _ClassVar[GuidelineBehavior]
+    GUIDELINE_BEHAVIOR_DECLINE: _ClassVar[GuidelineBehavior]
+    GUIDELINE_BEHAVIOR_OFFER_SUPPORT: _ClassVar[GuidelineBehavior]
+
 class IncludeOption(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     INCLUDE_OPTION_INVALID: _ClassVar[IncludeOption]
@@ -89,6 +104,15 @@ class SearchMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     OFF_SEARCH_MODE: _ClassVar[SearchMode]
     ON_SEARCH_MODE: _ClassVar[SearchMode]
     AUTO_SEARCH_MODE: _ClassVar[SearchMode]
+GUIDELINE_CATEGORY_INVALID: GuidelineCategory
+GUIDELINE_CATEGORY_SEXUAL: GuidelineCategory
+GUIDELINE_CATEGORY_VIOLENCE: GuidelineCategory
+GUIDELINE_CATEGORY_SELF_HARM: GuidelineCategory
+GUIDELINE_CATEGORY_ILLICIT: GuidelineCategory
+GUIDELINE_CATEGORY_PROFANITY: GuidelineCategory
+GUIDELINE_BEHAVIOR_INVALID: GuidelineBehavior
+GUIDELINE_BEHAVIOR_DECLINE: GuidelineBehavior
+GUIDELINE_BEHAVIOR_OFFER_SUPPORT: GuidelineBehavior
 INCLUDE_OPTION_INVALID: IncludeOption
 INCLUDE_OPTION_WEB_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT: IncludeOption
@@ -141,8 +165,22 @@ OFF_SEARCH_MODE: SearchMode
 ON_SEARCH_MODE: SearchMode
 AUTO_SEARCH_MODE: SearchMode
 
+class PolicyGuideline(_message.Message):
+    __slots__ = ("category", "behavior")
+    CATEGORY_FIELD_NUMBER: _ClassVar[int]
+    BEHAVIOR_FIELD_NUMBER: _ClassVar[int]
+    category: GuidelineCategory
+    behavior: GuidelineBehavior
+    def __init__(self, category: _Optional[_Union[GuidelineCategory, str]] = ..., behavior: _Optional[_Union[GuidelineBehavior, str]] = ...) -> None: ...
+
+class Guideline(_message.Message):
+    __slots__ = ("policy",)
+    POLICY_FIELD_NUMBER: _ClassVar[int]
+    policy: PolicyGuideline
+    def __init__(self, policy: _Optional[_Union[PolicyGuideline, _Mapping]] = ...) -> None: ...
+
 class GetCompletionsRequest(_message.Message):
-    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages", "use_encrypted_content", "max_turns", "include", "agent_count", "service_tier", "safety_identifier")
+    __slots__ = ("messages", "model", "user", "n", "max_tokens", "seed", "stop", "temperature", "top_p", "logprobs", "top_logprobs", "tools", "tool_choice", "response_format", "frequency_penalty", "presence_penalty", "reasoning_effort", "search_parameters", "parallel_tool_calls", "previous_response_id", "store_messages", "use_encrypted_content", "max_turns", "include", "agent_count", "service_tier", "safety_identifier", "guidelines")
     MESSAGES_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
     USER_FIELD_NUMBER: _ClassVar[int]
@@ -170,6 +208,7 @@ class GetCompletionsRequest(_message.Message):
     AGENT_COUNT_FIELD_NUMBER: _ClassVar[int]
     SERVICE_TIER_FIELD_NUMBER: _ClassVar[int]
     SAFETY_IDENTIFIER_FIELD_NUMBER: _ClassVar[int]
+    GUIDELINES_FIELD_NUMBER: _ClassVar[int]
     messages: _containers.RepeatedCompositeFieldContainer[Message]
     model: str
     user: str
@@ -197,7 +236,8 @@ class GetCompletionsRequest(_message.Message):
     agent_count: AgentCount
     service_tier: _usage_pb2.ServiceTier
     safety_identifier: str
-    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ..., max_turns: _Optional[int] = ..., include: _Optional[_Iterable[_Union[IncludeOption, str]]] = ..., agent_count: _Optional[_Union[AgentCount, str]] = ..., service_tier: _Optional[_Union[_usage_pb2.ServiceTier, str]] = ..., safety_identifier: _Optional[str] = ...) -> None: ...
+    guidelines: _containers.RepeatedCompositeFieldContainer[Guideline]
+    def __init__(self, messages: _Optional[_Iterable[_Union[Message, _Mapping]]] = ..., model: _Optional[str] = ..., user: _Optional[str] = ..., n: _Optional[int] = ..., max_tokens: _Optional[int] = ..., seed: _Optional[int] = ..., stop: _Optional[_Iterable[str]] = ..., temperature: _Optional[float] = ..., top_p: _Optional[float] = ..., logprobs: bool = ..., top_logprobs: _Optional[int] = ..., tools: _Optional[_Iterable[_Union[Tool, _Mapping]]] = ..., tool_choice: _Optional[_Union[ToolChoice, _Mapping]] = ..., response_format: _Optional[_Union[ResponseFormat, _Mapping]] = ..., frequency_penalty: _Optional[float] = ..., presence_penalty: _Optional[float] = ..., reasoning_effort: _Optional[_Union[ReasoningEffort, str]] = ..., search_parameters: _Optional[_Union[SearchParameters, _Mapping]] = ..., parallel_tool_calls: bool = ..., previous_response_id: _Optional[str] = ..., store_messages: bool = ..., use_encrypted_content: bool = ..., max_turns: _Optional[int] = ..., include: _Optional[_Iterable[_Union[IncludeOption, str]]] = ..., agent_count: _Optional[_Union[AgentCount, str]] = ..., service_tier: _Optional[_Union[_usage_pb2.ServiceTier, str]] = ..., safety_identifier: _Optional[str] = ..., guidelines: _Optional[_Iterable[_Union[Guideline, _Mapping]]] = ...) -> None: ...
 
 class GetChatCompletionResponse(_message.Message):
     __slots__ = ("id", "outputs", "created", "model", "system_fingerprint", "usage", "citations", "settings", "debug_output", "output_files", "service_tier")

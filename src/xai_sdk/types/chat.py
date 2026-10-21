@@ -1,11 +1,20 @@
 from typing import Literal, TypeAlias, Union
 
+from pydantic import TypeAdapter
+from typing_extensions import TypedDict
+
 from ..proto import chat_pb2
 
 __all__ = [
     "AgentCount",
     "AgentCountMap",
     "Content",
+    "Guideline",
+    "GuidelineBehavior",
+    "GuidelineBehaviorMap",
+    "GuidelineCategory",
+    "GuidelineCategoryMap",
+    "GuidelineValidator",
     "ImageDetail",
     "IncludeOption",
     "IncludeOptionMap",
@@ -49,4 +58,35 @@ IncludeOptionMap: dict[IncludeOption, "chat_pb2.IncludeOption"] = {
 AgentCountMap: dict[AgentCount, "chat_pb2.AgentCount"] = {
     4: chat_pb2.AgentCount.AGENT_COUNT_4,
     16: chat_pb2.AgentCount.AGENT_COUNT_16,
+}
+
+GuidelineCategory: TypeAlias = Literal["sexual", "violence", "self_harm", "illicit", "profanity"]
+GuidelineBehavior: TypeAlias = Literal["decline", "offer_support"]
+
+
+class Guideline(TypedDict):
+    """One output guideline, in the same shape as the REST `guidelines` entries.
+
+    `behavior` must be one that `category` supports: `decline` for every category, and
+    `offer_support` only for `self_harm`.
+    """
+
+    type: Literal["policy"]
+    category: GuidelineCategory
+    behavior: GuidelineBehavior
+
+
+GuidelineValidator = TypeAdapter(Guideline)
+
+GuidelineCategoryMap: dict[GuidelineCategory, "chat_pb2.GuidelineCategory"] = {
+    "sexual": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_SEXUAL,
+    "violence": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_VIOLENCE,
+    "self_harm": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_SELF_HARM,
+    "illicit": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_ILLICIT,
+    "profanity": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_PROFANITY,
+}
+
+GuidelineBehaviorMap: dict[GuidelineBehavior, "chat_pb2.GuidelineBehavior"] = {
+    "decline": chat_pb2.GuidelineBehavior.GUIDELINE_BEHAVIOR_DECLINE,
+    "offer_support": chat_pb2.GuidelineBehavior.GUIDELINE_BEHAVIOR_OFFER_SUPPORT,
 }

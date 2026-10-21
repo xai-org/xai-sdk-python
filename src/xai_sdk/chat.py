@@ -20,6 +20,10 @@ from .types import (
     AgentCountMap,
     ChatModel,
     Content,
+    Guideline,
+    GuidelineBehaviorMap,
+    GuidelineCategoryMap,
+    GuidelineValidator,
     ImageDetail,
     IncludeOption,
     IncludeOptionMap,
@@ -72,6 +76,7 @@ class BaseClient(abc.ABC, Generic[T]):
         agent_count: Optional[Union[AgentCount, "chat_pb2.AgentCount"]] = None,
         batch_request_id: Optional[str] = None,
         service_tier: Optional[Union[ServiceTier, "usage_pb2.ServiceTier"]] = None,
+        guidelines: Optional[Sequence[Union[Guideline, chat_pb2.Guideline]]] = None,
     ) -> T:
         """Creates a new chat conversation.
 
@@ -191,6 +196,13 @@ class BaseClient(abc.ABC, Generic[T]):
                 scheduling priority at a higher token price. Valid values: `"default"`,
                 `"priority"`. The response includes a `service_tier` field indicating
                 which tier was actually used.
+            guidelines: Per-category moderation controls for the model's output. Each entry is a dict such as
+                `{"type": "policy", "category": "sexual", "behavior": "decline"}`. The categories are `sexual`,
+                `violence`, `self_harm`, `illicit`, and `profanity`, and each may appear at most once. Every
+                category accepts `decline`. Only `self_harm` also accepts `offer_support`. A category you omit
+                keeps the model's default behavior. An unknown category or behavior raises `ValueError`. The
+                API rejects an unsupported pair, a repeated category, or a model that cannot apply guidelines
+                with `INVALID_ARGUMENT`.
 
         Returns:
             A new chat request bound to a client.
@@ -239,6 +251,8 @@ class BaseClient(abc.ABC, Generic[T]):
 
         service_tier_pb = service_tier_to_proto(service_tier) if isinstance(service_tier, str) else service_tier
 
+        guidelines_pb = [_guideline_to_proto(guideline) for guideline in guidelines] if guidelines is not None else None
+
         return self._make_chat(
             conversation_id=conversation_id,
             batch_request_id=batch_request_id,
@@ -268,6 +282,7 @@ class BaseClient(abc.ABC, Generic[T]):
             include=include_pb,
             agent_count=agent_count_pb,
             service_tier=service_tier_pb,
+            guidelines=guidelines_pb,
         )
 
     @abc.abstractmethod
@@ -959,6 +974,19 @@ def _include_option_to_proto(include_option: IncludeOption) -> chat_pb2.IncludeO
     if include_option in IncludeOptionMap:
         return IncludeOptionMap[include_option]
     raise ValueError(f"Invalid include option: {include_option}. Must be one of: {IncludeOptionMap.keys()}")
+
+
+def _guideline_to_proto(guideline: Union[Guideline, chat_pb2.Guideline]) -> chat_pb2.Guideline:
+    """Converts a `Guideline` dict to a proto."""
+    if isinstance(guideline, chat_pb2.Guideline):
+        return guideline
+    validated = GuidelineValidator.validate_python(guideline)
+    return chat_pb2.Guideline(
+        policy=chat_pb2.PolicyGuideline(
+            category=GuidelineCategoryMap[validated["category"]],
+            behavior=GuidelineBehaviorMap[validated["behavior"]],
+        )
+    )
 
 
 def _agent_count_to_proto(agent_count: int) -> chat_pb2.AgentCount:
