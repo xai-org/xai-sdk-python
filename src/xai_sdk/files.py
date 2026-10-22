@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import inspect
 import os
 from typing import Any, AsyncIterator, BinaryIO, Callable, Iterator, Literal, Optional, Protocol, Union
 
@@ -136,12 +137,36 @@ def _invoke_progress(
         progress.update(chunk_size)  # type: ignore
     # Check if it's a callable (function)
     elif callable(progress):
-        # Try calling with both arguments first (custom callback with total)
-        try:
+        if _accepts_two_positional_args(progress):
             progress(cumulative_bytes, total_bytes)  # type: ignore
-        except TypeError:
-            # If that fails, try calling with just incremental bytes (tqdm.update style)
+        else:
+            # Single-argument callables (e.g. tqdm.update) get the chunk size.
             progress(chunk_size)  # type: ignore
+
+
+# The documented progress callback shape is `(uploaded_bytes, total_bytes)`.
+_PROGRESS_CALLBACK_ARGS = 2
+
+
+def _accepts_two_positional_args(func: Callable[..., Any]) -> bool:
+    """Whether `func` can be called with two positional arguments.
+
+    Decided from the signature, so an exception raised inside the user's callback propagates
+    unchanged instead of being mistaken for an arity mismatch and retried with one argument.
+    Callables whose signature cannot be inspected (some builtins and C extensions) are called with
+    two arguments, matching the documented `(uploaded, total)` form.
+    """
+    try:
+        signature = inspect.signature(func)
+    except (TypeError, ValueError):
+        return True
+    positional = 0
+    for parameter in signature.parameters.values():
+        if parameter.kind is inspect.Parameter.VAR_POSITIONAL:
+            return True
+        if parameter.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD):
+            positional += 1
+    return positional >= _PROGRESS_CALLBACK_ARGS
 
 
 def _order_to_pb(order: Order | None) -> files_pb2.Ordering:
@@ -273,7 +298,8 @@ def _chunk_file_from_fileobj(
     try:
         current_pos = file_obj.tell()
         file_obj.seek(0, 2)  # Seek to end
-        total_bytes = file_obj.tell()
+        # Only the bytes from the current position onward are uploaded.
+        total_bytes = file_obj.tell() - current_pos
         file_obj.seek(current_pos)  # Return to original position
     except (OSError, AttributeError):
         # Not all file objects support seek/tell (e.g., streams)
@@ -415,7 +441,8 @@ async def _async_chunk_file_from_fileobj(
     try:
         current_pos = file_obj.tell()
         file_obj.seek(0, 2)  # Seek to end
-        total_bytes = file_obj.tell()
+        # Only the bytes from the current position onward are uploaded.
+        total_bytes = file_obj.tell() - current_pos
         file_obj.seek(current_pos)  # Return to original position
     except (OSError, AttributeError):
         # Not all file objects support seek/tell (e.g., streams)

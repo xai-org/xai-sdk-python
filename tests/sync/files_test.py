@@ -4,7 +4,7 @@ import datetime
 import io
 import os
 import tempfile
-from typing import Callable, Iterable, Optional
+from typing import BinaryIO, Callable, Iterable, Optional, cast
 from unittest import mock
 
 import pydantic
@@ -216,6 +216,75 @@ def test_upload_with_progress_callback(client_with_mock_stub: Client, mock_stub)
         assert last_total == data_size
     finally:
         os.unlink(temp_file_path)
+
+
+def test_upload_progress_single_argument_function(client_with_mock_stub: Client, mock_stub):
+    """A one-argument function (tqdm.update style) receives the chunk size, decided from its signature."""
+    data = b"X" * (4 * 1024 * 1024)
+    updates: list[int] = []
+
+    def update(n: int) -> None:
+        updates.append(n)
+
+    mock_stub.UploadFile.side_effect = lambda chunks: (list(chunks), files_pb2.File(id="file-1"))[1]
+
+    client_with_mock_stub.files.upload(data, filename="test.bin", on_progress=update)
+
+    assert sum(updates) == len(data)
+
+
+def test_upload_progress_callback_errors_propagate_unchanged(client_with_mock_stub: Client, mock_stub):
+    """A TypeError raised inside a two-argument callback is the user's error, not an arity hint.
+
+    Before, it was swallowed and the callback was called again with one argument, surfacing a
+    misleading "missing 1 required positional argument" instead of the real failure.
+    """
+
+    seen: list[str] = []
+
+    def progress(uploaded: int, total: Optional[int]) -> None:
+        seen.append(f"{100 * uploaded / total:.1f}%")  # type: ignore[operator]  # fails when total is None
+
+    mock_stub.UploadFile.side_effect = lambda chunks: (list(chunks), files_pb2.File(id="file-1"))[1]
+
+    class Unsized(io.RawIOBase):
+        """Readable stream without seek/tell, so the total is unknown."""
+
+        def __init__(self, payload: bytes):
+            self._buffer = io.BytesIO(payload)
+
+        def readable(self) -> bool:
+            return True
+
+        def read(self, size: int = -1) -> bytes:
+            return self._buffer.read(size)
+
+        def seek(self, _offset: int, _whence: int = 0) -> int:
+            raise OSError("not seekable")
+
+        def tell(self) -> int:
+            raise OSError("not seekable")
+
+    stream = cast(BinaryIO, Unsized(b"abc"))
+    with pytest.raises(TypeError, match="unsupported operand|NoneType"):
+        client_with_mock_stub.files.upload(stream, filename="stream.bin", on_progress=progress)
+
+
+def test_upload_progress_total_counts_from_current_position(client_with_mock_stub: Client, mock_stub):
+    """A file object positioned past a header reports the bytes it will upload as the total."""
+    header = b"HEADER"
+    payload = b"Y" * 1024
+    file_obj = io.BytesIO(header + payload)
+    file_obj.read(len(header))
+    calls: list[tuple[int, Optional[int]]] = []
+
+    mock_stub.UploadFile.side_effect = lambda chunks: (list(chunks), files_pb2.File(id="file-1"))[1]
+
+    client_with_mock_stub.files.upload(
+        file_obj, filename="rest.bin", on_progress=lambda uploaded, total: calls.append((uploaded, total))
+    )
+
+    assert calls[-1] == (len(payload), len(payload))
 
 
 def test_upload_with_progress_tqdm_like(client_with_mock_stub: Client, mock_stub):
