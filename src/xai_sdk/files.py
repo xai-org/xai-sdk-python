@@ -145,27 +145,27 @@ def _invoke_progress(
 
 
 def _order_to_pb(order: Order | None) -> files_pb2.Ordering:
-    """Converts order string to protobuf enum."""
+    """Converts order string to protobuf enum. `None` means the default (ascending)."""
     match order:
-        case "asc":
+        case None | "asc":
             return files_pb2.Ordering.ASCENDING
         case "desc":
             return files_pb2.Ordering.DESCENDING
         case _:
-            return files_pb2.Ordering.ASCENDING
+            raise ValueError(f"Invalid order: {order!r}. Must be one of: {list(Order.__args__)}")
 
 
 def _sort_by_to_pb(sort_by: SortBy | None) -> files_pb2.FilesSortBy:
-    """Converts sort_by string to protobuf enum."""
+    """Converts sort_by string to protobuf enum. `None` means the default (created_at)."""
     match sort_by:
-        case "created_at":
+        case None | "created_at":
             return files_pb2.FilesSortBy.FILES_SORT_BY_CREATED_AT
         case "filename":
             return files_pb2.FilesSortBy.FILES_SORT_BY_FILENAME
         case "size":
             return files_pb2.FilesSortBy.FILES_SORT_BY_SIZE
         case _:
-            return files_pb2.FilesSortBy.FILES_SORT_BY_CREATED_AT
+            raise ValueError(f"Invalid sort_by: {sort_by!r}. Must be one of: {list(SortBy.__args__)}")
 
 
 def _chunk_file_data(
