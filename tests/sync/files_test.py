@@ -487,6 +487,14 @@ def test_sort_by_conversion():
     assert _sort_by_to_pb(None) == files_pb2.FilesSortBy.FILES_SORT_BY_CREATED_AT
 
 
+def test_unknown_order_and_sort_by_are_rejected():
+    """A misspelled value raises instead of silently sorting by the default."""
+    with pytest.raises(ValueError, match="Invalid order: 'dsc'"):
+        _order_to_pb("dsc")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="Invalid sort_by: 'created'"):
+        _sort_by_to_pb("created")  # type: ignore[arg-type]
+
+
 def test_resolve_storage_options_pb_proto_passthrough():
     """A StorageOptions proto is returned unchanged."""
     proto = image_pb2.StorageOptions(filename="a.png", expires_after=10)

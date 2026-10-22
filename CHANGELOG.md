@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `files.list` / `collections` listing helpers: a misspelled `order`, `sort_by`, or `metric_space` value now raises `ValueError` naming the accepted values, as the other literal parameters already do (`reasoning_effort`, `service_tier`, image options). Previously a typo such as `order="dsc"` silently fell back to the default ordering. `None` still means the default.
+
 ### Fixed
 - `files.upload` progress callbacks: a two-argument callback that raises `TypeError` inside its own body is no longer mistaken for a one-argument callback and called again with the chunk size; the callback's arity is read from its signature once and user exceptions propagate unchanged. A file object positioned past the start now reports the bytes left to upload as `total`, not the file's full length.
 
