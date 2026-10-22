@@ -60,14 +60,24 @@ class RetryPolicy:
 
     def __post_init__(self) -> None:
         """Validates the policy, so that a misconfiguration fails when creating the client and not on first use."""
-        if not 1 <= self.max_attempts <= _MAX_RETRY_ATTEMPTS:
-            raise ValueError(f"max_attempts must be between 1 and {_MAX_RETRY_ATTEMPTS}, got {self.max_attempts}.")
+        # gRPC requires an integer here and would fail to parse e.g. 2.5, which `1 <= 2.5 <= 5` lets through.
+        if type(self.max_attempts) is not int or not 1 <= self.max_attempts <= _MAX_RETRY_ATTEMPTS:
+            raise ValueError(
+                f"max_attempts must be an integer between 1 and {_MAX_RETRY_ATTEMPTS}, got {self.max_attempts!r}."
+            )
         for name in ("initial_backoff", "max_backoff", "backoff_multiplier"):
             value = getattr(self, name)
             if value <= 0:
                 raise ValueError(f"{name} must be positive, got {value}.")
+        # gRPC doesn't reject this, but the delay is capped at max_backoff, so initial_backoff would be ignored.
+        if self.initial_backoff > self.max_backoff:
+            raise ValueError(
+                f"initial_backoff ({self.initial_backoff}s) can't be greater than max_backoff ({self.max_backoff}s)."
+            )
         if not self.retryable_status_codes:
             raise ValueError("retryable_status_codes must not be empty.")
+        if any(not isinstance(code, grpc.StatusCode) for code in self.retryable_status_codes):
+            raise TypeError("All items in retryable_status_codes must be instances of grpc.StatusCode.")
         if grpc.StatusCode.OK in self.retryable_status_codes:
             raise ValueError("retryable_status_codes must not contain grpc.StatusCode.OK.")
         # Store the codes as a tuple, so that the frozen policy stays hashable when a list is passed in.
@@ -174,7 +184,8 @@ class BaseClient(abc.ABC):
             ValueError: If the API key is empty.
             ValueError: If `retry_policy` is combined with channel options that also configure retries.
         """
-        channel_options = channel_options or []
+        # Copy into a list, so that any sequence of options (e.g. a tuple) can be combined with the defaults.
+        channel_options = list(channel_options or [])
         user_defined_options = {option[0] for option in channel_options}
         if retry_policy is not None:
             conflicting_options = user_defined_options & _RETRY_CHANNEL_OPTIONS
@@ -184,7 +195,7 @@ class BaseClient(abc.ABC):
                     "option(s), as both configure retries."
                 )
             retry_options = retry_policy._channel_options()
-            channel_options = retry_options + channel_options
+            channel_options = [*retry_options, *channel_options]
             user_defined_options.update(option[0] for option in retry_options)
         default_options = [option for option in _DEFAULT_CHANNEL_OPTIONS if option[0] not in user_defined_options]
         timeout = timeout or _DEFAULT_RPC_TIMEOUT_SECONDS

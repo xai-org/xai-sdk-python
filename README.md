@@ -459,7 +459,7 @@ async_client = AsyncClient(
 )
 ```
 
-Any `RetryPolicy` field you don't set keeps the default value listed above. An invalid policy, such as more than 5 attempts or a non-positive backoff, raises a `ValueError` when the `RetryPolicy` is created.
+Any `RetryPolicy` field you don't set keeps the default value listed above. An invalid policy, such as more than 5 attempts, a non-positive backoff or an `initial_backoff` above `max_backoff`, raises an error when the `RetryPolicy` is created.
 
 #### Disabling Retries
 

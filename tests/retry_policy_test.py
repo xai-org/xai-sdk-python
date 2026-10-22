@@ -76,11 +76,14 @@ def test_format_duration(seconds, expected):
 @pytest.mark.parametrize(
     ("kwargs", "message"),
     [
-        ({"max_attempts": 0}, "max_attempts must be between 1 and 5"),
-        ({"max_attempts": 6}, "max_attempts must be between 1 and 5"),
+        ({"max_attempts": 0}, "max_attempts must be an integer between 1 and 5"),
+        ({"max_attempts": 6}, "max_attempts must be an integer between 1 and 5"),
+        ({"max_attempts": 2.5}, "max_attempts must be an integer between 1 and 5"),
+        ({"max_attempts": True}, "max_attempts must be an integer between 1 and 5"),
         ({"initial_backoff": 0}, "initial_backoff must be positive"),
         ({"max_backoff": -1}, "max_backoff must be positive"),
         ({"backoff_multiplier": 0}, "backoff_multiplier must be positive"),
+        ({"initial_backoff": 3.0, "max_backoff": 2.0}, "initial_backoff .* can't be greater than max_backoff"),
         ({"retryable_status_codes": []}, "retryable_status_codes must not be empty"),
         ({"retryable_status_codes": [grpc.StatusCode.OK]}, "retryable_status_codes must not contain"),
     ],
@@ -88,3 +91,13 @@ def test_format_duration(seconds, expected):
 def test_invalid_policies_are_rejected(kwargs, message):
     with pytest.raises(ValueError, match=message):
         RetryPolicy(**kwargs)
+
+
+@pytest.mark.parametrize("codes", [["UNAVAILABLE"], [14], [grpc.StatusCode.UNAVAILABLE, None]])
+def test_non_status_code_items_are_rejected(codes):
+    with pytest.raises(TypeError, match="must be instances of grpc.StatusCode"):
+        RetryPolicy(retryable_status_codes=codes)
+
+
+def test_equal_initial_and_max_backoff_are_allowed():
+    assert _retry_policy_config(RetryPolicy(initial_backoff=1, max_backoff=1))["maxBackoff"] == "1s"

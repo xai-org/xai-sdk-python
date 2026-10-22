@@ -263,3 +263,12 @@ async def test_insecure_client_with_metadata():
         # This should work - the metadata is sent but we don't validate it server-side
         api_key = await client.auth.get_api_key_info()
         assert api_key.redacted_api_key == "1**"
+
+
+@pytest.mark.parametrize("retry_policy", [None, RetryPolicy(max_attempts=3)])
+def test_channel_options_can_be_a_tuple(retry_policy):
+    AsyncClient(
+        api_key=server.API_KEY,
+        retry_policy=retry_policy,
+        channel_options=(("grpc.primary_user_agent", "app"),),  # type: ignore[arg-type]
+    )
