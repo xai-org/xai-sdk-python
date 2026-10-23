@@ -10,11 +10,16 @@ STREAM = flags.DEFINE_bool("stream", False, "Whether streaming is enabled.")
 N = flags.DEFINE_integer("n", 1, "Number of answers to generate.")
 
 
+async def ainput(prompt: str = "") -> str:
+    """Read user input asynchronously without blocking the event loop."""
+    return await asyncio.to_thread(input, prompt)
+
+
 async def basic_chat(chat: xai_sdk.aio.chat.Chat):
     """Multi-turn chat between a user and an assistant."""
     total_cost_usd = 0.0
     while True:
-        prompt = input("You: ")
+        prompt = await ainput("You: ")
         if prompt.lower() == "exit":
             break
 
@@ -36,7 +41,7 @@ async def chat_with_streaming(chat: xai_sdk.aio.chat.Chat):
     """Multi-turn chat between a user and an assistant with streaming."""
     total_cost_usd = 0.0
     while True:
-        prompt = input("You: ")
+        prompt = await ainput("You: ")
         if prompt.lower() == "exit":
             break
 
@@ -64,7 +69,7 @@ async def chat_with_streaming(chat: xai_sdk.aio.chat.Chat):
 async def batch_chat(chat: xai_sdk.aio.chat.Chat):
     """Multi-turn chat between a user and an assistant with batch sampling."""
     while True:
-        prompt = input("You: ")
+        prompt = await ainput("You: ")
         if prompt.lower() == "exit":
             break
 
@@ -83,7 +88,7 @@ async def batch_chat(chat: xai_sdk.aio.chat.Chat):
 async def batch_chat_with_streaming(chat: xai_sdk.aio.chat.Chat):
     """Multi-turn chat between a user and an assistant with batch sampling and streaming."""
     while True:
-        prompt = input("You: ")
+        prompt = await ainput("You: ")
         if prompt.lower() == "exit":
             break
 
