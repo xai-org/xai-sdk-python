@@ -1,7 +1,7 @@
 import grpc
 import pytest
 
-from xai_sdk import Client
+from xai_sdk import Client, RetryPolicy
 from xai_sdk.__about__ import __version__
 from xai_sdk.chat import user
 from xai_sdk.client import _DEFAULT_CHANNEL_OPTIONS, USER_AGENT
@@ -104,6 +104,74 @@ def test_retries():
         assert api_key.redacted_api_key == "1**"
 
 
+def test_retry_policy_retries_additional_status_codes():
+    with server.run_test_server(initial_failures=1, initial_failure_code=grpc.StatusCode.RESOURCE_EXHAUSTED) as port:
+        client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}")
+
+        # The default policy only retries UNAVAILABLE errors.
+        with pytest.raises(grpc.RpcError) as excinfo:
+            client.auth.get_api_key_info()
+
+        assert excinfo.value.code() == grpc.StatusCode.RESOURCE_EXHAUSTED  # type: ignore
+
+    with server.run_test_server(initial_failures=1, initial_failure_code=grpc.StatusCode.RESOURCE_EXHAUSTED) as port:
+        client = Client(
+            api_key=server.API_KEY,
+            api_host=f"localhost:{port}",
+            retry_policy=RetryPolicy(
+                initial_backoff=0.01,
+                retryable_status_codes=(grpc.StatusCode.UNAVAILABLE, grpc.StatusCode.RESOURCE_EXHAUSTED),
+            ),
+        )
+
+        api_key = client.auth.get_api_key_info()
+        assert api_key.redacted_api_key == "1**"
+
+
+def test_retry_policy_max_attempts():
+    with server.run_test_server(initial_failures=2) as port:
+        client = Client(
+            api_key=server.API_KEY,
+            api_host=f"localhost:{port}",
+            retry_policy=RetryPolicy(max_attempts=2, initial_backoff=0.01),
+        )
+
+        with pytest.raises(grpc.RpcError) as excinfo:
+            client.auth.get_api_key_info()
+
+        assert excinfo.value.code() == grpc.StatusCode.UNAVAILABLE  # type: ignore
+
+    with server.run_test_server(initial_failures=2) as port:
+        client = Client(
+            api_key=server.API_KEY,
+            api_host=f"localhost:{port}",
+            retry_policy=RetryPolicy(max_attempts=3, initial_backoff=0.01),
+        )
+
+        api_key = client.auth.get_api_key_info()
+        assert api_key.redacted_api_key == "1**"
+
+
+def test_retry_policy_can_disable_retries():
+    with server.run_test_server(initial_failures=1) as port:
+        client = Client(
+            api_key=server.API_KEY,
+            api_host=f"localhost:{port}",
+            retry_policy=RetryPolicy(max_attempts=1),
+        )
+
+        with pytest.raises(grpc.RpcError) as excinfo:
+            client.auth.get_api_key_info()
+
+        assert excinfo.value.code() == grpc.StatusCode.UNAVAILABLE  # type: ignore
+
+
+@pytest.mark.parametrize("option", ["grpc.enable_retries", "grpc.service_config"])
+def test_retry_policy_conflicts_with_retry_channel_options(option):
+    with pytest.raises(ValueError, match=option):
+        Client(api_key=server.API_KEY, retry_policy=RetryPolicy(), channel_options=[(option, 0)])
+
+
 def test_timeout_unary_unary():
     with server.run_test_server(response_delay_seconds=2) as port:
         client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1)
@@ -187,3 +255,12 @@ def test_insecure_client_with_metadata():
         # This should work - the metadata is sent but we don't validate it server-side
         api_key = client.auth.get_api_key_info()
         assert api_key.redacted_api_key == "1**"
+
+
+@pytest.mark.parametrize("retry_policy", [None, RetryPolicy(max_attempts=3)])
+def test_channel_options_can_be_a_tuple(retry_policy):
+    Client(
+        api_key=server.API_KEY,
+        retry_policy=retry_policy,
+        channel_options=(("grpc.primary_user_agent", "app"),),  # type: ignore[arg-type]
+    )
