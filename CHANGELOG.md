@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- The SDK now installs alongside protobuf 7.x: the dependency constraint is `protobuf>=5.29.4,<8`, and any runtime newer than 6.x loads the 6.x generated modules. protobuf only refuses a runtime that is older than the gencode it loads, so no new generated code is needed.
+
 ### Added
 - Added a `safety_identifier` parameter to `client.chat.create`. It is an opaque, stable string that your application assigns to the end user behind a request, so xAI can attribute a policy violation to that user instead of to your whole API key. Send a hash of your internal user ID, never an email address or display name. Same field as OpenAI's `safety_identifier`. The legacy `user` parameter is still accepted.
 

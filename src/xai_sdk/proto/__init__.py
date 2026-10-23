@@ -2,7 +2,9 @@ from packaging import version
 
 import google.protobuf
 
-if version.parse(google.protobuf.__version__).major == 5:
+_PROTOBUF_MAJOR = version.parse(google.protobuf.__version__).major
+
+if _PROTOBUF_MAJOR == 5:
     from .v5 import (
         auth_pb2,
         auth_pb2_grpc,
@@ -34,7 +36,9 @@ if version.parse(google.protobuf.__version__).major == 5:
         video_pb2,
         video_pb2_grpc,
     )
-elif version.parse(google.protobuf.__version__).major == 6:
+# The v6 gencode loads on any newer runtime: protobuf only rejects a runtime that is
+# older than the gencode, so protobuf 7 (and later) can use the v6 modules as is.
+elif _PROTOBUF_MAJOR >= 6:
     from .v6 import (
         auth_pb2,
         auth_pb2_grpc,
