@@ -25,8 +25,8 @@ class PollTimer:
                 Included in the TimeoutError message for easier debugging.
         """
         self._start = time.time()
-        self._timeout = timeout or datetime.timedelta(minutes=10)
-        self._interval = interval or datetime.timedelta(seconds=1)
+        self._timeout = timeout if timeout is not None else datetime.timedelta(minutes=10)
+        self._interval = interval if interval is not None else datetime.timedelta(seconds=1)
         self._context = context
 
     def sleep_interval_or_raise(self) -> float:
