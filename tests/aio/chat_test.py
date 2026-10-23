@@ -1473,7 +1473,7 @@ def test_chat_create_with_guidelines(client: AsyncClient):
         "grok-4.3",
         guidelines=[
             {"type": "policy", "category": "violence", "behavior": "decline"},
-            {"type": "policy", "category": "self_harm", "behavior": "offer_support"},
+            {"type": "policy", "category": "nsfw", "behavior": "decline"},
         ],
     )
 
@@ -1486,8 +1486,8 @@ def test_chat_create_with_guidelines(client: AsyncClient):
         ),
         chat_pb2.Guideline(
             policy=chat_pb2.PolicyGuideline(
-                category=chat_pb2.GUIDELINE_CATEGORY_SELF_HARM,
-                behavior=chat_pb2.GUIDELINE_BEHAVIOR_OFFER_SUPPORT,
+                category=chat_pb2.GUIDELINE_CATEGORY_NSFW,
+                behavior=chat_pb2.GUIDELINE_BEHAVIOR_DECLINE,
             )
         ),
     ]
@@ -1512,7 +1512,7 @@ def test_chat_create_without_guidelines_sends_none(client: AsyncClient):
 
 
 def test_chat_create_rejects_unknown_guideline_category(client: AsyncClient):
-    with pytest.raises(ValueError, match="Input should be 'sexual', 'violence', 'self_harm', 'illicit' or 'profanity'"):
+    with pytest.raises(ValueError, match="Input should be 'nsfw', 'violence' or 'profanity'"):
         client.chat.create(
             "grok-4.3",
             guidelines=[{"type": "policy", "category": "hate", "behavior": "decline"}],  # type: ignore[list-item]

@@ -16,17 +16,14 @@ DESCRIPTOR: _descriptor.FileDescriptor
 class GuidelineCategory(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     GUIDELINE_CATEGORY_INVALID: _ClassVar[GuidelineCategory]
-    GUIDELINE_CATEGORY_SEXUAL: _ClassVar[GuidelineCategory]
+    GUIDELINE_CATEGORY_NSFW: _ClassVar[GuidelineCategory]
     GUIDELINE_CATEGORY_VIOLENCE: _ClassVar[GuidelineCategory]
-    GUIDELINE_CATEGORY_SELF_HARM: _ClassVar[GuidelineCategory]
-    GUIDELINE_CATEGORY_ILLICIT: _ClassVar[GuidelineCategory]
     GUIDELINE_CATEGORY_PROFANITY: _ClassVar[GuidelineCategory]
 
 class GuidelineBehavior(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     GUIDELINE_BEHAVIOR_INVALID: _ClassVar[GuidelineBehavior]
     GUIDELINE_BEHAVIOR_DECLINE: _ClassVar[GuidelineBehavior]
-    GUIDELINE_BEHAVIOR_OFFER_SUPPORT: _ClassVar[GuidelineBehavior]
 
 class IncludeOption(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -106,14 +103,11 @@ class SearchMode(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     ON_SEARCH_MODE: _ClassVar[SearchMode]
     AUTO_SEARCH_MODE: _ClassVar[SearchMode]
 GUIDELINE_CATEGORY_INVALID: GuidelineCategory
-GUIDELINE_CATEGORY_SEXUAL: GuidelineCategory
+GUIDELINE_CATEGORY_NSFW: GuidelineCategory
 GUIDELINE_CATEGORY_VIOLENCE: GuidelineCategory
-GUIDELINE_CATEGORY_SELF_HARM: GuidelineCategory
-GUIDELINE_CATEGORY_ILLICIT: GuidelineCategory
 GUIDELINE_CATEGORY_PROFANITY: GuidelineCategory
 GUIDELINE_BEHAVIOR_INVALID: GuidelineBehavior
 GUIDELINE_BEHAVIOR_DECLINE: GuidelineBehavior
-GUIDELINE_BEHAVIOR_OFFER_SUPPORT: GuidelineBehavior
 INCLUDE_OPTION_INVALID: IncludeOption
 INCLUDE_OPTION_WEB_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT: IncludeOption

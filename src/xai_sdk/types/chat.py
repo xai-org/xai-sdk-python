@@ -58,16 +58,12 @@ AgentCountMap: dict[AgentCount, "chat_pb2.AgentCount"] = {
     16: chat_pb2.AgentCount.AGENT_COUNT_16,
 }
 
-GuidelineCategory: TypeAlias = Literal["sexual", "violence", "self_harm", "illicit", "profanity"]
-GuidelineBehavior: TypeAlias = Literal["decline", "offer_support"]
+GuidelineCategory: TypeAlias = Literal["nsfw", "violence", "profanity"]
+GuidelineBehavior: TypeAlias = Literal["decline"]
 
 
 class Guideline(TypedDict):
-    """One output guideline, in the same shape as the REST `guidelines` entries.
-
-    `behavior` must be one that `category` supports: `decline` for every category, and
-    `offer_support` only for `self_harm`.
-    """
+    """One output guideline, in the same shape as the REST `guidelines` entries."""
 
     type: Literal["policy"]
     category: GuidelineCategory
@@ -75,14 +71,11 @@ class Guideline(TypedDict):
 
 
 GuidelineCategoryMap: dict[GuidelineCategory, "chat_pb2.GuidelineCategory"] = {
-    "sexual": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_SEXUAL,
+    "nsfw": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_NSFW,
     "violence": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_VIOLENCE,
-    "self_harm": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_SELF_HARM,
-    "illicit": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_ILLICIT,
     "profanity": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_PROFANITY,
 }
 
 GuidelineBehaviorMap: dict[GuidelineBehavior, "chat_pb2.GuidelineBehavior"] = {
     "decline": chat_pb2.GuidelineBehavior.GUIDELINE_BEHAVIOR_DECLINE,
-    "offer_support": chat_pb2.GuidelineBehavior.GUIDELINE_BEHAVIOR_OFFER_SUPPORT,
 }
