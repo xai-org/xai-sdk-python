@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import inspect
 import os
-from typing import Any, AsyncIterator, BinaryIO, Callable, Iterator, Literal, Optional, Protocol, Union
+from typing import Any, AsyncIterator, Awaitable, BinaryIO, Callable, Iterator, Literal, Optional, Protocol, Union
 
 import grpc
 from pydantic import TypeAdapter
@@ -101,7 +101,14 @@ class ProgressBarLike(Protocol):
 
 
 # Type for progress tracking - either a callable or an object with update() method
-ProgressCallback = Union[Callable[[int, int], None], Callable[[int], None], ProgressBarLike, None]
+ProgressCallback = Union[
+    Callable[[int, int], None],
+    Callable[[int], None],
+    Callable[[int, int], Awaitable[None]],
+    Callable[[int], Awaitable[None]],
+    ProgressBarLike,
+    None,
+]
 
 # Type for batch upload completion callbacks
 BatchUploadCallback = Callable[[int, Union[str, BinaryIO], Union["files_pb2.File", BaseException]], None]
@@ -119,8 +126,11 @@ class BaseClient:
 
 def _invoke_progress(
     progress: ProgressCallback, chunk_size: int, cumulative_bytes: int, total_bytes: int | None = None
-) -> None:
+) -> Any:
     """Invoke progress callback, supporting both callable and tqdm-like objects.
+
+    Returns whatever the callback returned. The async upload path awaits that value when it is
+    awaitable, so an ``async def`` callback passed to ``AsyncClient.files.upload`` runs.
 
     Args:
         progress: Either a callable or an object with an update() method (like tqdm).
@@ -129,19 +139,28 @@ def _invoke_progress(
         total_bytes: Total number of bytes to upload (optional).
     """
     if progress is None:
-        return
+        return None
 
     # Check if it has an update method (tqdm-like object)
     if hasattr(progress, "update") and callable(getattr(progress, "update", None)):
         # tqdm expects incremental updates
-        progress.update(chunk_size)  # type: ignore
+        return progress.update(chunk_size)  # type: ignore
     # Check if it's a callable (function)
-    elif callable(progress):
+    if callable(progress):
         if _accepts_two_positional_args(progress):
-            progress(cumulative_bytes, total_bytes)  # type: ignore
-        else:
-            # Single-argument callables (e.g. tqdm.update) get the chunk size.
-            progress(chunk_size)  # type: ignore
+            return progress(cumulative_bytes, total_bytes)  # type: ignore
+        # Single-argument callables (e.g. tqdm.update) get the chunk size.
+        return progress(chunk_size)  # type: ignore
+    return None
+
+
+async def _async_invoke_progress(
+    progress: ProgressCallback, chunk_size: int, cumulative_bytes: int, total_bytes: int | None = None
+) -> None:
+    """Like `_invoke_progress`, and awaits the callback's result when it is awaitable."""
+    result = _invoke_progress(progress, chunk_size, cumulative_bytes, total_bytes)
+    if inspect.isawaitable(result):
+        await result
 
 
 # The documented progress callback shape is `(uploaded_bytes, total_bytes)`.
@@ -364,7 +383,7 @@ async def _async_chunk_file_data(
 
         yield files_pb2.UploadFileChunk(data=chunk_data)
 
-        _invoke_progress(progress, chunk_size, bytes_uploaded, total_bytes)
+        await _async_invoke_progress(progress, chunk_size, bytes_uploaded, total_bytes)
 
 
 async def _async_chunk_file_from_path(
@@ -415,7 +434,7 @@ async def _async_chunk_file_from_path(
 
             yield files_pb2.UploadFileChunk(data=chunk_data)
 
-            _invoke_progress(progress, chunk_size, bytes_uploaded, total_bytes)
+            await _async_invoke_progress(progress, chunk_size, bytes_uploaded, total_bytes)
 
 
 async def _async_chunk_file_from_fileobj(
@@ -473,4 +492,4 @@ async def _async_chunk_file_from_fileobj(
 
         yield files_pb2.UploadFileChunk(data=chunk_data)
 
-        _invoke_progress(progress, chunk_size, bytes_uploaded, total_bytes)
+        await _async_invoke_progress(progress, chunk_size, bytes_uploaded, total_bytes)
