@@ -499,6 +499,75 @@ In this example, the custom policy reduces the maximum number of attempts to 3, 
 
 Note that when setting a custom `grpc.service_config`, it will override the default retry policy.
 
+## Multiprocessing, gevent and Bundled Applications
+
+The xAI SDK talks to the API over gRPC, using the [`grpcio`](https://pypi.org/project/grpcio/) package, which is built on a C extension that runs its own background threads. A few runtime environments need extra care because of this.
+
+### Forked Worker Processes
+
+Creating a `Client` or `AsyncClient` opens gRPC channels, and gRPC channels can't safely be carried across a `fork()`. If a client is created in a parent process that then forks, using it in the child processes can hang or fail. This affects setups that fork worker processes after the application has started, such as `multiprocessing` or `concurrent.futures.ProcessPoolExecutor` with the `fork` start method (the default on Linux before Python 3.14), Celery's prefork pool, and Gunicorn with `--preload`.
+
+The recommended approach is to create the client inside each worker process, after it has been forked. Importing `xai_sdk` before forking is fine; it's creating the client that has to happen in the worker:
+
+```python
+from concurrent.futures import ProcessPoolExecutor
+
+from xai_sdk import Client
+from xai_sdk.chat import user
+
+client = None
+
+
+def init_worker():
+    # Runs once in each worker process, after it has been started.
+    global client
+    client = Client()
+
+
+def ask(question: str) -> str:
+    chat = client.chat.create(model="grok-4.6")
+    chat.append(user(question))
+    return chat.sample().content
+
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=4, initializer=init_worker) as executor:
+        for answer in executor.map(ask, ["What is 2 + 2?", "What is the capital of France?"]):
+            print(answer)
+```
+
+Popular frameworks provide hooks for the same pattern: create the client in a [`worker_process_init`](https://docs.celeryq.dev/en/stable/userguide/signals.html#worker-process-init) signal handler with Celery, or in the [`post_fork`](https://docs.gunicorn.org/en/stable/settings.html#post-fork) server hook (or without `--preload`) with Gunicorn. Alternatively, use the `spawn` or `forkserver` start method, for example `ProcessPoolExecutor(mp_context=multiprocessing.get_context("spawn"))`, so that worker processes don't inherit anything from the parent.
+
+If you can't avoid creating the client before forking, gRPC has limited fork support that can be enabled by setting the `GRPC_ENABLE_FORK_SUPPORT=true` and `GRPC_POLL_STRATEGY=poll` environment variables before starting the Python process. See gRPC's [fork support documentation](https://github.com/grpc/grpc/blob/master/doc/fork_support.md) for its limitations.
+
+### gevent
+
+If your application uses [gevent](https://www.gevent.org/), for example through Gunicorn's `gevent` worker class, call `grpc.experimental.gevent.init_gevent()` after gevent's monkey-patching and before creating a client, so that gRPC cooperates with the gevent event loop:
+
+```python
+from gevent import monkey
+
+monkey.patch_all()
+
+import grpc.experimental.gevent
+
+grpc.experimental.gevent.init_gevent()
+
+from xai_sdk import Client
+
+client = Client()
+```
+
+### PyInstaller and Other Bundlers
+
+Two of the SDK's dependencies load files that bundlers can't find through static import analysis: `grpcio` loads its root certificates from a `roots.pem` data file, and OpenTelemetry, which the SDK uses for tracing, loads its runtime context through package entry points. [`pyinstaller-hooks-contrib`](https://github.com/pyinstaller/pyinstaller-hooks-contrib) ships PyInstaller hooks for both (the OpenTelemetry hook since version 2024.5), so make sure it's up to date:
+
+```bash
+pip install --upgrade pyinstaller pyinstaller-hooks-contrib
+```
+
+With an older version, the bundled application fails as soon as it imports `xai_sdk`, with a `StopIteration` error raised from `opentelemetry/context/__init__.py` after a `Failed to load context` log message. When using another bundler, make sure it includes the data files of the `grpc` package, as well as the package metadata (entry points) of `opentelemetry-api` and `opentelemetry-sdk` along with the modules these entry points refer to.
+
 ## Accessing Underlying Proto Objects
 
 In rare cases, you might need to access the raw proto object returned from an API call. While the xAI SDK is designed to expose most commonly needed fields directly on the response objects for ease of use, there could be scenarios where accessing the underlying proto object is necessary for advanced or custom processing.
