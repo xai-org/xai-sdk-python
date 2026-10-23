@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Fixed
-- Allowed protobuf 7.x. The protobuf 7 runtime uses the v6 generated code, so the SDK installs alongside packages that require protobuf 7, such as Home Assistant 2026.10.
+- Allowed protobuf 7.x. The protobuf 7 runtime uses the v6 generated code, so the SDK installs alongside packages that require protobuf 7.
 
 ### Added
 - Added a `safety_identifier` parameter to `client.chat.create`. It is an opaque, stable string that your application assigns to the end user behind a request, so xAI can attribute a policy violation to that user instead of to your whole API key. Send a hash of your internal user ID, never an email address or display name. Same field as OpenAI's `safety_identifier`. The legacy `user` parameter is still accepted.
