@@ -1873,7 +1873,7 @@ requires-dist = [
     { name = "opentelemetry-exporter-otlp-proto-http", marker = "extra == 'telemetry-http'", specifier = ">=1.36.0,<2" },
     { name = "opentelemetry-sdk", specifier = ">=1.36.0,<2" },
     { name = "packaging", specifier = ">=25.0,<26" },
-    { name = "protobuf", specifier = ">=5.29.4,<7" },
+    { name = "protobuf", specifier = ">=5.29.4,<8" },
     { name = "pydantic", specifier = ">=2.5.3,<3" },
     { name = "requests", specifier = ">=2.31.0,<3" },
     { name = "typing-extensions", specifier = ">=4.14.0,<5" },

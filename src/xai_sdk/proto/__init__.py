@@ -34,7 +34,8 @@ if version.parse(google.protobuf.__version__).major == 5:
         video_pb2,
         video_pb2_grpc,
     )
-elif version.parse(google.protobuf.__version__).major == 6:
+# Protobuf 7 accepts gencode from older major versions, so it uses the v6 gencode.
+elif version.parse(google.protobuf.__version__).major in (6, 7):
     from .v6 import (
         auth_pb2,
         auth_pb2_grpc,
