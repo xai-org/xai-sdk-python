@@ -1,11 +1,18 @@
 from typing import Literal, TypeAlias, Union
 
+from typing_extensions import TypedDict
+
 from ..proto import chat_pb2
 
 __all__ = [
     "AgentCount",
     "AgentCountMap",
     "Content",
+    "Guideline",
+    "GuidelineBehavior",
+    "GuidelineBehaviorMap",
+    "GuidelineCategory",
+    "GuidelineCategoryMap",
     "ImageDetail",
     "IncludeOption",
     "IncludeOptionMap",
@@ -49,4 +56,26 @@ IncludeOptionMap: dict[IncludeOption, "chat_pb2.IncludeOption"] = {
 AgentCountMap: dict[AgentCount, "chat_pb2.AgentCount"] = {
     4: chat_pb2.AgentCount.AGENT_COUNT_4,
     16: chat_pb2.AgentCount.AGENT_COUNT_16,
+}
+
+GuidelineCategory: TypeAlias = Literal["nsfw", "violence", "profanity"]
+GuidelineBehavior: TypeAlias = Literal["decline"]
+
+
+class Guideline(TypedDict):
+    """One output guideline, in the same shape as the REST `guidelines` entries."""
+
+    type: Literal["policy"]
+    category: GuidelineCategory
+    behavior: GuidelineBehavior
+
+
+GuidelineCategoryMap: dict[GuidelineCategory, "chat_pb2.GuidelineCategory"] = {
+    "nsfw": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_NSFW,
+    "violence": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_VIOLENCE,
+    "profanity": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_PROFANITY,
+}
+
+GuidelineBehaviorMap: dict[GuidelineBehavior, "chat_pb2.GuidelineBehavior"] = {
+    "decline": chat_pb2.GuidelineBehavior.GUIDELINE_BEHAVIOR_DECLINE,
 }
