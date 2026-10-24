@@ -864,13 +864,22 @@ def image(image_url: str, *, detail: Optional[ImageDetail] = "auto") -> chat_pb2
     Returns:
         A `chat_pb2.Content` object representing the image content.
     """
-    pb_detail = image_pb2.ImageDetail.DETAIL_AUTO
-    if detail == "low":
-        pb_detail = image_pb2.ImageDetail.DETAIL_LOW
-    elif detail == "high":
-        pb_detail = image_pb2.ImageDetail.DETAIL_HIGH
+    return chat_pb2.Content(
+        image_url=image_pb2.ImageUrlContent(image_url=image_url, detail=_image_detail_to_proto(detail))
+    )
 
-    return chat_pb2.Content(image_url=image_pb2.ImageUrlContent(image_url=image_url, detail=pb_detail))
+
+def _image_detail_to_proto(detail: Optional[ImageDetail]) -> image_pb2.ImageDetail:
+    """Converts an `ImageDetail` literal to a proto. `None` means the server picks, the same as `"auto"`."""
+    match detail:
+        case None | "auto":
+            return image_pb2.ImageDetail.DETAIL_AUTO
+        case "low":
+            return image_pb2.ImageDetail.DETAIL_LOW
+        case "high":
+            return image_pb2.ImageDetail.DETAIL_HIGH
+        case _:
+            raise ValueError(f"Invalid image detail: {detail!r}. Must be one of: {list(ImageDetail.__args__)}")
 
 
 @overload

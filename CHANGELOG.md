@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Changed
 - `files.list` / `collections` listing helpers: a misspelled `order`, `sort_by`, or `metric_space` value now raises `ValueError` naming the accepted values, as the other literal parameters already do (`reasoning_effort`, `service_tier`, image options). Previously a typo such as `order="dsc"` silently fell back to the default ordering. `None` still means the default.
+- `xai_sdk.chat.image` raises `ValueError` for a `detail` value other than `"auto"`, `"low"`, `"high"`, or `None`, as the other literal parameters already do. Before, a misspelled value was sent as `"auto"`.
 
 ### Fixed
 - `AsyncClient.files.upload` awaits an `async def` progress callback; before, the coroutine was created and never awaited, so the callback body never ran and Python warned `coroutine ... was never awaited`. Sync callbacks and tqdm-like objects behave as before.
