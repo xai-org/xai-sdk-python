@@ -297,7 +297,9 @@ class Chat(BaseChat):
         )
 
         proto = chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput(index=i) for i in range(n)])
-        responses = [Response(proto, i) for i in range(n)]
+        # One proto holds every answer; the first Response receives the stream and the others read through it.
+        first = Response(proto, 0)
+        responses = [first, *(Response(proto, i, shared_with=first) for i in range(1, n))]
         first_chunk_received = False
 
         with tracer.start_as_current_span(
