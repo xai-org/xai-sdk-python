@@ -130,6 +130,18 @@ async def test_timeout_unary_stream():
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_timeout_stream_unary():
+    """Test that the client timeout also applies to stream-unary calls such as file uploads."""
+    with server.run_test_server(response_delay_seconds=2) as port:
+        client = AsyncClient(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1)
+
+        with pytest.raises(grpc.aio.AioRpcError) as exc:
+            await client.files.upload(b"hello world", filename="hello.txt")
+
+        assert exc.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED  # type: ignore
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_insecure_client_auth():
     """Test that insecure client works with auth interceptors."""
     with server.run_test_server() as port:
@@ -137,6 +149,17 @@ async def test_insecure_client_auth():
 
         api_key = await client.auth.get_api_key_info()
         assert api_key.redacted_api_key == "1**"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_insecure_client_auth_stream_unary():
+    """Test that insecure client attaches the API key to stream-unary calls such as file uploads."""
+    with server.run_test_server() as port:
+        client = AsyncClient(api_key=server.API_KEY, api_host=f"localhost:{port}", use_insecure_channel=True)
+
+        uploaded = await client.files.upload(b"hello world", filename="hello.txt")
+        assert uploaded.filename == "hello.txt"
+        assert uploaded.size == len(b"hello world")
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -174,6 +197,18 @@ async def test_insecure_client_timeout_unary_stream():
             chat.append(user("Hello, world!"))
             async for _, _ in chat.stream():
                 pass
+
+        assert exc.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED  # type: ignore
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_insecure_client_timeout_stream_unary():
+    """Test that insecure client timeout works for stream-unary calls such as file uploads."""
+    with server.run_test_server(response_delay_seconds=2) as port:
+        client = AsyncClient(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1, use_insecure_channel=True)
+
+        with pytest.raises(grpc.aio.AioRpcError) as exc:
+            await client.files.upload(b"hello world", filename="hello.txt")
 
         assert exc.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED  # type: ignore
 

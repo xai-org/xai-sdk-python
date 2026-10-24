@@ -8,6 +8,10 @@ from ..client import (
     create_channel_credentials,
 )
 from ..interceptors import (
+    StreamStreamAuthAioInterceptor,
+    StreamStreamTimeoutAioInterceptor,
+    StreamUnaryAuthAioInterceptor,
+    StreamUnaryTimeoutAioInterceptor,
     UnaryStreamAuthAioInterceptor,
     UnaryStreamTimeoutAioInterceptor,
     UnaryUnaryAuthAioInterceptor,
@@ -89,12 +93,16 @@ class Client(BaseClient):
         timeout_interceptors = [
             UnaryUnaryTimeoutAioInterceptor(timeout),
             UnaryStreamTimeoutAioInterceptor(timeout),
+            StreamUnaryTimeoutAioInterceptor(timeout),
+            StreamStreamTimeoutAioInterceptor(timeout),
         ]
 
         if use_insecure_channel:
             auth_interceptors = [
                 UnaryUnaryAuthAioInterceptor(api_key, metadata),
                 UnaryStreamAuthAioInterceptor(api_key, metadata),
+                StreamUnaryAuthAioInterceptor(api_key, metadata),
+                StreamStreamAuthAioInterceptor(api_key, metadata),
             ]
 
             channel = grpc.aio.insecure_channel(
