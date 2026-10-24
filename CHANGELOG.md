@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- `xai_sdk.chat.image` raises `ValueError` for a `detail` value other than `"auto"`, `"low"`, `"high"`, or `None`, as the other literal parameters already do. Before, a misspelled value was sent as `"auto"`.
 
 ## [v1.21.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.21.0) - 2026-10-23
 ### Added
