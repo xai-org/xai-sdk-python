@@ -145,34 +145,36 @@ class BaseClient:
 
 def _order_to_pb(order: Order | None) -> shared_pb2.Ordering:
     match order:
+        case None:
+            return shared_pb2.Ordering.ORDERING_UNKNOWN
         case "asc":
             return shared_pb2.Ordering.ORDERING_ASCENDING
         case "desc":
             return shared_pb2.Ordering.ORDERING_DESCENDING
         case _:
-            return shared_pb2.Ordering.ORDERING_UNKNOWN
+            raise ValueError(f"Invalid order: {order!r}. Must be one of: {list(Order.__args__)}")
 
 
 def _collection_sort_by_to_pb(sort_by: CollectionSortBy | None) -> collections_pb2.CollectionsSortBy:
     match sort_by:
-        case "name":
+        case None | "name":
             return collections_pb2.CollectionsSortBy.COLLECTIONS_SORT_BY_NAME
         case "age":
             return collections_pb2.CollectionsSortBy.COLLECTIONS_SORT_BY_AGE
         case _:
-            return collections_pb2.CollectionsSortBy.COLLECTIONS_SORT_BY_NAME
+            raise ValueError(f"Invalid sort_by: {sort_by!r}. Must be one of: {list(CollectionSortBy.__args__)}")
 
 
 def _document_sort_by_to_pb(sort_by: DocumentSortBy | None) -> collections_pb2.DocumentsSortBy:
     match sort_by:
-        case "name":
+        case None | "name":
             return collections_pb2.DocumentsSortBy.DOCUMENTS_SORT_BY_NAME
         case "age":
             return collections_pb2.DocumentsSortBy.DOCUMENTS_SORT_BY_AGE
         case "size":
             return collections_pb2.DocumentsSortBy.DOCUMENTS_SORT_BY_SIZE
         case _:
-            return collections_pb2.DocumentsSortBy.DOCUMENTS_SORT_BY_NAME
+            raise ValueError(f"Invalid sort_by: {sort_by!r}. Must be one of: {list(DocumentSortBy.__args__)}")
 
 
 def _field_definition_to_pb(field_definition: FieldDefinition) -> collections_pb2.FieldDefinition:
@@ -208,7 +210,7 @@ def _hnsw_metric_to_pb(metric: HNSWMetric) -> types_pb2.HNSWMetric:
         case "inner_product":
             return types_pb2.HNSWMetric.HNSW_METRIC_INNER_PRODUCT
         case _:
-            return types_pb2.HNSWMetric.HNSW_METRIC_UNKNOWN
+            raise ValueError(f"Invalid metric: {metric!r}. Must be one of: {list(HNSWMetric.__args__)}")
 
 
 def _validate_chunk_configuration(chunk_config: ChunkConfiguration) -> None:
