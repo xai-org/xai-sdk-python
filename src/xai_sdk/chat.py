@@ -1238,9 +1238,22 @@ class ImageGenerationOutput(ProtoDecorator[chat_pb2.CompletionOutput]):
 
 
 class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]):
-    def __init__(self, proto: chat_pb2.GetChatCompletionResponse) -> None:
-        """Initialize with proto and content buffers for efficient accumulation."""
+    def __init__(
+        self,
+        proto: chat_pb2.GetChatCompletionResponse,
+        *,
+        shared_with: Optional["_ResponseProtoDecorator"] = None,
+    ) -> None:
+        """Initialize with proto and content buffers for efficient accumulation.
+
+        Args:
+            proto: The response proto to wrap.
+            shared_with: Another decorator over the same proto that receives the stream through
+                `process_chunk`. Several `Response` objects can expose different answers of one
+                streamed proto; the buffers live on one of them, and the others read through it.
+        """
         super().__init__(proto)
+        self._shared_with = shared_with
         # Buffers for efficient string accumulation: dict[output_index, [chunk_ones_content, chunk_twos_content, ...]]
         # for chunks with the same index
         self._content_buffers: dict[int, list[str]] = defaultdict(list)
@@ -1250,6 +1263,9 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
 
     def _sync_buffers_to_proto(self) -> None:
         """Materialize buffered content into proto messages."""
+        if self._shared_with is not None:
+            self._shared_with._sync_buffers_to_proto()
+            return
         if self._proto_in_sync:
             return
 
@@ -1277,6 +1293,9 @@ class _ResponseProtoDecorator(ProtoDecorator[chat_pb2.GetChatCompletionResponse]
         return self._proto
 
     def process_chunk(self, chunk: chat_pb2.GetChatCompletionChunk):
+        if self._shared_with is not None:
+            self._shared_with.process_chunk(chunk)
+            return
         # Consolidate the response.
         self._proto.usage.CopyFrom(chunk.usage)
         self._proto.created.CopyFrom(chunk.created)
@@ -1325,7 +1344,13 @@ class Response(_ResponseProtoDecorator):
     # a single answer from the response proto.
     _index: int | None
 
-    def __init__(self, response: chat_pb2.GetChatCompletionResponse, index: int | None) -> None:
+    def __init__(
+        self,
+        response: chat_pb2.GetChatCompletionResponse,
+        index: int | None,
+        *,
+        shared_with: Optional["Response"] = None,
+    ) -> None:
         """Initializes a new instance of the `Response` class.
 
         Args:
@@ -1333,8 +1358,11 @@ class Response(_ResponseProtoDecorator):
             index: The index of the answer this class exposes via its convenience methods.
                 If set to None, the response will expose all answers, the content and reasoning content
                 will be only from the assistant response.
+            shared_with: Another `Response` over the same proto that receives the stream through
+                `process_chunk`. Used by `stream_batch`, where one proto holds every answer and each
+                `Response` exposes one of them.
         """
-        super().__init__(response)
+        super().__init__(response, shared_with=shared_with)
         self._index = index
 
     def _get_output(self, *, sync: bool = False) -> chat_pb2.CompletionOutput:

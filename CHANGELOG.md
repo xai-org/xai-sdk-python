@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- `chat.stream_batch`: every `Response` in the yielded sequence now reads the streamed content as it arrives. Before, only the first `Response` received the chunks, so `responses[1].content` was empty until `responses[0].content` had been read.
+
 
 ## [v1.21.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.21.0) - 2026-10-23
 ### Added

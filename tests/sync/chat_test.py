@@ -126,6 +126,27 @@ def test_streaming_batch(client: Client):
     assert last_response[1].content == "Hello, this is a test response!"
 
 
+def test_stream_batch_every_response_reads_the_stream_as_it_arrives(client: Client):
+    # One proto holds every answer of a streamed batch. Reading a later answer's content before
+    # touching the first one must return what has streamed so far, not an empty string.
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("test message"))
+
+    seen_second: list[str] = []
+    for responses, _ in chat.stream_batch(2):
+        seen_second.append(responses[1].content)
+    assert seen_second[1] == "Hello, "
+    assert seen_second[-1] == "Hello, this is a test response!"
+
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("test message"))
+    *_, (responses, _) = chat.stream_batch(2)
+    # The second answer first, while the first answer's buffers are still unread.
+    assert responses[1].content == "Hello, this is a test response!"
+    assert responses[1].role == "ROLE_ASSISTANT"
+    assert responses[0].content == "Hello, this is a test response!"
+
+
 def test_function_calling(client: Client):
     chat = client.chat.create(
         "grok-3-latest",
