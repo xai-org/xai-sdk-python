@@ -651,12 +651,18 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         Returns:
             The potentially updated index value (None if multi-output mode is detected, otherwise unchanged).
         """
-        if index == 0 and outputs:
-            max_output_index = max(output.index for output in outputs)
-            if max_output_index > 0:
-                # Server is using multi-output mode (likely added tools implicitly)
-                return None
-        return index
+        return _auto_detect_multi_output_index(index, outputs)
+
+    def _single_output_index(
+        self, outputs: Sequence[Union[chat_pb2.CompletionOutput, chat_pb2.CompletionOutputChunk]]
+    ) -> Optional[int]:
+        """Returns the output index to expose for a request that asked for a single completion (`n=1`).
+
+        Requests that use server-side tools (explicitly or implicitly added by the server) produce several
+        outputs, in which case `None` exposes all assistant outputs; otherwise the only output has index 0.
+        """
+        index = None if self._uses_server_side_tools() else 0
+        return self._auto_detect_multi_output_mode(index, outputs)
 
     @property
     def messages(self) -> Sequence[chat_pb2.Message]:
@@ -673,6 +679,21 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
     def _apply_compaction(self, response: "CompactContextResponse") -> None:
         """Replaces all messages with the compaction message to reduce payload size."""
         self.append(response)
+
+
+def _auto_detect_multi_output_index(
+    index: Optional[int], outputs: Sequence[Union[chat_pb2.CompletionOutput, chat_pb2.CompletionOutputChunk]]
+) -> Optional[int]:
+    """Switches from single-output mode (index=0) to multi-output mode (index=None) if `outputs` requires it.
+
+    See `BaseChat._auto_detect_multi_output_mode`.
+    """
+    if index == 0 and outputs:
+        max_output_index = max(output.index for output in outputs)
+        if max_output_index > 0:
+            # Server is using multi-output mode (likely added tools implicitly)
+            return None
+    return index
 
 
 def user(*args: Content) -> chat_pb2.Message:

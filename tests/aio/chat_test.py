@@ -156,6 +156,20 @@ async def test_deferred_batch(client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_deferred_server_side_tools(client):
+    chat = client.chat.create("grok-4", tools=[web_search()])
+    chat.append(user("What is the weather in London?"))
+    response = await chat.defer()
+
+    assert response.content == "I am searching."
+    assert response.finish_reason == "REASON_STOP"
+    assert response.role == "ROLE_ASSISTANT"
+    assert len(response.tool_calls) == 1
+    assert response.tool_calls[0].function.name == "web_search"
+    assert len(response.tool_outputs) == 1
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_function_calling(client):
     chat = client.chat.create(
         "grok-3-latest",

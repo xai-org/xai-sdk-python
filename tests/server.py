@@ -646,7 +646,12 @@ class ChatServicer(chat_pb2_grpc.ChatServicer):
             ),
         )
 
-        for i in range(self._deferred_requests[request.request_id][0].n):
+        deferred_request = self._deferred_requests[request.request_id][0]
+        if len(deferred_request.tools) > 0 and _use_server_side_tools(deferred_request):
+            _add_server_side_tool_outputs(deferred_request, response.response)
+            return response
+
+        for i in range(deferred_request.n):
             response.response.outputs.add(
                 finish_reason=sample_pb2.FinishReason.REASON_MAX_CONTEXT,
                 index=i,
@@ -1588,21 +1593,28 @@ class BatchMgmtServicer(batch_pb2_grpc.BatchMgmtServicer):
 
     def _create_batch_result(self, req: batch_pb2.BatchRequest) -> batch_pb2.BatchResult:
         """Create a mock result for a batch request."""
+        completion_request = req.completion_request
+        if len(completion_request.tools) > 0 and _use_server_side_tools(completion_request):
+            outputs = chat_pb2.GetChatCompletionResponse()
+            _add_server_side_tool_outputs(completion_request, outputs)
+            outputs = list(outputs.outputs)
+        else:
+            outputs = [
+                chat_pb2.CompletionOutput(
+                    index=0,
+                    message=chat_pb2.CompletionMessage(
+                        content="test-content",
+                        role=chat_pb2.MessageRole.ROLE_ASSISTANT,
+                    ),
+                    finish_reason=sample_pb2.FinishReason.REASON_STOP,
+                )
+            ]
         return batch_pb2.BatchResult(
             batch_request_id=req.batch_request_id or f"req_{uuid.uuid4()}",
             response=batch_pb2.BatchResultData(
                 completion_response=chat_pb2.GetChatCompletionResponse(
                     id=f"{uuid.uuid4()}",
-                    outputs=[
-                        chat_pb2.CompletionOutput(
-                            index=0,
-                            message=chat_pb2.CompletionMessage(
-                                content="test-content",
-                                role=chat_pb2.MessageRole.ROLE_ASSISTANT,
-                            ),
-                            finish_reason=sample_pb2.FinishReason.REASON_STOP,
-                        )
-                    ],
+                    outputs=outputs,
                     created=timestamp_pb2.Timestamp(seconds=int(time.time())),
                     model=req.completion_request.model,
                     system_fingerprint="dummy-fingerprint",

@@ -5,6 +5,7 @@ import pytest_asyncio
 from xai_sdk import AsyncClient
 from xai_sdk.chat import Response, user
 from xai_sdk.proto import batch_pb2, chat_pb2
+from xai_sdk.tools import web_search
 
 from .. import server
 
@@ -272,6 +273,26 @@ async def test_list_batches(client: AsyncClient):
             assert batch.name == "batch_1"
         elif batch.batch_id == batch2.batch_id:
             assert batch.name == "batch_2"
+
+
+@pytest.mark.asyncio
+async def test_list_batch_results_server_side_tools(client: AsyncClient):
+    """Results of requests that use server-side tools expose the final answer, not the first tool call."""
+    batch = await client.batch.create("test_batch")
+
+    chat = client.chat.create(model="grok-4", batch_request_id="req_tools", tools=[web_search()])
+    chat.append(user("What is the weather in London?"))
+    await client.batch.add(batch.batch_id, [chat])
+
+    batch_results = await client.batch.list_batch_results(batch.batch_id)
+
+    assert len(batch_results.results) == 1
+    response = batch_results.results[0].response
+    assert response.content == "I am searching."
+    assert response.finish_reason == "REASON_STOP"
+    assert len(response.tool_calls) == 1
+    assert response.tool_calls[0].function.name == "web_search"
+    assert len(response.tool_outputs) == 1
 
 
 @pytest.mark.asyncio
