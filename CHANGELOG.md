@@ -4,6 +4,9 @@
 ### Added
 - Added the `cyber` guideline category and the `allow` behavior. `{"type": "policy", "category": "cyber", "behavior": "allow"}` is accepted only for API keys enabled for it; other keys get `PERMISSION_DENIED`. `nsfw`, `violence`, and `profanity` still accept only `decline`.
 
+### Fixed
+- Added the `py.typed` marker, so type checkers use the SDK's annotations. The package has declared `Typing :: Typed` since its first release but never shipped the marker, so mypy reported `module is installed, but missing library stubs or py.typed marker` and typed every `xai_sdk` import as `Any`.
+
 ## [v1.21.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.21.0) - 2026-10-23
 ### Added
 - Added a `guidelines` parameter to `client.chat.create` for custom moderation controls. Each entry is a dict such as `{"type": "policy", "category": "violence", "behavior": "decline"}`, the same shape as the REST `guidelines` field. The categories are `nsfw`, `violence`, and `profanity`, and the behavior is `decline`. A category you omit keeps the model's default behavior. An unknown category or behavior raises `ValueError`. The API returns `INVALID_ARGUMENT` for a repeated category or a request that cannot use guidelines, such as a multi-agent model, `stop`, or `defer()`.
