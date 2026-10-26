@@ -6,6 +6,7 @@
 ### Added
 - Added a `guidelines` parameter to `client.chat.create` for custom moderation controls. Each entry is a dict such as `{"type": "policy", "category": "violence", "behavior": "decline"}`, the same shape as the REST `guidelines` field. The categories are `nsfw`, `violence`, and `profanity`, and the behavior is `decline`. A category you omit keeps the model's default behavior. An unknown category or behavior raises `ValueError`. The API returns `INVALID_ARGUMENT` for a repeated category or a request that cannot use guidelines, such as a multi-agent model, `stop`, or `defer()`.
 - Added a `safety_identifier` parameter to `client.chat.create`. It is an opaque, stable string that your application assigns to the end user behind a request, so xAI can attribute a policy violation to that user instead of to your whole API key. Send a hash of your internal user ID, never an email address or display name. Same field as OpenAI's `safety_identifier`. The legacy `user` parameter is still accepted.
+- **Text to Speech (TTS)**: Added first-class sync and async TTS clients (`client.tts`) for the public REST Voice/TTS APIs — `synthesize` (`POST /v1/tts`), `list_voices` / `get_voice` (`GET /v1/tts/voices`), typed response models, client-side validation, and support for raw audio bytes or `with_timestamps` JSON envelopes.
 
 ### Fixed
 - Allowed protobuf 7.x. The protobuf 7 runtime uses the v6 generated code, so the SDK installs alongside packages that require protobuf 7.
