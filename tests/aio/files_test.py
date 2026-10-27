@@ -4,6 +4,7 @@ import datetime
 import io
 import os
 import tempfile
+import warnings
 from unittest import mock
 
 import pytest
@@ -182,6 +183,30 @@ async def test_upload_with_progress_callback(client_with_mock_stub: AsyncClient,
         assert last_total == data_size
     finally:
         os.unlink(temp_file_path)
+
+
+@pytest.mark.asyncio
+async def test_upload_awaits_an_async_progress_callback(client_with_mock_stub: AsyncClient, mock_stub):
+    """An `async def` callback runs on every chunk instead of leaving unawaited coroutines behind."""
+    data = b"X" * (4 * 1024 * 1024)
+    calls: list[tuple[int, int | None]] = []
+
+    async def progress(uploaded: int, total: int | None) -> None:
+        calls.append((uploaded, total))
+
+    async def consume_chunks(chunks):
+        async for _ in chunks:
+            pass
+        return files_pb2.File(id="file-1")
+
+    mock_stub.UploadFile.side_effect = consume_chunks
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", RuntimeWarning)
+        await client_with_mock_stub.files.upload(data, filename="test.bin", on_progress=progress)
+
+    assert calls[-1] == (len(data), len(data))
+    assert len(calls) == 2
 
 
 @pytest.mark.asyncio

@@ -1,7 +1,7 @@
 import pytest
 
-from xai_sdk.chat import CompactContextResponse, Response, _agent_count_to_proto, developer
-from xai_sdk.proto import chat_pb2, sample_pb2, usage_pb2
+from xai_sdk.chat import CompactContextResponse, Response, _agent_count_to_proto, developer, image
+from xai_sdk.proto import chat_pb2, image_pb2, sample_pb2, usage_pb2
 from xai_sdk.tools import get_tool_call_type
 
 
@@ -720,6 +720,28 @@ def test_agent_count_to_proto_invalid():
     """Test that an invalid agent_count raises ValueError."""
     with pytest.raises(ValueError, match="Invalid agent count"):
         _agent_count_to_proto(8)
+
+
+@pytest.mark.parametrize(
+    ("detail", "expected"),
+    [
+        ("auto", image_pb2.ImageDetail.DETAIL_AUTO),
+        (None, image_pb2.ImageDetail.DETAIL_AUTO),
+        ("low", image_pb2.ImageDetail.DETAIL_LOW),
+        ("high", image_pb2.ImageDetail.DETAIL_HIGH),
+    ],
+)
+def test_image_detail_maps_to_proto(detail, expected):
+    content = image("https://example.com/image.jpg", detail=detail)
+    assert content.image_url.detail == expected
+
+
+@pytest.mark.parametrize("detail", ["hgh", "HIGH", "medium", ""])
+def test_image_rejects_an_unknown_detail(detail):
+    # Every other literal in the chat API raises on a misspelling; a silent fall back to "auto"
+    # would send a different resolution than the caller asked for.
+    with pytest.raises(ValueError, match="Invalid image detail"):
+        image("https://example.com/image.jpg", detail=detail)  # type: ignore[arg-type]
 
 
 def test_agent_count_on_request_proto():
