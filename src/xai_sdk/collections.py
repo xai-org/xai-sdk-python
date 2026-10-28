@@ -110,6 +110,25 @@ class BytesConfiguration(TypedDict):
     chunk_overlap_bytes: int
 
 
+class DocumentUpload(TypedDict):
+    """A single document to upload as part of a batch upload.
+
+    - name: The name of the document.
+    - data: The raw bytes of the document.
+    - fields: Optional additional metadata fields to store with the document.
+    """
+
+    name: str
+    data: bytes
+    fields: NotRequired[Optional[dict[str, str]]]
+
+
+# Default number of concurrent workers used by batch document uploads. Kept
+# conservative so that callers do not accidentally overwhelm the service or
+# trip server-side rate limits; callers can raise it explicitly if needed.
+DEFAULT_UPLOAD_MAX_WORKERS = 4
+
+
 # Create TypeAdapter instances for validation
 FieldDefinitionValidator = TypeAdapter(FieldDefinition)
 FieldDefinitionAddValidator = TypeAdapter(FieldDefinitionAdd)
