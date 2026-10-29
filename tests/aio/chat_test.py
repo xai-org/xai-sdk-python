@@ -96,6 +96,53 @@ async def test_streaming(client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_stream_cancel_cancels_underlying_rpc(client):
+    class CancelableAsyncStream:
+        def __init__(self, chunks):
+            self._chunks = list(chunks)
+            self.cancelled = False
+
+        def __aiter__(self):
+            return self
+
+        async def __anext__(self):
+            if self.cancelled or not self._chunks:
+                raise StopAsyncIteration
+            return self._chunks.pop(0)
+
+        def cancel(self):
+            self.cancelled = True
+            return True
+
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("test message"))
+    fake_rpc_stream = CancelableAsyncStream(
+        [
+            chat_pb2.GetChatCompletionChunk(
+                outputs=[
+                    chat_pb2.CompletionOutputChunk(
+                        delta=chat_pb2.Delta(content="Hello, ", role=chat_pb2.ROLE_ASSISTANT),
+                        index=0,
+                    )
+                ]
+            )
+        ]
+    )
+
+    with mock.patch.object(chat._stub, "GetCompletionChunk", return_value=fake_rpc_stream):
+        stream = chat.stream()
+        _, chunk = await stream.__anext__()
+
+        assert chunk.content == "Hello, "
+        assert stream.cancel() is True
+        assert stream.cancelled is True
+        assert fake_rpc_stream.cancelled is True
+
+        with pytest.raises(StopAsyncIteration):
+            await stream.__anext__()
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_streaming_batch(client):
     chat = client.chat.create("grok-3-latest")
     chat.append(user("test message"))
