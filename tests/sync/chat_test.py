@@ -1500,6 +1500,22 @@ def test_chat_create_with_guidelines(client: Client):
     ]
 
 
+def test_chat_create_with_cyber_allow_guideline(client: Client):
+    chat = client.chat.create(
+        "grok-4.3",
+        guidelines=[{"type": "policy", "category": "cyber", "behavior": "allow"}],
+    )
+
+    assert list(chat.proto.guidelines) == [
+        chat_pb2.Guideline(
+            policy=chat_pb2.PolicyGuideline(
+                category=chat_pb2.GUIDELINE_CATEGORY_CYBER,
+                behavior=chat_pb2.GUIDELINE_BEHAVIOR_ALLOW,
+            )
+        ),
+    ]
+
+
 def test_chat_create_with_guideline_proto(client: Client):
     guideline = chat_pb2.Guideline(
         policy=chat_pb2.PolicyGuideline(
@@ -1519,7 +1535,7 @@ def test_chat_create_without_guidelines_sends_none(client: Client):
 
 
 def test_chat_create_rejects_unknown_guideline_category(client: Client):
-    with pytest.raises(ValueError, match="Input should be 'nsfw', 'violence' or 'profanity'"):
+    with pytest.raises(ValueError, match="Input should be 'nsfw', 'violence', 'profanity' or 'cyber'"):
         client.chat.create(
             "grok-4.3",
             guidelines=[{"type": "policy", "category": "hate", "behavior": "decline"}],  # type: ignore[list-item]
