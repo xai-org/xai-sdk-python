@@ -403,9 +403,11 @@ class Chat(BaseChat):
                 r = self._stub.GetDeferredCompletion(deferred_pb2.GetDeferredRequest(request_id=response.request_id))
                 match r.status:
                     case deferred_pb2.DeferredStatus.DONE:
-                        span.set_attributes(
-                            self._make_span_response_attributes([Response(r.response, i) for i in range(n)])
-                        )
+                        if n == 1:
+                            responses = [Response(r.response, self._single_output_index(r.response.outputs))]
+                        else:
+                            responses = [Response(r.response, i) for i in range(n)]
+                        span.set_attributes(self._make_span_response_attributes(responses))
                         return r.response
                     case deferred_pb2.DeferredStatus.EXPIRED:
                         raise RuntimeError("Deferred request expired.")
@@ -440,7 +442,7 @@ class Chat(BaseChat):
             "Hi there!"
         """
         response = self._defer(1, timeout, interval)
-        return Response(response, 0)
+        return Response(response, self._single_output_index(response.outputs))
 
     def defer_batch(
         self, n: int, *, timeout: Optional[datetime.timedelta] = None, interval: Optional[datetime.timedelta] = None

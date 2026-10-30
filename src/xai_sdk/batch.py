@@ -2,7 +2,7 @@ from typing import Optional, Sequence, Union
 
 import grpc
 
-from .chat import Response
+from .chat import Response, _auto_detect_multi_output_index
 from .image import BaseImageResponse
 from .meta import ProtoDecorator
 from .proto import batch_pb2, batch_pb2_grpc
@@ -59,7 +59,10 @@ class BatchResult(ProtoDecorator[batch_pb2.BatchResult]):
     @property
     def response(self) -> Response:
         """The chat completion response from processing this batch request."""
-        return Response(self.proto.response.completion_response, 0)
+        completion_response = self.proto.response.completion_response
+        # Batch requests sample a single completion, but server-side tools make the server return several outputs
+        # (tool call, tool result, final answer). Expose all assistant outputs in that case, like `chat.sample()`.
+        return Response(completion_response, _auto_detect_multi_output_index(0, completion_response.outputs))
 
     @property
     def image_response(self) -> BaseImageResponse:
