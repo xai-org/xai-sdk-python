@@ -18,11 +18,13 @@ class GuidelineCategory(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     GUIDELINE_CATEGORY_NSFW: _ClassVar[GuidelineCategory]
     GUIDELINE_CATEGORY_VIOLENCE: _ClassVar[GuidelineCategory]
     GUIDELINE_CATEGORY_PROFANITY: _ClassVar[GuidelineCategory]
+    GUIDELINE_CATEGORY_CYBER: _ClassVar[GuidelineCategory]
 
 class GuidelineBehavior(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     GUIDELINE_BEHAVIOR_INVALID: _ClassVar[GuidelineBehavior]
     GUIDELINE_BEHAVIOR_DECLINE: _ClassVar[GuidelineBehavior]
+    GUIDELINE_BEHAVIOR_ALLOW: _ClassVar[GuidelineBehavior]
 
 class IncludeOption(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
@@ -105,8 +107,10 @@ GUIDELINE_CATEGORY_INVALID: GuidelineCategory
 GUIDELINE_CATEGORY_NSFW: GuidelineCategory
 GUIDELINE_CATEGORY_VIOLENCE: GuidelineCategory
 GUIDELINE_CATEGORY_PROFANITY: GuidelineCategory
+GUIDELINE_CATEGORY_CYBER: GuidelineCategory
 GUIDELINE_BEHAVIOR_INVALID: GuidelineBehavior
 GUIDELINE_BEHAVIOR_DECLINE: GuidelineBehavior
+GUIDELINE_BEHAVIOR_ALLOW: GuidelineBehavior
 INCLUDE_OPTION_INVALID: IncludeOption
 INCLUDE_OPTION_WEB_SEARCH_CALL_OUTPUT: IncludeOption
 INCLUDE_OPTION_X_SEARCH_CALL_OUTPUT: IncludeOption

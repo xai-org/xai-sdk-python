@@ -58,8 +58,8 @@ AgentCountMap: dict[AgentCount, "chat_pb2.AgentCount"] = {
     16: chat_pb2.AgentCount.AGENT_COUNT_16,
 }
 
-GuidelineCategory: TypeAlias = Literal["nsfw", "violence", "profanity"]
-GuidelineBehavior: TypeAlias = Literal["decline"]
+GuidelineCategory: TypeAlias = Literal["nsfw", "violence", "profanity", "cyber"]
+GuidelineBehavior: TypeAlias = Literal["decline", "allow"]
 
 
 class Guideline(TypedDict):
@@ -74,8 +74,10 @@ GuidelineCategoryMap: dict[GuidelineCategory, "chat_pb2.GuidelineCategory"] = {
     "nsfw": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_NSFW,
     "violence": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_VIOLENCE,
     "profanity": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_PROFANITY,
+    "cyber": chat_pb2.GuidelineCategory.GUIDELINE_CATEGORY_CYBER,
 }
 
 GuidelineBehaviorMap: dict[GuidelineBehavior, "chat_pb2.GuidelineBehavior"] = {
     "decline": chat_pb2.GuidelineBehavior.GUIDELINE_BEHAVIOR_DECLINE,
+    "allow": chat_pb2.GuidelineBehavior.GUIDELINE_BEHAVIOR_ALLOW,
 }
