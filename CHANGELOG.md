@@ -3,6 +3,9 @@
 ## [Unreleased]
 ### Added
 - Added the `cyber` guideline category and the `allow` behavior. `{"type": "policy", "category": "cyber", "behavior": "allow"}` is accepted only for API keys enabled for it; other keys get `PERMISSION_DENIED`. `nsfw`, `violence`, and `profanity` still accept only `decline`.
+### Fixed
+- `chat.stream_batch`: every `Response` in the yielded sequence now reads the streamed content as it arrives. Before, only the first `Response` received the chunks, so `responses[1].content` was empty until `responses[0].content` had been read.
+
 
 ## [v1.21.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.21.0) - 2026-10-23
 ### Added

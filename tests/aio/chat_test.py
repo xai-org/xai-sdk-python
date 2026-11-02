@@ -137,6 +137,24 @@ async def test_streaming_batch(client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_stream_batch_every_response_reads_the_stream_as_it_arrives(client: AsyncClient):
+    # One proto holds every answer of a streamed batch. Reading a later answer's content before
+    # touching the first one must return what has streamed so far, not an empty string.
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("test message"))
+
+    seen_second: list[str] = []
+    last_responses = None
+    async for responses, _ in chat.stream_batch(2):
+        seen_second.append(responses[1].content)
+        last_responses = responses
+    assert seen_second[1] == "Hello, "
+    assert seen_second[-1] == "Hello, this is a test response!"
+    assert last_responses is not None
+    assert last_responses[1].role == "ROLE_ASSISTANT"
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_deferred(client):
     chat = client.chat.create("grok-3-latest")
     chat.append(user("test message"))
