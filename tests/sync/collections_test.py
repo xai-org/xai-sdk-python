@@ -9,7 +9,17 @@ from opentelemetry.trace import SpanKind
 from pydantic import ValidationError
 
 from xai_sdk import Client
-from xai_sdk.collections import ChunkConfiguration, CollectionSortBy, DocumentSortBy, HNSWMetric, Order
+from xai_sdk.collections import (
+    ChunkConfiguration,
+    CollectionSortBy,
+    DocumentSortBy,
+    HNSWMetric,
+    Order,
+    _collection_sort_by_to_pb,
+    _document_sort_by_to_pb,
+    _hnsw_metric_to_pb,
+    _order_to_pb,
+)
 from xai_sdk.proto import collections_pb2, shared_pb2, types_pb2
 
 from .. import server
@@ -1158,3 +1168,19 @@ def test_update_document_creates_span_with_attributes(mock_tracer: mock.MagicMoc
     )
     mock_span.set_attribute.assert_any_call("document.id", document_metadata.file_metadata.file_id)
     mock_span.set_attribute.assert_any_call("document.name", new_name)
+
+
+def test_unknown_order_sort_by_and_metric_are_rejected():
+    """A misspelled value raises instead of silently falling back to the default or UNKNOWN."""
+    with pytest.raises(ValueError, match="Invalid order: 'dsc'"):
+        _order_to_pb("dsc")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="Invalid sort_by: 'names'"):
+        _collection_sort_by_to_pb("names")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="Invalid sort_by: 'created'"):
+        _document_sort_by_to_pb("created")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="Invalid metric: 'cos'"):
+        _hnsw_metric_to_pb("cos")  # type: ignore[arg-type]
+    # None keeps meaning "server default".
+    assert _order_to_pb(None) == shared_pb2.Ordering.ORDERING_UNKNOWN
+    assert _collection_sort_by_to_pb(None) == collections_pb2.CollectionsSortBy.COLLECTIONS_SORT_BY_NAME
+    assert _document_sort_by_to_pb(None) == collections_pb2.DocumentsSortBy.DOCUMENTS_SORT_BY_NAME

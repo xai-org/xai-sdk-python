@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - Added the `cyber` guideline category and the `allow` behavior. `{"type": "policy", "category": "cyber", "behavior": "allow"}` is accepted only for API keys enabled for it; other keys get `PERMISSION_DENIED`. `nsfw`, `violence`, and `profanity` still accept only `decline`.
+### Changed
+- `files.list` / `collections` listing helpers: a misspelled `order`, `sort_by`, or `metric_space` value now raises `ValueError` naming the accepted values, as the other literal parameters already do (`reasoning_effort`, `service_tier`, image options). Previously a typo such as `order="dsc"` silently fell back to the default ordering. `None` still means the default.
 
 ## [v1.21.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.21.0) - 2026-10-23
 ### Added
