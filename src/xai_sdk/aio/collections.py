@@ -8,11 +8,13 @@ from opentelemetry.trace import SpanKind
 from ..collections import (
     DEFAULT_INDEXING_POLL_INTERVAL,
     DEFAULT_INDEXING_TIMEOUT,
+    DEFAULT_UPLOAD_MAX_WORKERS,
     BaseClient,
     ChunkConfiguration,
     CollectionSortBy,
     DocumentRetrievalMode,
     DocumentSortBy,
+    DocumentUpload,
     FieldDefinition,
     FieldDefinitionUpdate,
     HNSWMetric,
@@ -434,6 +436,82 @@ class Client(BaseClient):
                         stacklevel=2,
                     )
                     await asyncio.sleep(timer.sleep_interval_or_raise())
+
+    async def upload_documents(
+        self,
+        collection_id: str,
+        documents: Sequence[DocumentUpload],
+        *,
+        max_workers: int = DEFAULT_UPLOAD_MAX_WORKERS,
+        wait_for_indexing: bool = False,
+        poll_interval: Optional[datetime.timedelta] = None,
+        timeout: Optional[datetime.timedelta] = None,
+    ) -> Sequence[collections_pb2.DocumentMetadata]:
+        """Uploads multiple documents to a collection concurrently.
+
+        This is a convenience wrapper around `upload_document` that uploads the provided
+        documents concurrently using `asyncio`. Each upload is an independent sequence of
+        gRPC calls, so awaiting them concurrently overlaps the network latency of otherwise
+        serial uploads. The concurrency is bounded by `max_workers` (via an
+        `asyncio.Semaphore`) to avoid overwhelming the service or tripping server-side rate
+        limits.
+
+        Args:
+            collection_id: The ID of the collection to upload the documents to.
+            documents: The documents to upload. Each document is a mapping with a `name`,
+                `data` (raw bytes) and optional `fields`.
+            max_workers: The maximum number of concurrent uploads. Defaults to a
+                conservative value to respect server-side rate limits. Set this higher only
+                if you know the service can accommodate it.
+            wait_for_indexing: Whether to wait for every document to be indexed before
+                returning.
+            poll_interval: The interval to poll for when checking whether a document has been
+                indexed.
+            timeout: The total time to wait for each document to be indexed before returning.
+
+        Returns:
+            The metadata for the uploaded documents, in the same order as the input
+            `documents`.
+
+        Raises:
+            ValueError: If `documents` is empty or `max_workers` is not positive.
+            Exception: If any individual upload fails, the first encountered error is
+                re-raised and any in-flight uploads are cancelled. Errors are not swallowed.
+        """
+        if not documents:
+            raise ValueError("documents must not be empty")
+        if max_workers < 1:
+            raise ValueError("max_workers must be a positive integer")
+
+        semaphore = asyncio.Semaphore(max_workers)
+
+        async def _upload(document: DocumentUpload) -> collections_pb2.DocumentMetadata:
+            async with semaphore:
+                return await self.upload_document(
+                    collection_id,
+                    document["name"],
+                    document["data"],
+                    document.get("fields"),
+                    # Indexing is awaited in a single batched pass below.
+                    wait_for_indexing=False,
+                )
+
+        # asyncio.gather preserves input ordering and, by default, propagates the first
+        # exception to the caller while cancelling the remaining tasks.
+        results = await asyncio.gather(*(_upload(document) for document in documents))
+
+        if wait_for_indexing:
+            return [
+                await self._wait_for_indexing(
+                    collection_id,
+                    result.file_metadata.file_id,
+                    poll_interval or DEFAULT_INDEXING_POLL_INTERVAL,
+                    timeout or DEFAULT_INDEXING_TIMEOUT,
+                )
+                for result in results
+            ]
+
+        return list(results)
 
     async def add_existing_document(
         self,
