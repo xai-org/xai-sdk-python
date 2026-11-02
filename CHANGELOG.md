@@ -3,6 +3,9 @@
 ## [Unreleased]
 ### Added
 - Added the `cyber` guideline category and the `allow` behavior. `{"type": "policy", "category": "cyber", "behavior": "allow"}` is accepted only for API keys enabled for it; other keys get `PERMISSION_DENIED`. `nsfw`, `violence`, and `profanity` still accept only `decline`.
+### Fixed
+- `AsyncClient.files.upload` awaits an `async def` progress callback; before, the coroutine was created and never awaited, so the callback body never ran and Python warned `coroutine ... was never awaited`. Sync callbacks and tqdm-like objects behave as before.
+- `files.upload` progress callbacks: a two-argument callback that raises `TypeError` inside its own body is no longer mistaken for a one-argument callback and called again with the chunk size; the callback's arity is read from its signature once and user exceptions propagate unchanged. A file object positioned past the start now reports the bytes left to upload as `total`, not the file's full length.
 
 ## [v1.21.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.21.0) - 2026-10-23
 ### Added
