@@ -914,10 +914,11 @@ class FilesServicer(files_pb2_grpc.FilesServicer):
     can be attached to collections via the management API.
     """
 
-    def __init__(self, store: Optional[InMemoryStore] = None):
+    def __init__(self, store: Optional[InMemoryStore] = None, response_delay_seconds: int = 0):
         if store is None:
             store = InMemoryStore()
         self._store = store
+        self._response_delay_seconds = response_delay_seconds
 
     def UploadFile(
         self,
@@ -925,6 +926,9 @@ class FilesServicer(files_pb2_grpc.FilesServicer):
         context: grpc.ServicerContext,
     ) -> files_pb2.File:
         _check_auth(context)
+
+        if self._response_delay_seconds > 0:
+            time.sleep(self._response_delay_seconds)
 
         init: Optional[files_pb2.UploadFileInit] = None
         data_parts: list[bytes] = []
@@ -1642,7 +1646,7 @@ class TestServer(threading.Thread):
         )
         video_pb2_grpc.add_VideoServicer_to_server(VideoServicer("https://example.com/foo.mp4"), self._server)
         documents_pb2_grpc.add_DocumentsServicer_to_server(DocumentServicer(), self._server)
-        files_pb2_grpc.add_FilesServicer_to_server(FilesServicer(self._store), self._server)
+        files_pb2_grpc.add_FilesServicer_to_server(FilesServicer(self._store, response_delay_seconds), self._server)
 
     def stop(self):
         self._image_server.shutdown()

@@ -129,6 +129,17 @@ def test_timeout_unary_stream():
         assert excinfo.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED  # type: ignore
 
 
+def test_timeout_stream_unary():
+    """Test that the client timeout also applies to stream-unary calls such as file uploads."""
+    with server.run_test_server(response_delay_seconds=2) as port:
+        client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1)
+
+        with pytest.raises(grpc.RpcError) as excinfo:
+            client.files.upload(b"hello world", filename="hello.txt")
+
+        assert excinfo.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED  # type: ignore
+
+
 def test_insecure_client_auth():
     """Test that insecure client works with auth interceptors."""
     with server.run_test_server() as port:
@@ -136,6 +147,16 @@ def test_insecure_client_auth():
 
         api_key = client.auth.get_api_key_info()
         assert api_key.redacted_api_key == "1**"
+
+
+def test_insecure_client_auth_stream_unary():
+    """Test that insecure client attaches the API key to stream-unary calls such as file uploads."""
+    with server.run_test_server() as port:
+        client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", use_insecure_channel=True)
+
+        uploaded = client.files.upload(b"hello world", filename="hello.txt")
+        assert uploaded.filename == "hello.txt"
+        assert uploaded.size == len(b"hello world")
 
 
 def test_insecure_client_wrong_api_key():
@@ -170,6 +191,17 @@ def test_insecure_client_timeout_unary_stream():
             chat.append(user("Hello, world!"))
             for _, _ in chat.stream():
                 pass
+
+        assert excinfo.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED  # type: ignore
+
+
+def test_insecure_client_timeout_stream_unary():
+    """Test that insecure client timeout works for stream-unary calls such as file uploads."""
+    with server.run_test_server(response_delay_seconds=2) as port:
+        client = Client(api_key=server.API_KEY, api_host=f"localhost:{port}", timeout=1, use_insecure_channel=True)
+
+        with pytest.raises(grpc.RpcError) as excinfo:
+            client.files.upload(b"hello world", filename="hello.txt")
 
         assert excinfo.value.code() == grpc.StatusCode.DEADLINE_EXCEEDED  # type: ignore
 
