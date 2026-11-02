@@ -197,10 +197,12 @@ class BaseClient(abc.ABC, Generic[T]):
                 which tier was actually used.
             guidelines: Per-category moderation controls for the model's output. Each entry is a dict such as
                 `{"type": "policy", "category": "violence", "behavior": "decline"}`. The categories are `nsfw`,
-                `violence`, and `profanity`, and each may appear at most once. The behavior is `decline`. A
+                `violence`, `profanity`, and `cyber`, and each may appear at most once. `nsfw`, `violence`, and
+                `profanity` accept `decline`; `cyber` accepts `allow`, only for API keys enabled for it. A
                 category you omit keeps the model's default behavior. An unknown category or behavior raises
-                `ValueError`. The API returns `INVALID_ARGUMENT` for a repeated category or a request that cannot
-                use guidelines, such as a multi-agent model, `stop`, or `defer()`.
+                `ValueError`. The API returns `INVALID_ARGUMENT` for a repeated category, an unsupported category and
+                behavior pair, or a request that cannot use guidelines, such as a multi-agent model, `stop`, or
+                `defer()`. It returns `PERMISSION_DENIED` for `cyber` on an API key not enabled for it.
 
         Returns:
             A new chat request bound to a client.

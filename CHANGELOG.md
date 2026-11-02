@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Added the `cyber` guideline category and the `allow` behavior. `{"type": "policy", "category": "cyber", "behavior": "allow"}` is accepted only for API keys enabled for it; other keys get `PERMISSION_DENIED`. `nsfw`, `violence`, and `profanity` still accept only `decline`.
 ### Changed
 - `xai_sdk.chat.image` raises `ValueError` for a `detail` value other than `"auto"`, `"low"`, `"high"`, or `None`, as the other literal parameters already do. Before, a misspelled value was sent as `"auto"`.
 
