@@ -1,9 +1,14 @@
+import datetime
+from unittest import mock
+
 import grpc
 import pytest
 
 from xai_sdk import Client
+from xai_sdk.batch import BatchUnsupportedModelError, map_add_batch_error
 from xai_sdk.chat import Response, user
 from xai_sdk.proto import batch_pb2, chat_pb2
+from xai_sdk.sync import batch as sync_batch
 
 from .. import server
 
@@ -303,3 +308,150 @@ def test_add_to_nonexistent_batch(client: Client):
 
     assert e.value.code() == grpc.StatusCode.NOT_FOUND  # type: ignore
     assert e.value.details() == "Cannot find batch with ID nonexistent_batch_id"  # type: ignore
+
+
+def test_add_unsupported_batch_model(client: Client):
+    """Unsupported batch models raise BatchUnsupportedModelError with guidance."""
+    batch = client.batch.create("unsupported_model_batch")
+    chat = client.chat.create(model="grok-4.5", batch_request_id="bad_model")
+    chat.append(user("Say OK"))
+
+    with pytest.raises(BatchUnsupportedModelError) as exc_info:
+        client.batch.add(batch.batch_id, [chat])
+
+    err = exc_info.value
+    assert err.model == "grok-4.5"
+    assert "not supported for batch processing" in err.details
+    assert "grok-4.20" in str(err)
+    assert "grok-4.3" in str(err)
+
+
+def test_map_add_batch_error_from_mocked_rpc():
+    """Unit test: map INVALID_ARGUMENT unsupported-model details to SDK error."""
+
+    class FakeRpcError(grpc.RpcError):
+        def code(self):
+            return grpc.StatusCode.INVALID_ARGUMENT
+
+        def details(self):
+            return "Model grok-4.5 is not supported for batch processing."
+
+    mapped = map_add_batch_error(FakeRpcError())
+    assert isinstance(mapped, BatchUnsupportedModelError)
+    assert mapped.model == "grok-4.5"
+
+
+def test_map_add_batch_error_preserves_other_errors():
+    """Unit test: non-unsupported-model RpcErrors are left unchanged."""
+
+    class FakeRpcError(grpc.RpcError):
+        def code(self):
+            return grpc.StatusCode.INVALID_ARGUMENT
+
+        def details(self):
+            return "batch is sealed"
+
+    original = FakeRpcError()
+    assert map_add_batch_error(original) is original
+
+
+def test_wait_returns_when_batch_already_complete(client: Client):
+    """wait() returns immediately when there are no pending requests."""
+    batch = client.batch.create("empty_wait_batch")
+    finished = client.batch.wait(
+        batch.batch_id,
+        timeout=datetime.timedelta(seconds=5),
+        interval=datetime.timedelta(milliseconds=10),
+    )
+    assert finished.batch_id == batch.batch_id
+    assert finished.state.num_pending == 0
+
+
+def test_wait_completes_after_cancel(client: Client):
+    """wait() finishes once cancel clears pending requests."""
+    batch = client.batch.create("cancel_wait_batch")
+    chat = client.chat.create(model="grok-3", batch_request_id="req_0")
+    chat.append(user("hello"))
+    client.batch.add(batch.batch_id, [chat])
+    client.batch.cancel(batch.batch_id)
+
+    finished = client.batch.wait(
+        batch.batch_id,
+        timeout=datetime.timedelta(seconds=5),
+        interval=datetime.timedelta(milliseconds=10),
+    )
+    assert finished.state.num_pending == 0
+    assert finished.state.num_cancelled == 1
+
+
+def test_wait_polls_until_complete_with_mocked_stub():
+    """Unit test: wait polls GetBatch until num_pending reaches zero."""
+    pending = batch_pb2.Batch(
+        batch_id="batch_wait",
+        state=batch_pb2.BatchState(num_requests=1, num_pending=1),
+    )
+    done = batch_pb2.Batch(
+        batch_id="batch_wait",
+        state=batch_pb2.BatchState(num_requests=1, num_pending=0, num_success=1),
+    )
+
+    stub = mock.MagicMock()
+    stub.GetBatch.side_effect = [pending, done]
+    client = sync_batch.Client.__new__(sync_batch.Client)
+    client._stub = stub
+
+    with mock.patch("xai_sdk.sync.batch.time.sleep") as sleep_mock:
+        result = client.wait(
+            "batch_wait",
+            timeout=datetime.timedelta(seconds=5),
+            interval=datetime.timedelta(milliseconds=1),
+        )
+
+    assert result.state.num_pending == 0
+    assert result.state.num_success == 1
+    assert stub.GetBatch.call_count == 2
+    sleep_mock.assert_called_once()
+
+
+def test_wait_timeout_with_mocked_stub():
+    """Unit test: wait raises TimeoutError when the batch never completes."""
+    pending = batch_pb2.Batch(
+        batch_id="batch_timeout",
+        state=batch_pb2.BatchState(num_requests=1, num_pending=1),
+    )
+    stub = mock.MagicMock()
+    stub.GetBatch.return_value = pending
+    client = sync_batch.Client.__new__(sync_batch.Client)
+    client._stub = stub
+
+    with mock.patch("xai_sdk.sync.batch.time.sleep"):
+        with pytest.raises(TimeoutError, match="waiting for batch batch_timeout to complete"):
+            client.wait(
+                "batch_timeout",
+                timeout=datetime.timedelta(milliseconds=5),
+                interval=datetime.timedelta(milliseconds=1),
+            )
+
+
+def test_add_unsupported_model_with_mocked_stub():
+    """Unit test: add() wraps stub INVALID_ARGUMENT into BatchUnsupportedModelError."""
+
+    class FakeRpcError(grpc.RpcError):
+        def code(self):
+            return grpc.StatusCode.INVALID_ARGUMENT
+
+        def details(self):
+            return "Model grok-4.5 is not supported for batch processing."
+
+    stub = mock.MagicMock()
+    stub.AddBatchRequests.side_effect = FakeRpcError()
+    client = sync_batch.Client.__new__(sync_batch.Client)
+    client._stub = stub
+
+    request = batch_pb2.BatchRequest(
+        batch_request_id="req_0",
+        completion_request=chat_pb2.GetCompletionsRequest(model="grok-4.5"),
+    )
+    with pytest.raises(BatchUnsupportedModelError) as exc_info:
+        client.add("batch_id", [request])
+    assert exc_info.value.model == "grok-4.5"

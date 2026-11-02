@@ -41,14 +41,10 @@ async def main():
     # Add requests to the batch
     await client.batch.add(batch_id=batch.batch_id, batch_requests=batch_requests)
 
-    # Wait for batch to complete by polling for completion
+    # Wait for batch to complete (PollTimer-backed helper)
     print("Waiting for batch to complete...")
-    while True:
-        batch = await client.batch.get(batch_id=batch.batch_id)
-        print(f"Progress: {batch.state.num_success + batch.state.num_error}/{batch.state.num_requests}")
-        if batch.state.num_pending == 0:
-            break
-        await asyncio.sleep(3)
+    batch = await client.batch.wait(batch_id=batch.batch_id)
+    print(f"Progress: {batch.state.num_success + batch.state.num_error}/{batch.state.num_requests}")
 
     # Display final batch status
     print("Final batch status")
