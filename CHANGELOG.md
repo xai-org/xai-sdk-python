@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Added the `cyber` guideline category and the `allow` behavior. `{"type": "policy", "category": "cyber", "behavior": "allow"}` is accepted only for API keys enabled for it; other keys get `PERMISSION_DENIED`. `nsfw`, `violence`, and `profanity` still accept only `decline`.
 ### Changed
 - `files.list` / `collections` listing helpers: a misspelled `order`, `sort_by`, or `metric_space` value now raises `ValueError` naming the accepted values, as the other literal parameters already do (`reasoning_effort`, `service_tier`, image options). Previously a typo such as `order="dsc"` silently fell back to the default ordering. `None` still means the default.
 - `xai_sdk.chat.image` raises `ValueError` for a `detail` value other than `"auto"`, `"low"`, `"high"`, or `None`, as the other literal parameters already do. Before, a misspelled value was sent as `"auto"`.
