@@ -391,7 +391,7 @@ class Chat(BaseChat):
         Args:
             n: The number of responses to generate.
             timeout: Optional maximum duration to wait for the request to complete, defaults to 10 minutes.
-            interval: Optional interval between polling attempts, defaults to 100 milliseconds.
+            interval: Optional interval between polling attempts, defaults to 1 second.
 
         Returns:
             chat_pb2.GetChatCompletionResponse: The raw protocol buffer response from the
@@ -440,7 +440,7 @@ class Chat(BaseChat):
 
         Args:
             timeout: Optional maximum duration to wait for the request to complete, defaults to 10 minutes.
-            interval: Optional interval between polling attempts, defaults to 100 milliseconds.
+            interval: Optional interval between polling attempts, defaults to 1 second.
 
         Returns:
             Response: A `Response` object containing the model's output for the first (and
@@ -468,7 +468,7 @@ class Chat(BaseChat):
         Args:
             n: The number of responses to generate.
             timeout: Optional maximum duration to wait for the request to complete, defaults to 10 minutes.
-            interval: Optional interval between polling attempts, defaults to 100 milliseconds.
+            interval: Optional interval between polling attempts, defaults to 1 second.
 
         Returns:
             Sequence[Response]: A sequence of `Response` objects, each representing one of
