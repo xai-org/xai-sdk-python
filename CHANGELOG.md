@@ -4,6 +4,9 @@
 ### Added
 - Added the `cyber` guideline category and the `allow` behavior. `{"type": "policy", "category": "cyber", "behavior": "allow"}` is accepted only for API keys enabled for it; other keys get `PERMISSION_DENIED`. `nsfw`, `violence`, and `profanity` still accept only `decline`.
 
+### Fixed
+- Fixed `sample_batch`, `stream_batch`, `defer_batch` and `get_stored_completion` responses returning every alternative's `tool_calls`, `inline_citations`, `tool_outputs` and `image_outputs`. The batch constructors now pass `scope="alternative"` to `Response`, so those accessors only return entries from the matching output. The default `scope="answer"` keeps the previous behavior of collecting tool steps across all outputs of one answer.
+
 ## [v1.21.0](https://github.com/xai-org/xai-sdk-python/releases/tag/v1.21.0) - 2026-10-23
 ### Added
 - Added a `guidelines` parameter to `client.chat.create` for custom moderation controls. Each entry is a dict such as `{"type": "policy", "category": "violence", "behavior": "decline"}`, the same shape as the REST `guidelines` field. The categories are `nsfw`, `violence`, and `profanity`, and the behavior is `decline`. A category you omit keeps the model's default behavior. An unknown category or behavior raises `ValueError`. The API returns `INVALID_ARGUMENT` for a repeated category or a request that cannot use guidelines, such as a multi-agent model, `stop`, or `defer()`.
