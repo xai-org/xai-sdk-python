@@ -210,6 +210,72 @@ async def test_function_calling_batch(client):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_sample_batch_scopes_tool_calls_to_each_alternative(client):
+    chat = client.chat.create(
+        "grok-3-latest",
+        tools=[
+            tool(
+                name="get_weather",
+                description="Get the weather in a given city",
+                parameters={
+                    "type": "object",
+                    "properties": {"city": {"type": "string"}, "units": {"type": "string"}},
+                    "required": ["city", "units"],
+                },
+            )
+        ],
+    )
+    chat.append(user("What is the weather in London?"))
+    responses = await chat.sample_batch(3)
+
+    assert len(responses) == 3
+    for r in responses:
+        assert len(r.tool_calls) == 1
+        assert r.tool_calls[0].function.name == "get_weather"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_stream_batch_scopes_tool_calls_to_each_alternative(client):
+    chat = client.chat.create(
+        "grok-3-latest",
+        tools=[
+            tool(
+                name="get_weather",
+                description="Get the weather in a given city",
+                parameters={
+                    "type": "object",
+                    "properties": {"city": {"type": "string"}, "units": {"type": "string"}},
+                    "required": ["city", "units"],
+                },
+            )
+        ],
+    )
+    chat.append(user("What is the weather in London?"))
+
+    last_responses = None
+    async for responses, _ in chat.stream_batch(2):
+        last_responses = responses
+
+    assert last_responses is not None
+    assert len(last_responses) == 2
+    for r in last_responses:
+        assert len(r.tool_calls) == 1
+        assert r.tool_calls[0].function.name == "get_weather"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_defer_batch_scopes_responses_to_each_alternative(client):
+    chat = client.chat.create("grok-3-latest")
+    chat.append(user("What is the weather in London?"))
+    responses = await chat.defer_batch(2)
+
+    assert len(responses) == 2
+    for r in responses:
+        assert r.content == "Hello, this is a test response!"
+        assert r._scope == "alternative"
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_function_calling_streaming(client):
     chat = client.chat.create(
         "grok-3-latest",
@@ -632,6 +698,33 @@ async def test_get_stored_completion_returns_multiple_completions(client: AsyncC
     for r in retrieved_response:
         assert r.content == "Hello, this is a test response!"
         assert r.request_settings == chat_pb2.RequestSettings(temperature=0.5, top_p=0.9)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_get_stored_completion_scopes_tool_calls_per_alternative(client: AsyncClient):
+    chat = client.chat.create(
+        model="grok-3",
+        store_messages=True,
+        tools=[
+            tool(
+                name="get_weather",
+                description="Get the weather in a given city",
+                parameters={
+                    "type": "object",
+                    "properties": {"city": {"type": "string"}, "units": {"type": "string"}},
+                    "required": ["city", "units"],
+                },
+            )
+        ],
+    )
+    chat.append(user("What is the weather in London?"))
+    responses = await chat.sample_batch(2)
+
+    retrieved_response = await client.chat.get_stored_completion(responses[0].id)
+    assert len(retrieved_response) == 2
+    for r in retrieved_response:
+        assert len(r.tool_calls) == 1
+        assert r.tool_calls[0].function.name == "get_weather"
 
 
 @pytest.mark.asyncio(loop_scope="session")

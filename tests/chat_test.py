@@ -938,3 +938,141 @@ def test_append_compact_context_response_clears_existing_messages():
     assert len(chat.messages) == 1
     assert chat.messages[0].role == chat_pb2.MessageRole.ROLE_USER
     assert chat.messages[0].encrypted_content == "blob"
+
+
+def _batch_response_pb() -> chat_pb2.GetChatCompletionResponse:
+    """Two batch alternatives, each with its own tool call, citation and tool output."""
+    return chat_pb2.GetChatCompletionResponse(
+        outputs=[
+            chat_pb2.CompletionOutput(
+                index=i,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    content=f"answer {i}",
+                    tool_calls=[chat_pb2.ToolCall(id=f"call_{i}", function=chat_pb2.FunctionCall(name=f"fn_{i}"))],
+                    citations=[chat_pb2.InlineCitation(id=str(i + 1), start_index=0, end_index=1)],
+                ),
+            )
+            for i in range(2)
+        ]
+        + [
+            chat_pb2.CompletionOutput(
+                index=i,
+                message=chat_pb2.CompletionMessage(role=chat_pb2.ROLE_TOOL, content=f"tool result {i}"),
+            )
+            for i in range(2)
+        ]
+    )
+
+
+def test_response_alternative_scope_returns_only_its_own_entries():
+    """Batch alternatives must not see each other's tool calls, citations or tool outputs."""
+    pb = _batch_response_pb()
+    r0, r1 = Response(pb, 0, scope="alternative"), Response(pb, 1, scope="alternative")
+
+    assert (r0.content, r1.content) == ("answer 0", "answer 1")
+    assert [tc.function.name for tc in r0.tool_calls] == ["fn_0"]
+    assert [tc.function.name for tc in r1.tool_calls] == ["fn_1"]
+    assert [c.id for c in r0.inline_citations] == ["1"]
+    assert [c.id for c in r1.inline_citations] == ["2"]
+    assert [o.message.content for o in r0.tool_outputs] == ["tool result 0"]
+    assert [o.message.content for o in r1.tool_outputs] == ["tool result 1"]
+
+
+def test_response_alternative_scope_returns_only_its_own_images():
+    """Image outputs follow the same scoping through tool_outputs."""
+    pb = chat_pb2.GetChatCompletionResponse(
+        outputs=[
+            chat_pb2.CompletionOutput(
+                index=i,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_TOOL,
+                    content=(
+                        '{"__type": "image_generation_result", '
+                        '"result": "data:image/png;base64,aGk=", '
+                        f'"image_uuid": "img-{i}"}}'
+                    ),
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            id=f"img-call-{i}",
+                            type=chat_pb2.TOOL_CALL_TYPE_IMAGE_GENERATION_TOOL,
+                            status=chat_pb2.TOOL_CALL_STATUS_COMPLETED,
+                            function=chat_pb2.FunctionCall(name="imagine_text_to_image"),
+                        )
+                    ],
+                ),
+            )
+            for i in range(2)
+        ]
+    )
+
+    r0, r1 = Response(pb, 0, scope="alternative"), Response(pb, 1, scope="alternative")
+    assert [o.image_uuid for o in r0.image_outputs] == ["img-0"]
+    assert [o.image_uuid for o in r1.image_outputs] == ["img-1"]
+    assert [o.image_uuid for o in Response(pb, 0).image_outputs] == ["img-0", "img-1"]
+
+
+def test_response_alternative_scope_applies_to_streamed_chunks():
+    """Scoped responses stay scoped while chunks accumulate, as in stream_batch."""
+    pb = chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput(index=i) for i in range(2)])
+    r0, r1 = Response(pb, 0, scope="alternative"), Response(pb, 1, scope="alternative")
+
+    for i in range(2):
+        r0.process_chunk(
+            chat_pb2.GetChatCompletionChunk(
+                outputs=[
+                    chat_pb2.CompletionOutputChunk(
+                        index=i,
+                        delta=chat_pb2.Delta(
+                            role=chat_pb2.ROLE_ASSISTANT,
+                            tool_calls=[
+                                chat_pb2.ToolCall(id=f"call_{i}", function=chat_pb2.FunctionCall(name=f"fn_{i}"))
+                            ],
+                        ),
+                    )
+                ]
+            )
+        )
+
+    assert [tc.function.name for tc in r0.tool_calls] == ["fn_0"]
+    assert [tc.function.name for tc in r1.tool_calls] == ["fn_1"]
+
+
+def test_response_default_scope_collects_tool_steps_across_outputs():
+    """Without a scope, an index selects one answer whose tool steps span every output."""
+    pb = chat_pb2.GetChatCompletionResponse(
+        outputs=[
+            chat_pb2.CompletionOutput(
+                index=0,
+                message=chat_pb2.CompletionMessage(
+                    role=chat_pb2.ROLE_ASSISTANT,
+                    tool_calls=[
+                        chat_pb2.ToolCall(
+                            id="call_0",
+                            function=chat_pb2.FunctionCall(name="web_search", arguments='{"query":"xai"}'),
+                        )
+                    ],
+                ),
+            ),
+            chat_pb2.CompletionOutput(
+                index=1,
+                message=chat_pb2.CompletionMessage(role=chat_pb2.ROLE_TOOL, content="tool result"),
+            ),
+            chat_pb2.CompletionOutput(
+                index=2,
+                message=chat_pb2.CompletionMessage(role=chat_pb2.ROLE_ASSISTANT, content="xai is great!"),
+            ),
+        ]
+    )
+    response = Response(pb, 2)
+
+    assert response.content == "xai is great!"
+    assert [tc.function.name for tc in response.tool_calls] == ["web_search"]
+    assert [o.index for o in response.tool_outputs] == [1]
+
+
+def test_response_rejects_unknown_scope():
+    """A misspelled scope must fail loudly instead of silently keeping the default."""
+    pb = chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput(index=0)])
+    with pytest.raises(ValueError, match="scope"):
+        Response(pb, 0, scope="bogus")  # type: ignore

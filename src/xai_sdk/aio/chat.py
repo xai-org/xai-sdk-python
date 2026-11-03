@@ -51,7 +51,7 @@ class Client(BaseClient["Chat"]):
             "Previously generated response content"
         """
         response = await self._stub.GetStoredCompletion(chat_pb2.GetStoredCompletionRequest(response_id=response_id))
-        return [Response(response, i) for i in range(len(response.outputs))]
+        return [Response(response, i, scope="alternative") for i in range(len(response.outputs))]
 
     async def compact_context(
         self,
@@ -213,7 +213,7 @@ class Chat(BaseChat):
             attributes=self._make_span_request_attributes(),
         ) as span:
             response_pb = await self._stub.GetCompletion(self._make_request(n))
-            responses = [Response(response_pb, i) for i in range(n)]
+            responses = [Response(response_pb, i, scope="alternative") for i in range(n)]
             span.set_attributes(self._make_span_response_attributes(responses))
             return responses
 
@@ -304,7 +304,7 @@ class Chat(BaseChat):
         )
 
         proto = chat_pb2.GetChatCompletionResponse(outputs=[chat_pb2.CompletionOutput(index=i) for i in range(n)])
-        responses = [Response(proto, i) for i in range(n)]
+        responses = [Response(proto, i, scope="alternative") for i in range(n)]
         first_chunk_received = False
 
         with tracer.start_as_current_span(
@@ -417,9 +417,10 @@ class Chat(BaseChat):
                 )
                 match r.status:
                     case deferred_pb2.DeferredStatus.DONE:
-                        span.set_attributes(
-                            self._make_span_response_attributes([Response(r.response, i) for i in range(n)])
-                        )
+                        responses = [
+                            Response(r.response, i, scope="alternative" if n > 1 else "answer") for i in range(n)
+                        ]
+                        span.set_attributes(self._make_span_response_attributes(responses))
                         return r.response
                     case deferred_pb2.DeferredStatus.EXPIRED:
                         raise RuntimeError("Deferred request expired.")
@@ -491,4 +492,4 @@ class Chat(BaseChat):
         )
 
         response = await self._defer(n, timeout, interval)
-        return [Response(response, i) for i in range(n)]
+        return [Response(response, i, scope="alternative") for i in range(n)]

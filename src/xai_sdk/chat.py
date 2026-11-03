@@ -3,7 +3,7 @@ import base64
 import datetime
 import json
 from collections import Counter, defaultdict
-from typing import Any, Generic, Optional, Sequence, TypeVar, Union, overload
+from typing import Any, Generic, Literal, Optional, Sequence, TypeVar, Union, overload
 
 import grpc
 from pydantic import BaseModel, TypeAdapter
@@ -1326,8 +1326,14 @@ class Response(_ResponseProtoDecorator):
     # A single request can produce multiple responses. This index is used to retrieve the content of
     # a single answer from the response proto.
     _index: int | None
+    _scope: Literal["answer", "alternative"]
 
-    def __init__(self, response: chat_pb2.GetChatCompletionResponse, index: int | None) -> None:
+    def __init__(
+        self,
+        response: chat_pb2.GetChatCompletionResponse,
+        index: int | None,
+        scope: Literal["answer", "alternative"] = "answer",
+    ) -> None:
         """Initializes a new instance of the `Response` class.
 
         Args:
@@ -1335,9 +1341,20 @@ class Response(_ResponseProtoDecorator):
             index: The index of the answer this class exposes via its convenience methods.
                 If set to None, the response will expose all answers, the content and reasoning content
                 will be only from the assistant response.
+            scope: What `index` selects. `"answer"` (the default) means the outputs are steps
+                of one answer, so `tool_calls`, `inline_citations` and `tool_outputs` aggregate
+                across every output. `"alternative"` means the outputs are batch alternatives,
+                so those accessors only return entries from the output matching `index`.
         """
+        if scope not in ("answer", "alternative"):
+            raise ValueError(f"Unrecognized response scope: {scope!r}.")
         super().__init__(response)
         self._index = index
+        self._scope = scope
+
+    def _matches_index(self, output_index: int) -> bool:
+        """Whether an output belongs to this response when the index selects a batch alternative."""
+        return self._index is None or self._scope != "alternative" or output_index == self._index
 
     def _get_output(self, *, sync: bool = False) -> chat_pb2.CompletionOutput:
         # Sync buffers to proto only when content is needed
@@ -1451,7 +1468,7 @@ class Response(_ResponseProtoDecorator):
         return [
             tc
             for output in self.proto.outputs
-            if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
+            if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT and self._matches_index(output.index)
             for tc in output.message.tool_calls
         ]
 
@@ -1481,14 +1498,18 @@ class Response(_ResponseProtoDecorator):
         return [
             citation
             for output in self.proto.outputs
-            if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT
+            if output.message.role == chat_pb2.MessageRole.ROLE_ASSISTANT and self._matches_index(output.index)
             for citation in output.message.citations
         ]
 
     @property
     def tool_outputs(self) -> Sequence[chat_pb2.CompletionOutput]:
         """Returns the output entries that contain the tool outputs."""
-        return [output for output in self.proto.outputs if output.message.role == chat_pb2.MessageRole.ROLE_TOOL]
+        return [
+            output
+            for output in self.proto.outputs
+            if output.message.role == chat_pb2.MessageRole.ROLE_TOOL and self._matches_index(output.index)
+        ]
 
     @property
     def image_outputs(self) -> Sequence[ImageGenerationOutput]:
