@@ -746,6 +746,15 @@ def test_batch_upload_empty_list(client_with_mock_stub: Client):
         client_with_mock_stub.files.batch_upload([])
 
 
+def test_batch_upload_invalid_batch_size(client_with_mock_stub: Client):
+    """Test batch upload rejects non-positive batch sizes."""
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        client_with_mock_stub.files.batch_upload(["file.txt"], batch_size=0)
+
+    with pytest.raises(ValueError, match="batch_size must be at least 1"):
+        client_with_mock_stub.files.batch_upload(["file.txt"], batch_size=-1)
+
+
 @mock.patch("xai_sdk.sync.files.tracer")
 def test_upload_creates_span_with_correct_attributes(
     mock_tracer: mock.MagicMock, client_with_mock_stub: Client, mock_stub
