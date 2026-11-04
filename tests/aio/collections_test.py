@@ -646,6 +646,29 @@ async def test_upload_document(client: AsyncClient):
 
 
 @pytest.mark.asyncio(loop_scope="session")
+async def test_upload_document_file_from_path(client: AsyncClient, tmp_path):
+    collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")
+    assert collection_metadata.collection_id is not None
+
+    data = b"Hello from a streamed file!"
+    fields = {"source": "path"}
+    file_path = tmp_path / "streamed-document.txt"
+    file_path.write_bytes(data)
+
+    document_metadata = await client.collections.upload_document_file(
+        collection_metadata.collection_id,
+        str(file_path),
+        fields=fields,
+    )
+
+    assert document_metadata.file_metadata.file_id is not None
+    assert document_metadata.file_metadata.name == file_path.name
+    assert document_metadata.file_metadata.size_bytes == len(data)
+    assert document_metadata.file_metadata.content_type == "text/plain"
+    assert document_metadata.fields == fields
+
+
+@pytest.mark.asyncio(loop_scope="session")
 async def test_add_existing_document_to_collection(client: AsyncClient):
     # Create a collection to add the document to.
     collection_metadata = await client.collections.create(f"test-collection-{uuid.uuid4()}")

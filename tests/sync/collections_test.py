@@ -620,6 +620,28 @@ def test_upload_document(client: Client):
     assert response.fields == fields
 
 
+def test_upload_document_file_from_path(client: Client, tmp_path):
+    collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
+    assert collection_metadata.collection_id is not None
+
+    data = b"Hello from a streamed file!"
+    fields = {"source": "path"}
+    file_path = tmp_path / "streamed-document.txt"
+    file_path.write_bytes(data)
+
+    document_metadata = client.collections.upload_document_file(
+        collection_metadata.collection_id,
+        str(file_path),
+        fields=fields,
+    )
+
+    assert document_metadata.file_metadata.file_id is not None
+    assert document_metadata.file_metadata.name == file_path.name
+    assert document_metadata.file_metadata.size_bytes == len(data)
+    assert document_metadata.file_metadata.content_type == "text/plain"
+    assert document_metadata.fields == fields
+
+
 def test_upload_document_without_wait_for_indexing(client: Client):
     """Test uploading a document without waiting for indexing returns immediately with PROCESSED status."""
     collection_metadata = client.collections.create(f"test-collection-{uuid.uuid4()}")
