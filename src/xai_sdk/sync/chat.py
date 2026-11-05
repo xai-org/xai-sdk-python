@@ -207,7 +207,7 @@ class Chat(BaseChat):
         with tracer.start_as_current_span(
             name=f"chat.sample_batch {self._proto.model}",
             kind=SpanKind.CLIENT,
-            attributes=self._make_span_request_attributes(),
+            attributes=self._make_span_request_attributes(n),
         ) as span:
             response_pb = self._stub.GetCompletion(self._make_request(n))
             responses = [Response(response_pb, i) for i in range(n)]
@@ -303,7 +303,7 @@ class Chat(BaseChat):
         with tracer.start_as_current_span(
             name=f"chat.stream_batch {self._proto.model}",
             kind=SpanKind.CLIENT,
-            attributes=self._make_span_request_attributes(),
+            attributes=self._make_span_request_attributes(n),
         ) as span:
             stream = self._stub.GetCompletionChunk(self._make_request(n))
             for chunk in stream:
@@ -395,7 +395,7 @@ class Chat(BaseChat):
         with tracer.start_as_current_span(
             name=f"{operation} {self._proto.model}",
             kind=SpanKind.CLIENT,
-            attributes=self._make_span_request_attributes(),
+            attributes=self._make_span_request_attributes(n),
         ) as span:
             response = self._stub.StartDeferredCompletion(self._make_request(n))
 
