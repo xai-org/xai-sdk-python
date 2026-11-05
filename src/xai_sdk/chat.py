@@ -451,8 +451,13 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
         request.n = n
         return request
 
-    def _make_span_request_attributes(self) -> dict[str, Any]:  # noqa: C901, PLR0912
-        """Creates a dictionary with all relevant request attributes to be set on the span as it is created."""
+    def _make_span_request_attributes(self, n: int = 1) -> dict[str, Any]:  # noqa: C901, PLR0912
+        """Creates a dictionary with all relevant request attributes to be set on the span as it is created.
+
+        Args:
+            n: Number of completions requested. It is only set on the request built by `_make_request`,
+                not on the chat proto, so callers pass it in.
+        """
         attributes: dict[str, Any] = {
             "gen_ai.operation.name": "chat",
             "gen_ai.provider.name": "xai",
@@ -486,7 +491,6 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
 
         # Integer fields
         int_fields = [
-            ("n", "gen_ai.request.choice.count"),
             ("seed", "gen_ai.request.seed"),
             ("max_tokens", "gen_ai.request.max_tokens"),
             ("top_logprobs", "gen_ai.request.top_logprobs"),
@@ -503,6 +507,8 @@ class BaseChat(ProtoDecorator[chat_pb2.GetCompletionsRequest]):
                 attributes[attr_name] = getattr(self._proto, proto_field)
 
         # Special cases
+        if n != 1:
+            attributes["gen_ai.request.choice.count"] = n
         if self._conversation_id:
             attributes["gen_ai.conversation.id"] = self._conversation_id
         if len(self._proto.stop) > 0:

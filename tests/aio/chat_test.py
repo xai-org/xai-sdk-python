@@ -885,6 +885,7 @@ async def test_sample_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
         "gen_ai.request.use_encrypted_content": False,
+        "gen_ai.request.choice.count": 3,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1019,6 +1020,7 @@ async def test_stream_batch_creates_span_with_correct_attributes(mock_tracer: mo
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
         "gen_ai.request.use_encrypted_content": False,
+        "gen_ai.request.choice.count": 2,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
@@ -1206,6 +1208,7 @@ async def test_defer_batch_creates_span_with_correct_attributes(mock_tracer: moc
         "gen_ai.prompt.0.content": "Hello, how are you?",
         "gen_ai.request.store_messages": False,
         "gen_ai.request.use_encrypted_content": False,
+        "gen_ai.request.choice.count": 3,
     }
 
     mock_tracer.start_as_current_span.assert_called_once_with(
