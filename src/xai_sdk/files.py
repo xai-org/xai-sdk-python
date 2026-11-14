@@ -213,6 +213,7 @@ def _chunk_file_from_path(
     file_path: str,
     progress: ProgressCallback = None,
     expires_after: Optional[Union[datetime.timedelta, int]] = None,
+    filename: Optional[str] = None,
 ) -> Iterator[files_pb2.UploadFileChunk]:
     """Generator that yields file upload chunks by streaming from disk.
 
@@ -223,11 +224,12 @@ def _chunk_file_from_path(
         file_path: Path to the file to upload.
         progress: Optional progress callback or tqdm-like object.
         expires_after: Optional expiration for the file (timedelta or int seconds).
+        filename: Optional name for the uploaded file. Defaults to the basename of `file_path`.
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
     """
-    filename = os.path.basename(file_path)
+    filename = filename or os.path.basename(file_path)
     total_bytes = os.path.getsize(file_path)
     bytes_uploaded = 0
 
@@ -345,6 +347,7 @@ async def _async_chunk_file_from_path(
     file_path: str,
     progress: ProgressCallback = None,
     expires_after: Optional[Union[datetime.timedelta, int]] = None,
+    filename: Optional[str] = None,
 ) -> AsyncIterator[files_pb2.UploadFileChunk]:
     """Async generator that yields file upload chunks by streaming from disk.
 
@@ -355,11 +358,12 @@ async def _async_chunk_file_from_path(
         file_path: Path to the file to upload.
         progress: Optional progress callback or tqdm-like object.
         expires_after: Optional expiration for the file (timedelta or int seconds).
+        filename: Optional name for the uploaded file. Defaults to the basename of `file_path`.
 
     Yields:
         UploadFileChunk messages containing either init metadata or data.
     """
-    filename = os.path.basename(file_path)
+    filename = filename or os.path.basename(file_path)
     total_bytes = os.path.getsize(file_path)
     bytes_uploaded = 0
 
