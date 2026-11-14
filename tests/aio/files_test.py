@@ -75,6 +75,32 @@ async def test_upload_file_not_found(client_with_mock_stub: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_upload_file_path_uses_explicit_filename(client_with_mock_stub: AsyncClient, mock_stub):
+    """Test that an explicit filename overrides the basename when uploading from a path asynchronously."""
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
+        f.write("test content")
+        temp_file_path = f.name
+
+    try:
+        mock_response = files_pb2.File(id="file-123", filename="report.txt", size=12)
+
+        async def consume_chunks(chunks):
+            chunk_list = []
+            async for chunk in chunks:
+                chunk_list.append(chunk)
+            assert chunk_list[0].HasField("init")
+            assert chunk_list[0].init.name == "report.txt"
+            return mock_response
+
+        mock_stub.UploadFile.side_effect = consume_chunks
+
+        result = await client_with_mock_stub.files.upload(temp_file_path, filename="report.txt")
+        assert result.id == "file-123"
+    finally:
+        os.unlink(temp_file_path)
+
+
+@pytest.mark.asyncio
 async def test_upload_bytes(client_with_mock_stub: AsyncClient, mock_stub):
     """Test uploading file from bytes asynchronously."""
     data = b"test content"

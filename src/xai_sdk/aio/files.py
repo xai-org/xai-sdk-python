@@ -106,6 +106,7 @@ class Client(BaseClient):
                 file_path=file,
                 progress=on_progress,
                 expires_after=expires_after,
+                filename=filename,
             )
 
         # Handle bytes
