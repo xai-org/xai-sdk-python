@@ -7,6 +7,7 @@ from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import AsyncClient
+from xai_sdk.aio.image import ImageResponse
 from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.image import (
     BaseImageResponse,
@@ -782,3 +783,36 @@ def test_image_response_public_url_none_when_no_file_output():
     response = BaseImageResponse(proto, 0)
     assert response.public_url is None
     assert response.public_url_error is None
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_image_url_download_has_timeout():
+    """The async URL download must pass a timeout, matching the sync client (issue #250)."""
+    proto = image_pb2.ImageResponse()
+    img = proto.images.add()
+    img.url = "https://example.com/image.jpg"
+    response = ImageResponse(proto, 0)
+
+    captured = {}
+
+    class _FakeResp:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *exc):
+            return False
+
+        def raise_for_status(self):
+            pass
+
+        async def read(self):
+            return b"bytes"
+
+    def _fake_request(method, url, **kwargs):
+        captured["timeout"] = kwargs.get("timeout")
+        return _FakeResp()
+
+    with mock.patch("xai_sdk.aio.image.aiohttp.request", _fake_request):
+        assert await response.image == b"bytes"
+
+    assert captured["timeout"] is not None, "async image download must set a timeout"
