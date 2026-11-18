@@ -145,8 +145,12 @@ class BaseImageResponse(ProtoDecorator[image_pb2.ImageResponse]):
     def _decode_base64(self) -> bytes:
         """Returns the raw image buffer from a base64-encoded response."""
         encoded = self.base64
-        # Remove the prefix.
-        _, encoded_buffer = encoded.split("base64,", 1)
+        # Strip the data-URL prefix (e.g. "data:image/jpeg;base64,") if present.
+        # A server response without the prefix is treated as a bare base64 payload
+        # rather than raising an unpack error.
+        _, _, encoded_buffer = encoded.rpartition("base64,")
+        if not encoded_buffer:
+            encoded_buffer = encoded
         return base64.b64decode(encoded_buffer)
 
 
