@@ -776,7 +776,7 @@ async def test_upload_creates_span_with_correct_attributes(
     )
 
     mock_span.set_attribute.assert_any_call("file.id", result.id)
-    mock_span.set_attribute.assert_any_call("file.filename", result.filename)
+    mock_span.set_attribute.assert_any_call("file.name", result.filename)
 
 
 @mock.patch("xai_sdk.aio.files.tracer")
