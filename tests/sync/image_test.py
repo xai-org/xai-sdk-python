@@ -6,6 +6,7 @@ from google.protobuf import timestamp_pb2
 from opentelemetry.trace import SpanKind
 
 from xai_sdk import Client
+from xai_sdk.sync.image import ImageResponse
 from xai_sdk.cost import USD_PER_TICK
 from xai_sdk.image import (
     BaseImageResponse,
@@ -766,3 +767,25 @@ def test_image_response_public_url_none_when_no_file_output():
     response = BaseImageResponse(proto, 0)
     assert response.public_url is None
     assert response.public_url_error is None
+
+
+def test_decode_base64_with_data_url_prefix():
+    """A standard data-URL base64 value decodes to the raw bytes (issue #251)."""
+    import base64 as _b64
+
+    raw = b"hello-image-bytes"
+    proto = image_pb2.ImageResponse()
+    img = proto.images.add()
+    img.base64 = "data:image/jpeg;base64," + _b64.b64encode(raw).decode()
+    assert ImageResponse(proto, 0).image == raw
+
+
+def test_decode_base64_without_prefix_does_not_crash():
+    """A base64 value without the 'base64,' prefix must not raise ValueError (issue #251)."""
+    import base64 as _b64
+
+    raw = b"hello-image-bytes"
+    proto = image_pb2.ImageResponse()
+    img = proto.images.add()
+    img.base64 = _b64.b64encode(raw).decode()  # bare payload, no data-URL prefix
+    assert ImageResponse(proto, 0).image == raw
