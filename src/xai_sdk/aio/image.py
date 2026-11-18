@@ -363,6 +363,7 @@ class ImageResponse(BaseImageResponse):
                 "GET",
                 self.url,
                 headers={"User-Agent": USER_AGENT},
+                timeout=aiohttp.ClientTimeout(total=5),  # 5 seconds, matching the sync client
             ) as session:
                 session.raise_for_status()
                 return await session.read()
