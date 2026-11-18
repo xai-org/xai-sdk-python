@@ -146,7 +146,7 @@ class Client(BaseClient):
             res = await self._stub.UploadFile(chunks)
             if not should_disable_sensitive_attributes():
                 span.set_attribute("file.id", res.id)
-                span.set_attribute("file.filename", res.filename)
+                span.set_attribute("file.name", res.filename)
             return res
 
     async def batch_upload(
